@@ -14,7 +14,7 @@ export default function Home() {
 
   return (
     <div className="max-w-lg mx-auto mt-24 p-6 text-center">
-      <h1 className="text-3xl font-bold mb-3">FixIt 🔧</h1>
+      <h1 className="text-3xl font-bold mb-3">Fixit 🔧</h1>
       <p className="text-gray-600 mb-8">
         Encontrá plomeros, electricistas, gasistas y más, cerca tuyo.
       </p>
