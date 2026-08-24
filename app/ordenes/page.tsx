@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { Orden } from "@/types/ordenes";
+import Link from "next/link";
 
 const ESTADO_LABELS: Record<string, string> = {
   PendientePago: "Pendiente de pago",
@@ -60,16 +61,19 @@ export default function OrdenesPage() {
         {ordenes.map((o) => (
           <li key={o.id} className="border rounded p-3">
             <div className="flex justify-between items-start">
-              <div>
+                <div>
                 <p className="font-medium">{o.categoriaNombre}</p>
                 <p className="text-sm text-gray-600">Con {o.prestadorNombreCompleto}</p>
                 <p className="text-sm text-gray-600">${o.montoTotal}</p>
-              </div>
-              <span className="text-xs bg-gray-100 rounded px-2 py-1 whitespace-nowrap">
+                </div>
+                <span className="text-xs bg-gray-100 rounded px-2 py-1 whitespace-nowrap">
                 {ESTADO_LABELS[o.estado] ?? o.estado}
-              </span>
+                </span>
             </div>
-          </li>
+            <Link href={`/ordenes/${o.id}/chat`} className="text-sm underline mt-2 inline-block">
+                Abrir chat
+            </Link>
+            </li>
         ))}
       </ul>
     </div>
