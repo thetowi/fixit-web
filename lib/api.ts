@@ -21,9 +21,14 @@ export async function apiFetch<T>(
     },
   });
 
-  if (!response.ok) {
+      if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
     throw new ApiError(errorBody?.error ?? "Ocurrió un error", response.status);
+  }
+
+  // 204 No Content (o cualquier respuesta sin body) no tiene JSON para parsear
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json();

@@ -60,6 +60,14 @@ export default function Navbar() {
             </button>
           </>
         )}
+        {usuario?.rol === "Admin" && (
+        <>
+            <Link href="/admin">Admin</Link>
+            <button onClick={handleLogout} className="text-gray-500">
+            Cerrar sesión
+            </button>
+        </>
+        )}
       </div>
     </nav>
   );
