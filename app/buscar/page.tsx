@@ -5,6 +5,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUbicacionActual, Coordenadas } from "@/lib/geolocation";
 import { Categoria } from "@/types/categorias";
 import { PrestadorEncontrado } from "@/types/busqueda";
+import Link from "next/link";
 
 export default function BuscarPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -125,22 +126,22 @@ export default function BuscarPage() {
           <ul className="flex flex-col gap-3">
             {resultados.map((p) => (
               <li key={p.id} className="border rounded p-3">
-                <div className="flex justify-between items-start">
-                  <div>
+                <Link href={`/prestador/${p.id}`} className="flex justify-between items-start">
+                    <div>
                     <p className="font-medium">
-                      {p.nombre} {p.apellido}
-                      {p.verificado && <span className="text-green-600 text-xs ml-2">✓ Verificado</span>}
+                        {p.nombre} {p.apellido}
+                        {p.verificado && <span className="text-green-600 text-xs ml-2">✓ Verificado</span>}
                     </p>
                     {p.descripcion && <p className="text-sm text-gray-600">{p.descripcion}</p>}
                     {p.precioReferencia && (
-                      <p className="text-sm text-gray-600">Desde ${p.precioReferencia}</p>
+                        <p className="text-sm text-gray-600">Desde ${p.precioReferencia}</p>
                     )}
-                  </div>
-                  <span className="text-sm text-gray-500 whitespace-nowrap">
+                    </div>
+                    <span className="text-sm text-gray-500 whitespace-nowrap">
                     {p.distanciaKm.toFixed(1)} km
-                  </span>
-                </div>
-              </li>
+                    </span>
+                </Link>
+                </li>
             ))}
           </ul>
         </>
