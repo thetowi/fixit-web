@@ -26,3 +26,20 @@ export interface LoginResponse {
   token: string;
   usuario: Usuario;
 }
+
+export interface LoginGoogleRequest {
+  idToken: string;
+}
+export interface LoginGoogleResponse {
+  token?: string;
+  usuario?: Usuario;
+  requiereRol: boolean;
+  emailPendiente?: string;
+  nombrePendiente?: string;
+  idTokenPendiente?: string;
+}
+
+export interface CompletarRegistroGoogleRequest {
+  idToken: string;
+  rol: "cliente" | "prestador";
+}
