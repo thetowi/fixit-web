@@ -6,5 +6,7 @@ export interface PrestadorEncontrado {
   fotoPerfilUrl: string | null;
   descripcion: string | null;
   precioReferencia: number | null;
-  distanciaKm: number;
+  distanciaKm: number | null;
+  promedioCalificacion: number | null;
+  cantidadCalificaciones: number;
 }
