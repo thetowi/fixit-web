@@ -26,7 +26,6 @@ export default function ServiciosPrestadorPage() {
       router.push("/cuenta");
       return;
     }
-
     cargarDatos();
   }, [router]);
 
@@ -83,22 +82,22 @@ export default function ServiciosPrestadorPage() {
     }
   }
 
-  // Solo mostramos en el selector las categorías que todavía NO agregó
   const categoriasParaAgregar = categoriasDisponibles.filter(
     (c) => !misCategorias.some((mc) => mc.categoriaId === c.id)
   );
 
-  if (cargando) return <p className="p-6">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
 
   return (
-    <div className="max-w-lg mx-auto mt-16 p-6">
-      <h1 className="text-2xl font-bold mb-6">Mis servicios</h1>
+    <div className="max-w-lg mx-auto mt-16 p-6 w-full">
+      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Prestador</p>
+      <h1 className="font-display text-2xl text-ink mb-6">Mis servicios</h1>
 
-      <form onSubmit={handleAgregar} className="flex flex-col gap-3 border rounded p-4 mb-8">
-        <h2 className="font-semibold">Agregar un servicio</h2>
+      <form onSubmit={handleAgregar} className="flex flex-col gap-3 bg-white border border-ink/10 rounded-lg p-4 mb-8">
+        <p className="text-sm font-medium text-ink">Agregar un servicio</p>
 
         <select
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={categoriaSeleccionada}
           onChange={(e) => setCategoriaSeleccionada(e.target.value ? Number(e.target.value) : "")}
         >
@@ -112,7 +111,7 @@ export default function ServiciosPrestadorPage() {
 
         <textarea
           placeholder="Descripción (ej: 10 años de experiencia, atiendo urgencias)"
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
         />
@@ -120,35 +119,37 @@ export default function ServiciosPrestadorPage() {
         <input
           type="number"
           placeholder="Precio de referencia (opcional)"
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={precio}
           onChange={(e) => setPrecio(e.target.value)}
         />
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {error && <p className="text-red-700 text-sm">{error}</p>}
 
-        <button type="submit" className="bg-black text-white rounded p-2">
+        <button type="submit" className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors">
           Agregar
         </button>
       </form>
 
-      <h2 className="font-semibold mb-3">Servicios que ofrecés</h2>
+      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Servicios que ofrecés</p>
       {misCategorias.length === 0 && (
-        <p className="text-gray-500 text-sm">Todavía no agregaste ningún servicio.</p>
+        <p className="text-ink/50 text-sm">Todavía no agregaste ningún servicio.</p>
       )}
       <ul className="flex flex-col gap-3">
         {misCategorias.map((mc) => (
-          <li key={mc.id} className="border rounded p-3 flex justify-between items-start">
+          <li key={mc.id} className="bg-white border border-ink/10 rounded-lg p-3 flex justify-between items-start">
             <div>
-              <p className="font-medium">{mc.categoriaNombre}</p>
-              {mc.descripcion && <p className="text-sm text-gray-600">{mc.descripcion}</p>}
+              <p className="font-medium text-ink">{mc.categoriaNombre}</p>
+              {mc.descripcion && <p className="text-sm text-ink/60">{mc.descripcion}</p>}
               {mc.precioReferencia && (
-                <p className="text-sm text-gray-600">Desde ${mc.precioReferencia}</p>
+                <p className="font-mono text-sm text-ink/70 mt-1">
+                  Desde ${mc.precioReferencia.toLocaleString("es-AR")}
+                </p>
               )}
             </div>
             <button
               onClick={() => handleQuitar(mc.id)}
-              className="text-red-600 text-sm"
+              className="text-sm text-red-700/70 hover:text-red-700 transition-colors"
             >
               Quitar
             </button>
