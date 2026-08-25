@@ -5,6 +5,12 @@ export interface ServicioOfrecido {
   precioReferencia: number | null;
 }
 
+export interface FotoTrabajo {
+  id: string;
+  url: string;
+  descripcion: string | null;
+}
+
 export interface PerfilPrestador {
   id: string;
   nombre: string;
@@ -14,5 +20,8 @@ export interface PerfilPrestador {
   miembroDesde: string;
   promedioCalificacion: number | null;
   cantidadCalificaciones: number;
+  biografia: string | null;
+  radioAlcanceKm: number | null;
+  fotosTrabajo: FotoTrabajo[];
   servicios: ServicioOfrecido[];
 }
