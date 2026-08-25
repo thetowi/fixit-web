@@ -11,8 +11,6 @@ export default function Navbar() {
   const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
 
-  // Cada vez que cambia la ruta, volvemos a leer localStorage —
-  // así detectamos login/logout, que siempre van seguidos de una navegación
   useEffect(() => {
     setUsuario(obtenerUsuario());
   }, [pathname]);
@@ -24,16 +22,21 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="border-b px-6 py-3 flex items-center justify-between">
-      <Link href="/" className="font-bold text-lg">
-        FixIt 🔧
+    <nav className="bg-ink px-6 py-3 flex items-center justify-between">
+      <Link href="/" className="font-display text-lg text-paper tracking-tight">
+        FIXIT
       </Link>
 
-      <div className="flex items-center gap-4 text-sm">
+      <div className="flex items-center gap-5 text-sm text-paper/90">
         {!usuario && (
           <>
-            <Link href="/login">Iniciar sesión</Link>
-            <Link href="/registro" className="bg-black text-white rounded px-3 py-1.5">
+            <Link href="/login" className="hover:text-safety transition-colors">
+              Iniciar sesión
+            </Link>
+            <Link
+              href="/registro"
+              className="bg-copper text-paper rounded px-3 py-1.5 font-medium hover:bg-copper-dark transition-colors"
+            >
               Crear cuenta
             </Link>
           </>
@@ -41,10 +44,10 @@ export default function Navbar() {
 
         {usuario?.rol === "Cliente" && (
           <>
-            <Link href="/buscar">Buscar</Link>
-            <Link href="/ordenes">Mis órdenes</Link>
-            <Link href="/cuenta">Mi cuenta</Link>
-            <button onClick={handleLogout} className="text-gray-500">
+            <Link href="/buscar" className="hover:text-safety transition-colors">Buscar</Link>
+            <Link href="/ordenes" className="hover:text-safety transition-colors">Mis órdenes</Link>
+            <Link href="/cuenta" className="hover:text-safety transition-colors">Mi cuenta</Link>
+            <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
               Cerrar sesión
             </button>
           </>
@@ -52,21 +55,22 @@ export default function Navbar() {
 
         {usuario?.rol === "Prestador" && (
           <>
-            <Link href="/prestador/servicios">Mis servicios</Link>
-            <Link href="/ordenes">Mis órdenes</Link>
-            <Link href="/cuenta">Mi cuenta</Link>
-            <button onClick={handleLogout} className="text-gray-500">
+            <Link href="/prestador/servicios" className="hover:text-safety transition-colors">Mis servicios</Link>
+            <Link href="/ordenes" className="hover:text-safety transition-colors">Mis órdenes</Link>
+            <Link href="/cuenta" className="hover:text-safety transition-colors">Mi cuenta</Link>
+            <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
               Cerrar sesión
             </button>
           </>
         )}
+
         {usuario?.rol === "Admin" && (
-        <>
-            <Link href="/admin">Admin</Link>
-            <button onClick={handleLogout} className="text-gray-500">
-            Cerrar sesión
+          <>
+            <Link href="/admin" className="hover:text-safety transition-colors">Admin</Link>
+            <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
+              Cerrar sesión
             </button>
-        </>
+          </>
         )}
       </div>
     </nav>
