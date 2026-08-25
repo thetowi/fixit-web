@@ -64,6 +64,7 @@ export default function Navbar() {
             <Link href="/prestador/acerca-de-mi" className="hover:text-safety transition-colors">Acerca de mi</Link>
             <Link href="/ordenes" className="hover:text-safety transition-colors">Mis ordenes</Link>
             <Link href="/cuenta" className="hover:text-safety transition-colors">Mi cuenta</Link>
+            <Link href="/prestador/agenda" className="hover:text-safety transition-colors">Agenda</Link>
             <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
               Cerrar sesion
             </button>
