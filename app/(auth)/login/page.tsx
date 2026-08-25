@@ -36,7 +36,7 @@ export default function LoginPage() {
         body: JSON.stringify(form),
       });
       guardarSesion(resultado.token, resultado.usuario);
-      router.push("/cuenta");
+      router.push("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error inesperado");
     } finally {
@@ -68,7 +68,7 @@ export default function LoginPage() {
       }
 
       guardarSesion(resultado.token!, resultado.usuario!);
-      router.push("/cuenta");
+      router.push("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al iniciar sesión con Google");
     }
@@ -92,7 +92,7 @@ export default function LoginPage() {
         body: JSON.stringify(body),
       });
       guardarSesion(resultado.token, resultado.usuario);
-      router.push("/cuenta");
+      router.push("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al completar el registro");
     } finally {
