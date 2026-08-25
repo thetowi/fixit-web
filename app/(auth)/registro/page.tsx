@@ -37,14 +37,16 @@ export default function RegistroPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6">
-      <h1 className="text-2xl font-bold mb-6">Crear cuenta</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <div className="max-w-md mx-auto mt-16 p-6 w-full">
+      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Unite a FixIt</p>
+      <h1 className="font-display text-2xl text-ink mb-6">Crear cuenta</h1>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white border border-ink/10 rounded-lg p-5">
         <input
           type="text"
           placeholder="Nombre"
           required
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={form.nombre}
           onChange={(e) => setForm({ ...form, nombre: e.target.value })}
         />
@@ -52,7 +54,7 @@ export default function RegistroPage() {
           type="text"
           placeholder="Apellido"
           required
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={form.apellido}
           onChange={(e) => setForm({ ...form, apellido: e.target.value })}
         />
@@ -60,7 +62,7 @@ export default function RegistroPage() {
           type="email"
           placeholder="Email"
           required
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
         />
@@ -68,7 +70,7 @@ export default function RegistroPage() {
           type="tel"
           placeholder="Teléfono"
           required
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={form.telefono}
           onChange={(e) => setForm({ ...form, telefono: e.target.value })}
         />
@@ -77,12 +79,12 @@ export default function RegistroPage() {
           placeholder="Contraseña"
           required
           minLength={6}
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
         <select
-          className="border rounded p-2"
+          className="border border-ink/20 rounded p-2 bg-paper"
           value={form.rol}
           onChange={(e) => setForm({ ...form, rol: e.target.value as "cliente" | "prestador" })}
         >
@@ -90,16 +92,20 @@ export default function RegistroPage() {
           <option value="prestador">Quiero ofrecer servicios</option>
         </select>
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {error && <p className="text-red-700 text-sm">{error}</p>}
 
         <button
           type="submit"
           disabled={cargando}
-          className="bg-black text-white rounded p-2 disabled:opacity-50"
+          className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
         >
           {cargando ? "Creando cuenta..." : "Crear cuenta"}
         </button>
       </form>
+
+      <p className="text-sm text-ink/50 mt-4 text-center">
+        ¿Ya tenés cuenta? <a href="/login" className="text-copper hover:underline">Iniciá sesión</a>
+      </p>
     </div>
   );
 }

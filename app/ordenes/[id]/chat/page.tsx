@@ -32,12 +32,10 @@ export default function ChatOrdenPage() {
 
     async function iniciar() {
       try {
-        // 1. Cargar historial existente
         const historial = await apiFetch<Mensaje[]>(`/api/ordenes/${ordenId}/mensajes`);
         if (!activo) return;
         setMensajes(historial);
 
-        // 2. Conectar a SignalR
         const conexion = crearConexionChat();
         conexionRef.current = conexion;
 
@@ -60,14 +58,12 @@ export default function ChatOrdenPage() {
 
     iniciar();
 
-    // Cleanup: al salir de la pantalla, cerramos la conexión para no dejarla abierta de más
     return () => {
       activo = false;
       conexionRef.current?.stop();
     };
   }, [ordenId, router]);
 
-  // Scroll automático al último mensaje
   useEffect(() => {
     finalMensajesRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes]);
@@ -84,23 +80,24 @@ export default function ChatOrdenPage() {
     }
   }
 
-  if (error) return <p className="p-6 text-red-600">{error}</p>;
+  if (error) return <p className="p-6 text-red-700">{error}</p>;
 
   return (
-    <div className="max-w-lg mx-auto mt-8 p-6 flex flex-col h-[80vh]">
-      <h1 className="text-xl font-bold mb-4">Chat de la orden</h1>
+    <div className="max-w-lg mx-auto mt-8 p-6 flex flex-col h-[80vh] w-full">
+      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-1">Orden #{ordenId.slice(0, 8).toUpperCase()}</p>
+      <h1 className="font-display text-xl text-ink mb-4">Chat</h1>
 
-      <div className="flex-1 overflow-y-auto border rounded p-3 flex flex-col gap-2 mb-3">
+      <div className="flex-1 overflow-y-auto bg-white border border-ink/10 rounded-lg p-3 flex flex-col gap-2 mb-3">
         {mensajes.map((m) => {
           const esMio = m.emisorId === usuario?.id;
           return (
             <div
               key={m.id}
-              className={`max-w-[75%] rounded p-2 text-sm ${
-                esMio ? "bg-black text-white self-end" : "bg-gray-100 self-start"
+              className={`max-w-[75%] rounded-lg p-2 text-sm ${
+                esMio ? "bg-ink text-paper self-end" : "bg-paper border border-ink/10 self-start"
               }`}
             >
-              {!esMio && <p className="text-xs opacity-70 mb-1">{m.emisorNombre}</p>}
+              {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
               <p>{m.contenido}</p>
             </div>
           );
@@ -113,14 +110,14 @@ export default function ChatOrdenPage() {
           type="text"
           placeholder={conectado ? "Escribí un mensaje..." : "Conectando..."}
           disabled={!conectado}
-          className="border rounded p-2 flex-1"
+          className="border border-ink/20 rounded p-2 flex-1 bg-white disabled:opacity-50"
           value={nuevoMensaje}
           onChange={(e) => setNuevoMensaje(e.target.value)}
         />
         <button
           type="submit"
           disabled={!conectado}
-          className="bg-black text-white rounded px-4 disabled:opacity-50"
+          className="bg-copper text-paper rounded px-4 hover:bg-copper-dark transition-colors disabled:opacity-40"
         >
           Enviar
         </button>
