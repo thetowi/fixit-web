@@ -5,15 +5,26 @@ import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { CategoriaAdmin, CrearCategoriaRequest, UsuarioAdmin } from "@/types/admin";
+import { Orden } from "@/types/ordenes";
+
+const ESTADO_LABELS: Record<string, string> = {
+  PendientePago: "Pendiente de pago",
+  Pagado: "Pagado",
+  EnCurso: "En curso",
+  Completado: "Completado",
+  Cancelado: "Cancelado",
+  EnDisputa: "En disputa",
+};
 
 export default function AdminPage() {
   const router = useRouter();
   const [categorias, setCategorias] = useState<CategoriaAdmin[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
+  const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [nombreNueva, setNombreNueva] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [seccion, setSeccion] = useState<"categorias" | "usuarios">("categorias");
+  const [seccion, setSeccion] = useState<"categorias" | "usuarios" | "ordenes">("categorias");
 
   useEffect(() => {
     const usuario = obtenerUsuario();
@@ -31,12 +42,14 @@ export default function AdminPage() {
 
   async function cargarDatos() {
     try {
-      const [cats, users] = await Promise.all([
+      const [cats, users, ords] = await Promise.all([
         apiFetch<CategoriaAdmin[]>("/api/admin/categorias"),
         apiFetch<UsuarioAdmin[]>("/api/admin/usuarios"),
+        apiFetch<Orden[]>("/api/admin/ordenes"),
       ]);
       setCategorias(cats);
       setUsuarios(users);
+      setOrdenes(ords);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al cargar los datos");
     } finally {
@@ -74,6 +87,15 @@ export default function AdminPage() {
     }
   }
 
+  async function handleMarcarPagada(ordenId: string) {
+    try {
+      await apiFetch(`/api/ordenes/${ordenId}/marcar-pagada`, { method: "PUT" });
+      await cargarDatos();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al marcar como pagada");
+    }
+  }
+
   if (cargando) return <p className="p-6">Cargando...</p>;
 
   return (
@@ -92,6 +114,12 @@ export default function AdminPage() {
           className={`pb-2 ${seccion === "usuarios" ? "border-b-2 border-black font-medium" : "text-gray-500"}`}
         >
           Usuarios
+        </button>
+        <button
+          onClick={() => setSeccion("ordenes")}
+          className={`pb-2 ${seccion === "ordenes" ? "border-b-2 border-black font-medium" : "text-gray-500"}`}
+        >
+          Órdenes
         </button>
       </div>
 
@@ -121,7 +149,7 @@ export default function AdminPage() {
                 <button
                   onClick={() => handleCambiarEstado(c)}
                   className={`text-sm rounded px-3 py-1 ${
-                    c.activa ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"
+                    c.activa ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
                   }`}
                 >
                   {c.activa ? "Desactivar" : "Activar"}
@@ -151,6 +179,30 @@ export default function AdminPage() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {seccion === "ordenes" && (
+        <ul className="flex flex-col gap-2">
+          {ordenes.map((o) => (
+            <li key={o.id} className="border rounded p-3 flex justify-between items-center">
+              <div>
+                <p className="font-medium">{o.categoriaNombre} — ${o.montoTotal}</p>
+                <p className="text-sm text-gray-600">Con {o.prestadorNombreCompleto}</p>
+                <span className="text-xs bg-gray-100 rounded px-2 py-1">
+                  {ESTADO_LABELS[o.estado] ?? o.estado}
+                </span>
+              </div>
+              {o.estado === "PendientePago" && (
+                <button
+                  onClick={() => handleMarcarPagada(o.id)}
+                  className="text-sm bg-black text-white rounded px-3 py-1 whitespace-nowrap"
+                >
+                  Marcar como pagada
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

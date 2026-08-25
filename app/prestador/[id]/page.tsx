@@ -6,6 +6,9 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { PerfilPrestador, ServicioOfrecido } from "@/types/perfil";
 import { CrearOrdenRequest, Orden } from "@/types/ordenes";
+import Estrellas from "@/components/Estrellas";
+import { Calificacion } from "@/types/calificaciones";
+
 
 export default function PerfilPrestadorPage() {
   const params = useParams();
@@ -20,12 +23,19 @@ export default function PerfilPrestadorPage() {
   const [monto, setMonto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [errorContratacion, setErrorContratacion] = useState<string | null>(null);
+  const [calificaciones, setCalificaciones] = useState<Calificacion[]>([]);
 
   const usuario = obtenerUsuario();
 
   useEffect(() => {
-    apiFetch<PerfilPrestador>(`/api/prestadores/${id}`)
-      .then(setPerfil)
+    Promise.all([
+      apiFetch<PerfilPrestador>(`/api/prestadores/${id}`),
+      apiFetch<Calificacion[]>(`/api/prestadores/${id}/calificaciones`),
+    ])
+      .then(([perfilData, calificacionesData]) => {
+        setPerfil(perfilData);
+        setCalificaciones(calificacionesData);
+      })
       .catch((err) => {
         setError(err instanceof ApiError && err.status === 404
           ? "No encontramos este prestador."
@@ -100,6 +110,14 @@ export default function PerfilPrestadorPage() {
             )}
           </h1>
           <p className="text-sm text-gray-500">Miembro desde {miembroDesde}</p>
+            {perfil.cantidadCalificaciones > 0 && (
+              <div className="flex items-center gap-1 mt-1">
+                <Estrellas valor={perfil.promedioCalificacion!} />
+                <span className="text-sm text-gray-600">
+                  {perfil.promedioCalificacion!.toFixed(1)} ({perfil.cantidadCalificaciones})
+                </span>
+              </div>
+            )}
         </div>
       </div>
 
@@ -127,6 +145,22 @@ export default function PerfilPrestadorPage() {
                 </button>
               )}
             </div>
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="font-semibold mb-3 mt-8">Reseñas</h2>
+      {calificaciones.length === 0 && (
+        <p className="text-gray-500 text-sm">Este prestador todavía no tiene reseñas.</p>
+      )}
+      <ul className="flex flex-col gap-3">
+        {calificaciones.map((c) => (
+          <li key={c.id} className="border rounded p-3">
+            <div className="flex justify-between items-center mb-1">
+              <span className="font-medium text-sm">{c.clienteNombre}</span>
+              <Estrellas valor={c.puntuacion} tamaño="text-sm" />
+            </div>
+            {c.comentario && <p className="text-sm text-gray-600">{c.comentario}</p>}
           </li>
         ))}
       </ul>

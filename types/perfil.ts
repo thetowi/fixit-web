@@ -12,5 +12,7 @@ export interface PerfilPrestador {
   verificado: boolean;
   fotoPerfilUrl: string | null;
   miembroDesde: string;
+  promedioCalificacion: number | null;
+  cantidadCalificaciones: number;
   servicios: ServicioOfrecido[];
 }

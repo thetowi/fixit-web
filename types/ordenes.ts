@@ -14,4 +14,5 @@ export interface Orden {
   montoTotal: number;
   comisionPlataforma: number;
   creadoEn: string;
+  yaCalificada: boolean;
 }
