@@ -27,7 +27,7 @@ export default function Navbar() {
         <Link href="/" className="font-display text-lg text-paper tracking-tight">
           FIXIT
         </Link>
-        <Link href="/explorar" className="text-sm text-paper/70 hover:text-safety transition-colors">
+        <Link href="/explorar" className="text-sm text-paper/70 hover:text-safety transition-colors" data-tour="nav-explorar">
           Explorar
         </Link>
       </div>
@@ -49,9 +49,10 @@ export default function Navbar() {
 
         {usuario?.rol === "Cliente" && (
           <>
-            <Link href="/buscar" className="hover:text-safety transition-colors">Buscar</Link>
-            <Link href="/ordenes" className="hover:text-safety transition-colors">Mis ordenes</Link>
-            <Link href="/cuenta" className="hover:text-safety transition-colors">Mi cuenta</Link>
+            <Link href="/buscar" className="hover:text-safety transition-colors" data-tour="nav-buscar">Buscar</Link>
+            <Link href="/ordenes" className="hover:text-safety transition-colors" data-tour="nav-ordenes">Mis ordenes</Link>
+            <Link href="/cuenta" className="hover:text-safety transition-colors" data-tour="nav-cuenta">Mi cuenta</Link>
+            
             <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
               Cerrar sesion
             </button>
@@ -60,11 +61,11 @@ export default function Navbar() {
 
         {usuario?.rol === "Prestador" && (
           <>
-            <Link href="/prestador/servicios" className="hover:text-safety transition-colors">Mis servicios</Link>
-            <Link href="/prestador/acerca-de-mi" className="hover:text-safety transition-colors">Acerca de mi</Link>
-            <Link href="/ordenes" className="hover:text-safety transition-colors">Mis ordenes</Link>
-            <Link href="/cuenta" className="hover:text-safety transition-colors">Mi cuenta</Link>
-            <Link href="/prestador/agenda" className="hover:text-safety transition-colors">Agenda</Link>
+            <Link href="/prestador/servicios" className="hover:text-safety transition-colors" data-tour="nav-servicios">Mis servicios</Link>
+            <Link href="/prestador/acerca-de-mi" className="hover:text-safety transition-colors" data-tour="nav-acerca">Acerca de mi</Link>
+            <Link href="/prestador/agenda" className="hover:text-safety transition-colors" data-tour="nav-agenda">Agenda</Link>
+            <Link href="/ordenes" className="hover:text-safety transition-colors" data-tour="nav-ordenes">Mis ordenes</Link>
+            <Link href="/cuenta" className="hover:text-safety transition-colors" data-tour="nav-cuenta">Mi cuenta</Link>
             <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
               Cerrar sesion
             </button>

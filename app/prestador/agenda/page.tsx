@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { BloqueDisponibilidad, AgregarBloqueRequest, OrdenAgenda } from "@/types/agenda";
+import CalendarioSemanal from "@/components/CalendarioSemanal";
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
@@ -26,12 +27,20 @@ export default function AgendaPage() {
 
   const [sinProgramar, setSinProgramar] = useState<OrdenAgenda[]>([]);
   const [programadas, setProgramadas] = useState<OrdenAgenda[]>([]);
+  const [offsetSemana, setOffsetSemana] = useState(0);
   const [ordenAProgramar, setOrdenAProgramar] = useState<OrdenAgenda | null>(null);
   const [fechaTurno, setFechaTurno] = useState("");
   const [horaTurno, setHoraTurno] = useState("09:00");
 
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [cargandoSemana, setCargandoSemana] = useState(false);
+
+  const inicioSemana = (() => {
+    const base = new Date();
+    base.setDate(base.getDate() + offsetSemana * 7);
+    return inicioDeSemana(base);
+  })();
 
   useEffect(() => {
     const usuario = obtenerUsuario();
@@ -43,29 +52,59 @@ export default function AgendaPage() {
       router.push("/cuenta");
       return;
     }
-    cargarTodo();
+    cargarBase();
   }, [router]);
 
-  async function cargarTodo() {
-    try {
-      const inicio = inicioDeSemana(new Date());
-      const fin = new Date(inicio);
-      fin.setDate(fin.getDate() + 6);
-      fin.setHours(23, 59, 59, 999);
+  useEffect(() => {
+    if (cargando) return; // esperamos a que termine la carga inicial
+    cargarSemana();
+  }, [offsetSemana]);
 
-      const [bloquesData, sinProgramarData, programadasData] = await Promise.all([
+  async function cargarBase() {
+    try {
+      const [bloquesData, sinProgramarData] = await Promise.all([
         apiFetch<BloqueDisponibilidad[]>("/api/prestador/disponibilidad"),
         apiFetch<OrdenAgenda[]>("/api/prestador/agenda/sin-programar"),
-        apiFetch<OrdenAgenda[]>(`/api/prestador/agenda?desde=${inicio.toISOString()}&hasta=${fin.toISOString()}`),
       ]);
       setBloques(bloquesData);
       setSinProgramar(sinProgramarData);
-      setProgramadas(programadasData);
+      await cargarSemana();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al cargar la agenda");
     } finally {
       setCargando(false);
     }
+  }
+
+  async function cargarSemana() {
+    setCargandoSemana(true);
+    try {
+      const base = new Date();
+      base.setDate(base.getDate() + offsetSemana * 7);
+      const inicio = inicioDeSemana(base);
+      const fin = new Date(inicio);
+      fin.setDate(fin.getDate() + 6);
+      fin.setHours(23, 59, 59, 999);
+
+      const data = await apiFetch<OrdenAgenda[]>(
+        `/api/prestador/agenda?desde=${inicio.toISOString()}&hasta=${fin.toISOString()}`
+      );
+      setProgramadas(data);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al cargar la semana");
+    } finally {
+      setCargandoSemana(false);
+    }
+  }
+
+  async function refrescarTodo() {
+    const [bloquesData, sinProgramarData] = await Promise.all([
+      apiFetch<BloqueDisponibilidad[]>("/api/prestador/disponibilidad"),
+      apiFetch<OrdenAgenda[]>("/api/prestador/agenda/sin-programar"),
+    ]);
+    setBloques(bloquesData);
+    setSinProgramar(sinProgramarData);
+    await cargarSemana();
   }
 
   async function handleAgregarBloque(e: React.FormEvent) {
@@ -80,7 +119,7 @@ export default function AgendaPage() {
 
     try {
       await apiFetch("/api/prestador/disponibilidad", { method: "POST", body: JSON.stringify(body) });
-      await cargarTodo();
+      await refrescarTodo();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al agregar el bloque");
     }
@@ -89,7 +128,7 @@ export default function AgendaPage() {
   async function handleQuitarBloque(id: number) {
     try {
       await apiFetch(`/api/prestador/disponibilidad/${id}`, { method: "DELETE" });
-      await cargarTodo();
+      await refrescarTodo();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al quitar el bloque");
     }
@@ -117,7 +156,7 @@ export default function AgendaPage() {
         body: JSON.stringify({ fechaHora: fechaHora.toISOString() }),
       });
       setOrdenAProgramar(null);
-      await cargarTodo();
+      await refrescarTodo();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al programar el turno");
     }
@@ -125,8 +164,12 @@ export default function AgendaPage() {
 
   if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
 
+  const finSemana = new Date(inicioSemana);
+  finSemana.setDate(finSemana.getDate() + 6);
+  const rangoLabel = `${inicioSemana.toLocaleDateString("es-AR", { day: "numeric", month: "short" })} — ${finSemana.toLocaleDateString("es-AR", { day: "numeric", month: "short" })}`;
+
   return (
-    <div className="max-w-2xl mx-auto mt-16 p-6 w-full">
+    <div className="max-w-3xl mx-auto mt-16 p-6 w-full">
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Prestador</p>
       <h1 className="font-display text-2xl text-ink mb-6">Mi agenda</h1>
 
@@ -210,23 +253,37 @@ export default function AgendaPage() {
       </div>
 
       <div className="bg-white border border-ink/10 rounded-lg p-5">
-        <p className="font-medium text-ink mb-3">Esta semana</p>
-        {programadas.length === 0 ? (
-          <p className="text-ink/50 text-sm">No tenés turnos programados esta semana.</p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-medium text-ink">Calendario</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setOffsetSemana((s) => s - 1)}
+              className="text-ink/50 hover:text-ink text-sm px-2"
+            >
+              ←
+            </button>
+            <span className="font-mono text-xs text-copper w-32 text-center">{rangoLabel}</span>
+            <button
+              onClick={() => setOffsetSemana((s) => s + 1)}
+              className="text-ink/50 hover:text-ink text-sm px-2"
+            >
+              →
+            </button>
+            {offsetSemana !== 0 && (
+              <button
+                onClick={() => setOffsetSemana(0)}
+                className="text-xs text-copper hover:underline"
+              >
+                Hoy
+              </button>
+            )}
+          </div>
+        </div>
+
+        {cargandoSemana ? (
+          <p className="text-ink/50 text-sm">Cargando semana...</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {programadas.map((o) => {
-              const fecha = new Date(o.fechaHoraProgramada!);
-              return (
-                <li key={o.id} className="flex justify-between items-center text-sm bg-paper rounded p-2">
-                  <span className="text-ink">{o.categoriaNombre} · {o.clienteNombreCompleto}</span>
-                  <span className="font-mono text-xs text-copper">
-                    {fecha.toLocaleDateString("es-AR", { weekday: "short", day: "numeric" })} {fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <CalendarioSemanal inicioSemana={inicioSemana} bloques={bloques} ordenes={programadas} />
         )}
       </div>
 

@@ -3,6 +3,7 @@ import { Archivo_Black, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
+import TourOnboarding from "@/components/TourOnboarding";
 
 const archivoBlack = Archivo_Black({
   weight: "400",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col font-sans">
         <GoogleAuthProvider>
           <Navbar />
+          <TourOnboarding />
           {children}
         </GoogleAuthProvider>
       </body>
