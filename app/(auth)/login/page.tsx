@@ -107,7 +107,7 @@ export default function LoginPage() {
         <h1 className="font-display text-2xl text-ink mb-2">Hola, {pendienteDeRol.nombre}</h1>
         <p className="text-ink/60 mb-6">Contanos qué querés hacer en FixIt.</p>
 
-        <form onSubmit={handleCompletarRegistro} className="flex flex-col gap-4 bg-white border border-ink/10 rounded-lg p-5">
+        <form onSubmit={handleCompletarRegistro} className="flex flex-col gap-4 bg-surface border border-ink/10 rounded-lg p-5">
           <select
             className="border border-ink/20 rounded p-2 bg-paper"
             value={rolElegido}
@@ -117,7 +117,7 @@ export default function LoginPage() {
             <option value="prestador">Quiero ofrecer servicios</option>
           </select>
 
-          {error && <p className="text-red-700 text-sm">{error}</p>}
+          {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
 
           <button
             type="submit"
@@ -136,7 +136,7 @@ export default function LoginPage() {
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Bienvenido de vuelta</p>
       <h1 className="font-display text-2xl text-ink mb-6">Iniciar sesión</h1>
 
-      <div className="bg-white border border-ink/10 rounded-lg p-5">
+      <div className="bg-surface border border-ink/10 rounded-lg p-5">
         <div className="mb-4">
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
@@ -171,7 +171,7 @@ export default function LoginPage() {
           />
 
           {error && (
-            <div className="text-red-700 text-sm">
+            <div className="text-red-700 dark:text-red-400 text-sm">
               <p>{error}</p>
               {error.toLowerCase().includes("confirm") && (
                 <a

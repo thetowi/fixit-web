@@ -80,14 +80,14 @@ export default function ChatOrdenPage() {
     }
   }
 
-  if (error) return <p className="p-6 text-red-700">{error}</p>;
+  if (error) return <p className="p-6 text-red-700 dark:text-red-400">{error}</p>;
 
   return (
     <div className="max-w-lg mx-auto mt-8 p-6 flex flex-col h-[80vh] w-full">
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-1">Orden #{ordenId.slice(0, 8).toUpperCase()}</p>
       <h1 className="font-display text-xl text-ink mb-4">Chat</h1>
 
-      <div className="flex-1 overflow-y-auto bg-white border border-ink/10 rounded-lg p-3 flex flex-col gap-2 mb-3">
+      <div className="flex-1 overflow-y-auto bg-surface border border-ink/10 rounded-lg p-3 flex flex-col gap-2 mb-3">
         {mensajes.map((m) => {
           const esMio = m.emisorId === usuario?.id;
           return (
@@ -110,7 +110,7 @@ export default function ChatOrdenPage() {
           type="text"
           placeholder={conectado ? "Escribí un mensaje..." : "Conectando..."}
           disabled={!conectado}
-          className="border border-ink/20 rounded p-2 flex-1 bg-white disabled:opacity-50"
+          className="border border-ink/20 rounded p-2 flex-1 bg-surface disabled:opacity-50"
           value={nuevoMensaje}
           onChange={(e) => setNuevoMensaje(e.target.value)}
         />

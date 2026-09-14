@@ -61,7 +61,7 @@ export default function BuscarPage() {
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Buscar</p>
       <h1 className="font-display text-2xl text-ink mb-6">Encontrá tu prestador</h1>
 
-      <form onSubmit={handleBuscar} className="flex flex-col gap-4 mb-8 bg-white border border-ink/10 rounded-lg p-4">
+      <form onSubmit={handleBuscar} className="flex flex-col gap-4 mb-8 bg-surface border border-ink/10 rounded-lg p-4">
         <select
           className="border border-ink/20 rounded p-2 bg-paper"
           value={categoriaId}
@@ -93,7 +93,7 @@ export default function BuscarPage() {
           </p>
         )}
 
-        {error && <p className="text-red-700 text-sm">{error}</p>}
+        {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
 
         <button
           type="submit"
@@ -119,7 +119,7 @@ export default function BuscarPage() {
               <li key={p.id}>
                 <Link
                   href={`/prestador/${p.id}`}
-                  className="flex justify-between items-start bg-white border border-ink/10 rounded-lg p-4 hover:border-copper transition-colors"
+                  className="flex justify-between items-start bg-surface border border-ink/10 rounded-lg p-4 hover:border-copper transition-colors"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-ink/10 flex items-center justify-center font-display text-xs text-ink shrink-0">

@@ -1,12 +1,58 @@
 @import "tailwindcss";
 
-@theme {
-  --color-ink: #1B1B18;
-  --color-paper: #EFEEE6;
-  --color-copper: #B5651D;
-  --color-copper-dark: #8F4F16;
-  --color-safety: #F0A202;
-  --color-stamp: #3F7D53;
+/* Habilita el uso de clases dark:* controladas a mano (agregando/sacando
+   la clase "dark" del <html>), en vez de depender solo de prefers-color-scheme.
+   El script que decide qué clase poner al cargar la página está en layout.tsx. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Fondo de página y texto principal: los mismos nombres de siempre (paper/ink),
+     así que ningún componente existente necesita cambiar para heredar el modo oscuro. */
+  --paper: #EFEEE6;
+  --ink: #1B1B18;
+
+  /* Fondo de tarjetas/paneles — antes casi todo el código usaba "bg-white" a mano.
+     Separado de --paper para poder darle profundidad a las tarjetas en modo oscuro. */
+  --surface: #FFFFFF;
+
+  /* Navbar: siempre oscuro en los dos modos (así se ve en el logo), por eso
+     tiene sus propios tokens en vez de compartir --ink/--paper (que sí invierten). */
+  --nav: #1B1B18;
+  --on-nav: #EFEEE6;
+
+  /* Acentos de marca: se mantienen prácticamente iguales al logo en modo claro. */
+  --copper: #B5651D;
+  --copper-dark: #8F4F16;
+  --safety: #F0A202;
+  --stamp: #3F7D53;
+}
+
+.dark {
+  --paper: #15130F;
+  --ink: #EDE7DC;
+
+  --surface: #211D17;
+
+  --nav: #100E0B;
+  --on-nav: #EFEEE6;
+
+  /* Un poco más claros que en modo claro para mantener buen contraste sobre fondos oscuros. */
+  --copper: #D08A44;
+  --copper-dark: #E6A868;
+  --safety: #F4B22E;
+  --stamp: #5FAE79;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-nav: var(--nav);
+  --color-on-nav: var(--on-nav);
+  --color-copper: var(--copper);
+  --color-copper-dark: var(--copper-dark);
+  --color-safety: var(--safety);
+  --color-stamp: var(--stamp);
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-archivo);
@@ -16,4 +62,5 @@
 body {
   background-color: var(--color-paper);
   color: var(--color-ink);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }

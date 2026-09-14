@@ -37,7 +37,7 @@ export default function ExplorarPage() {
           <Link
             key={c.id}
             href={`/explorar/${c.id}`}
-            className="bg-white border border-ink/10 rounded-lg p-5 flex flex-col items-center gap-2 hover:border-copper transition-colors"
+            className="bg-surface border border-ink/10 rounded-lg p-5 flex flex-col items-center gap-2 hover:border-copper transition-colors"
           >
             <span className="text-2xl">{c.icono ? ICONOS[c.icono] ?? "🛠️" : "🛠️"}</span>
             <span className="font-medium text-ink text-sm text-center">{c.nombre}</span>

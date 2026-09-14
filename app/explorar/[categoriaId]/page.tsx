@@ -23,7 +23,7 @@ export default function ExplorarCategoriaPage() {
   }, [categoriaId]);
 
   if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
-  if (error) return <p className="p-6 text-red-700">{error}</p>;
+  if (error) return <p className="p-6 text-red-700 dark:text-red-400">{error}</p>;
 
   return (
     <div className="max-w-lg mx-auto mt-16 p-6 w-full">
@@ -39,7 +39,7 @@ export default function ExplorarCategoriaPage() {
           <li key={p.id}>
             <Link
               href={`/prestador/${p.id}`}
-              className="flex justify-between items-start bg-white border border-ink/10 rounded-lg p-4 hover:border-copper transition-colors"
+              className="flex justify-between items-start bg-surface border border-ink/10 rounded-lg p-4 hover:border-copper transition-colors"
             >
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-ink/10 flex items-center justify-center font-display text-xs text-ink shrink-0">

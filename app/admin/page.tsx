@@ -154,7 +154,7 @@ export default function AdminPage() {
             key={tab.id}
             onClick={() => setSeccion(tab.id)}
             className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-              seccion === tab.id ? "bg-white text-ink shadow-sm" : "text-ink/50 hover:text-ink"
+              seccion === tab.id ? "bg-surface text-ink shadow-sm" : "text-ink/50 hover:text-ink"
             }`}
           >
             {tab.label}
@@ -162,7 +162,7 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {error && <p className="text-red-700 text-sm mb-4">{error}</p>}
+      {error && <p className="text-red-700 dark:text-red-400 text-sm mb-4">{error}</p>}
 
       {seccion === "categorias" && (
         <>
@@ -170,7 +170,7 @@ export default function AdminPage() {
             <input
               type="text"
               placeholder="Nombre de la categoría nueva"
-              className="border border-ink/20 rounded p-2 flex-1 bg-white"
+              className="border border-ink/20 rounded p-2 flex-1 bg-surface"
               value={nombreNueva}
               onChange={(e) => setNombreNueva(e.target.value)}
             />
@@ -181,7 +181,7 @@ export default function AdminPage() {
 
           <ul className="flex flex-col gap-2">
             {categorias.map((c) => (
-              <li key={c.id} className="bg-white border border-ink/10 rounded-lg p-3 flex justify-between items-center">
+              <li key={c.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex justify-between items-center">
                 <span className={c.activa ? "text-ink" : "text-ink/30 line-through"}>
                   {c.nombre}
                 </span>
@@ -200,7 +200,7 @@ export default function AdminPage() {
       )}
 
       {seccion === "usuarios" && (
-        <div className="bg-white border border-ink/10 rounded-lg overflow-hidden">
+        <div className="bg-surface border border-ink/10 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left bg-ink/5 text-ink/60 text-xs uppercase tracking-wide">
@@ -225,7 +225,7 @@ export default function AdminPage() {
       {seccion === "ordenes" && (
         <ul className="flex flex-col gap-2">
           {ordenes.map((o) => (
-            <li key={o.id} className="bg-white border border-ink/10 rounded-lg p-3 flex justify-between items-center">
+            <li key={o.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex justify-between items-center">
               <div>
                 <p className="font-medium text-ink">
                   {o.categoriaNombre} <span className="font-mono text-ink/60">${o.montoTotal.toLocaleString("es-AR")}</span>
@@ -254,7 +254,7 @@ export default function AdminPage() {
             <p className="text-ink/50 text-sm">No hay verificaciones enviadas todavía.</p>
           )}
           {verificaciones.map((v) => (
-            <li key={v.usuarioId} className="bg-white border border-ink/10 rounded-lg p-4">
+            <li key={v.usuarioId} className="bg-surface border border-ink/10 rounded-lg p-4">
               <div className="flex justify-between items-start gap-2 mb-3">
                 <div>
                   <p className="font-medium text-ink">{v.nombreCompleto}</p>
@@ -269,7 +269,7 @@ export default function AdminPage() {
                       ? "bg-safety/20 text-ink"
                       : v.estado === "Aprobado"
                       ? "bg-stamp/15 text-stamp"
-                      : "bg-red-700/10 text-red-700"
+                      : "bg-red-700/10 dark:bg-red-400/10 text-red-700 dark:text-red-400"
                   }`}
                 >
                   {v.estado}
@@ -316,7 +316,7 @@ export default function AdminPage() {
                   <button
                     onClick={() => handleRevisarVerificacion(v.usuarioId, false)}
                     disabled={procesandoVerif === v.usuarioId}
-                    className="text-sm border border-red-700/40 text-red-700 rounded px-3 py-1.5 hover:bg-red-700/5 transition-colors disabled:opacity-40"
+                    className="text-sm border border-red-700/40 dark:border-red-400/40 text-red-700 dark:text-red-400 rounded px-3 py-1.5 hover:bg-red-700/5 dark:hover:bg-red-400/5 transition-colors disabled:opacity-40"
                   >
                     Rechazar
                   </button>

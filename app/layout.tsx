@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 import TourOnboarding from "@/components/TourOnboarding";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const archivoBlack = Archivo_Black({
   weight: "400",
@@ -32,12 +33,24 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="es"
       className={`${archivoBlack.variable} ${inter.variable} ${plexMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Corre antes de que React monte nada: decide si el <html> arranca con
+            la clase "dark" o no, para que no haya un flash del tema equivocado
+            (por ejemplo, un flash de modo claro para alguien que eligió oscuro). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("fixit_theme");if(t==="oscuro"||(t===null&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark");}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <GoogleAuthProvider>
           <Navbar />
           <TourOnboarding />
           {children}
+          <ThemeToggle />
         </GoogleAuthProvider>
       </body>
     </html>

@@ -443,7 +443,7 @@ export default function CuentaPage() {
       )}
 
       {(perfil.rol !== "Prestador" || seccion === "perfil") && (
-      <div className="bg-white border border-ink/10 rounded-lg p-5 mb-6">
+      <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6">
         <div className="flex items-center gap-4 mb-5">
           {perfil.fotoPerfilUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -510,7 +510,7 @@ export default function CuentaPage() {
             />
           </label>
 
-          {error && <p className="text-red-700 text-sm">{error}</p>}
+          {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
           {mensajeExito && <p className="text-stamp text-sm">{mensajeExito}</p>}
 
           <button
@@ -525,7 +525,7 @@ export default function CuentaPage() {
       )}
 
       {perfil.rol === "Prestador" && seccion === "servicios" && (
-        <div className="bg-white border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-servicios">
+        <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-servicios">
           <p className="font-medium text-ink mb-3">Mis servicios</p>
 
           <form onSubmit={handleAgregarServicio} className="flex flex-col gap-3 mb-5">
@@ -562,7 +562,7 @@ export default function CuentaPage() {
               </span>
             </div>
 
-            {errorServicios && <p className="text-red-700 text-sm">{errorServicios}</p>}
+            {errorServicios && <p className="text-red-700 dark:text-red-400 text-sm">{errorServicios}</p>}
 
             <button type="submit" className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors">
               Agregar
@@ -586,7 +586,7 @@ export default function CuentaPage() {
                   </div>
                   <button
                     onClick={() => handleQuitarServicio(mc.id)}
-                    className="text-red-700/70 hover:text-red-700 text-xs"
+                    className="text-red-700/70 dark:text-red-400/70 hover:text-red-700 dark:hover:text-red-400 text-xs"
                   >
                     Quitar
                   </button>
@@ -598,7 +598,7 @@ export default function CuentaPage() {
       )}
 
       {perfil.rol === "Prestador" && seccion === "acerca" && (
-        <div className="bg-white border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-acerca">
+        <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-acerca">
           <p className="font-medium text-ink mb-3">Acerca de mí</p>
 
           <form onSubmit={handleGuardarAcercaDeMi} className="flex flex-col gap-3 mb-5">
@@ -624,7 +624,7 @@ export default function CuentaPage() {
               />
             </label>
 
-            {errorAcerca && <p className="text-red-700 text-sm">{errorAcerca}</p>}
+            {errorAcerca && <p className="text-red-700 dark:text-red-400 text-sm">{errorAcerca}</p>}
             {mensajeExitoAcerca && <p className="text-stamp text-sm">{mensajeExitoAcerca}</p>}
 
             <button
@@ -678,7 +678,7 @@ export default function CuentaPage() {
       )}
 
       {perfil.rol === "Prestador" && seccion === "horarios" && (
-        <div className="bg-white border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-horarios">
+        <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-horarios">
           <p className="font-medium text-ink mb-1">Horarios en los que trabajo</p>
           <p className="text-xs text-ink/50 mb-3">
             Definí los días y horarios en los que estás disponible. Esto es lo que ven tus clientes y lo que se usa en tu agenda para saber cuándo podés recibir turnos.
@@ -693,7 +693,7 @@ export default function CuentaPage() {
                 <span className="text-ink">
                   {DIAS[b.diaSemana]} · {b.horaInicio.slice(0, 5)} a {b.horaFin.slice(0, 5)}
                 </span>
-                <button onClick={() => handleQuitarBloque(b.id)} className="text-red-700/70 hover:text-red-700 text-xs">
+                <button onClick={() => handleQuitarBloque(b.id)} className="text-red-700/70 dark:text-red-400/70 hover:text-red-700 dark:hover:text-red-400 text-xs">
                   Quitar
                 </button>
               </li>
@@ -739,7 +739,7 @@ export default function CuentaPage() {
       )}
 
       {perfil.rol === "Prestador" && seccion === "verificacion" && (
-        <div className="bg-white border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-verificacion">
+        <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-verificacion">
           <p className="font-medium text-ink mb-1">Verificación de identidad</p>
           <p className="text-xs text-ink/50 mb-4">
             Verificar tu cuenta le muestra a los clientes que presentaste tu DNI, un certificado de antecedentes
@@ -768,10 +768,10 @@ export default function CuentaPage() {
           {(verifEstado?.estado === "SinEnviar" || verifEstado?.estado === "Rechazado") && (
             <>
               {verifEstado.estado === "Rechazado" && (
-                <div className="border border-red-700/20 bg-red-700/5 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-red-700 font-medium">Verificación rechazada</p>
+                <div className="border border-red-700/20 dark:border-red-400/20 bg-red-700/5 dark:bg-red-400/5 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-red-700 dark:text-red-400 font-medium">Verificación rechazada</p>
                   {verifEstado.motivoRechazo && (
-                    <p className="text-xs text-red-700/80 mt-1">{verifEstado.motivoRechazo}</p>
+                    <p className="text-xs text-red-700/80 dark:text-red-400/80 mt-1">{verifEstado.motivoRechazo}</p>
                   )}
                   <p className="text-xs text-ink/50 mt-1">Podés corregir y volver a enviar tus documentos.</p>
                 </div>
@@ -811,7 +811,7 @@ export default function CuentaPage() {
 
                 <p className="text-[11px] text-ink/40">Imagen o PDF, hasta 8 MB cada uno.</p>
 
-                {errorVerif && <p className="text-red-700 text-sm">{errorVerif}</p>}
+                {errorVerif && <p className="text-red-700 dark:text-red-400 text-sm">{errorVerif}</p>}
 
                 <button
                   type="submit"

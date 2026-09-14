@@ -162,10 +162,10 @@ export default function AgendaPage() {
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Prestador</p>
       <h1 className="font-display text-2xl text-ink mb-6">Mi agenda</h1>
 
-      {error && <p className="text-red-700 text-sm mb-4">{error}</p>}
+      {error && <p className="text-red-700 dark:text-red-400 text-sm mb-4">{error}</p>}
 
       {bloques.length === 0 && (
-        <div className="bg-white border border-ink/10 rounded-lg p-4 mb-6 flex items-center justify-between gap-3 flex-wrap">
+        <div className="bg-surface border border-ink/10 rounded-lg p-4 mb-6 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-ink/60">Todavía no cargaste los horarios en los que trabajás.</p>
           <a href="/cuenta" className="text-sm text-copper hover:underline whitespace-nowrap">
             Configurar en Mi cuenta →
@@ -173,7 +173,7 @@ export default function AgendaPage() {
         </div>
       )}
 
-      <div className="bg-white border border-ink/10 rounded-lg p-5 mb-6">
+      <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6">
         <p className="font-medium text-ink mb-3">Pendientes de programar</p>
         {sinProgramar.length === 0 ? (
           <p className="text-ink/50 text-sm">No tenés trabajos pendientes de agendar.</p>
@@ -246,7 +246,7 @@ export default function AgendaPage() {
                 <input
                   type="date"
                   required
-                  className="border border-ink/20 rounded p-2 w-full mt-1 bg-white"
+                  className="border border-ink/20 rounded p-2 w-full mt-1 bg-surface"
                   value={fechaTurno}
                   onChange={(e) => setFechaTurno(e.target.value)}
                 />
@@ -256,7 +256,7 @@ export default function AgendaPage() {
                 <input
                   type="time"
                   required
-                  className="border border-ink/20 rounded p-2 w-full mt-1 bg-white"
+                  className="border border-ink/20 rounded p-2 w-full mt-1 bg-surface"
                   value={horaTurno}
                   onChange={(e) => setHoraTurno(e.target.value)}
                 />
@@ -264,7 +264,7 @@ export default function AgendaPage() {
               <label className="text-sm text-ink/60">
                 Duración del trabajo
                 <select
-                  className="border border-ink/20 rounded p-2 w-full mt-1 bg-white"
+                  className="border border-ink/20 rounded p-2 w-full mt-1 bg-surface"
                   value={duracionTurno}
                   onChange={(e) => setDuracionTurno(Number(e.target.value))}
                 >
@@ -276,7 +276,7 @@ export default function AgendaPage() {
                 </select>
               </label>
 
-              {error && <p className="text-red-700 text-sm">{error}</p>}
+              {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
 
               <div className="flex gap-2 mt-2">
                 <button type="button" onClick={() => setOrdenAProgramar(null)} className="border border-ink/20 rounded p-2 flex-1 text-ink">

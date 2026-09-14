@@ -41,7 +41,7 @@ export default function RegistroPage() {
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Unite a FixIt</p>
       <h1 className="font-display text-2xl text-ink mb-6">Crear cuenta</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white border border-ink/10 rounded-lg p-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-surface border border-ink/10 rounded-lg p-5">
         <input
           type="text"
           placeholder="Nombre"
@@ -92,7 +92,7 @@ export default function RegistroPage() {
           <option value="prestador">Quiero ofrecer servicios</option>
         </select>
 
-        {error && <p className="text-red-700 text-sm">{error}</p>}
+        {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
 
         <button
           type="submit"

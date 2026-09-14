@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { obtenerUsuario, cerrarSesion } from "@/lib/auth";
@@ -79,19 +80,29 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-ink px-6 py-3 flex items-center justify-between">
+    <nav className="bg-nav px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-4">
-        <Link href="/" className="font-display text-lg text-paper tracking-tight">
-          FIXIT
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Image
+            src="/logo-icon.png"
+            alt=""
+            width={28}
+            height={28}
+            className="w-7 h-7 object-contain"
+            priority
+          />
+          <span className="font-display text-lg text-on-nav tracking-tight">
+            FixIt
+          </span>
         </Link>
         {usuario?.rol !== "Prestador" && (
-          <Link href="/explorar" className="text-sm text-paper/70 hover:text-safety transition-colors" data-tour="nav-explorar">
+          <Link href="/explorar" className="text-sm text-on-nav/70 hover:text-safety transition-colors" data-tour="nav-explorar">
             Explorar
           </Link>
         )}
       </div>
 
-      <div className="flex items-center gap-5 text-sm text-paper/90">
+      <div className="flex items-center gap-5 text-sm text-on-nav/90">
         {!usuario && (
           <>
             <Link href="/login" className="hover:text-safety transition-colors">
@@ -99,7 +110,7 @@ export default function Navbar() {
             </Link>
             <Link
               href="/registro"
-              className="bg-copper text-paper rounded px-3 py-1.5 font-medium hover:bg-copper-dark transition-colors"
+              className="bg-copper text-on-nav rounded px-3 py-1.5 font-medium hover:bg-copper-dark transition-colors"
             >
               Crear cuenta
             </Link>
@@ -112,15 +123,15 @@ export default function Navbar() {
             <Link href="/mensajes" className="relative hover:text-safety transition-colors" data-tour="nav-mensajes">
               Mensajes
               {noLeidos > 0 && (
-                <span className="absolute -top-2 -right-3 bg-copper text-paper text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
+                <span className="absolute -top-2 -right-3 bg-copper text-on-nav text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
                   {noLeidos > 9 ? "9+" : noLeidos}
                 </span>
               )}
             </Link>
             <Link href="/ordenes" className="hover:text-safety transition-colors" data-tour="nav-ordenes">Mis ordenes</Link>
             <Link href="/cuenta" className="hover:text-safety transition-colors" data-tour="nav-cuenta">Mi cuenta</Link>
-            
-            <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
+
+            <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
               Cerrar sesion
             </button>
           </>
@@ -132,14 +143,14 @@ export default function Navbar() {
             <Link href="/mensajes" className="relative hover:text-safety transition-colors" data-tour="nav-mensajes">
               Mensajes
               {noLeidos > 0 && (
-                <span className="absolute -top-2 -right-3 bg-copper text-paper text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
+                <span className="absolute -top-2 -right-3 bg-copper text-on-nav text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
                   {noLeidos > 9 ? "9+" : noLeidos}
                 </span>
               )}
             </Link>
             <Link href="/ordenes" className="hover:text-safety transition-colors" data-tour="nav-ordenes">Mis ordenes</Link>
             <Link href="/cuenta" className="hover:text-safety transition-colors" data-tour="nav-cuenta">Mi cuenta</Link>
-            <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
+            <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
               Cerrar sesion
             </button>
           </>
@@ -148,7 +159,7 @@ export default function Navbar() {
         {usuario?.rol === "Admin" && (
           <>
             <Link href="/admin" className="hover:text-safety transition-colors">Admin</Link>
-            <button onClick={handleLogout} className="text-paper/60 hover:text-paper transition-colors">
+            <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
               Cerrar sesion
             </button>
           </>

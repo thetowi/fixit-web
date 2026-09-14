@@ -64,7 +64,7 @@ function ConfirmarEmailForm() {
         Te mandamos un código de 6 dígitos a <span className="font-medium text-ink">{email || "tu email"}</span>. Ingresalo acá abajo para activar tu cuenta.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-white border border-ink/10 rounded-lg p-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-surface border border-ink/10 rounded-lg p-5">
         <input
           type="email"
           placeholder="Email"
@@ -85,8 +85,8 @@ function ConfirmarEmailForm() {
           onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))}
         />
 
-        {error && <p className="text-red-700 text-sm">{error}</p>}
-        {mensaje && <p className="text-green-700 text-sm">{mensaje}</p>}
+        {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
+        {mensaje && <p className="text-green-700 dark:text-green-400 text-sm">{mensaje}</p>}
 
         <button
           type="submit"

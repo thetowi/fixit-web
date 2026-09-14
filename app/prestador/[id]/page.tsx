@@ -66,7 +66,7 @@ export default function PerfilPrestadorPage() {
   }
 
   if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
-  if (error) return <p className="p-6 text-red-700">{error}</p>;
+  if (error) return <p className="p-6 text-red-700 dark:text-red-400">{error}</p>;
   if (!perfil) return null;
 
   const miembroDesde = new Date(perfil.miembroDesde).toLocaleDateString("es-AR", {
@@ -113,7 +113,7 @@ export default function PerfilPrestadorPage() {
             key={tab.id}
             onClick={() => setPestaña(tab.id)}
             className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-              pestaña === tab.id ? "bg-white text-ink shadow-sm" : "text-ink/50 hover:text-ink"
+              pestaña === tab.id ? "bg-surface text-ink shadow-sm" : "text-ink/50 hover:text-ink"
             }`}
           >
             {tab.label}
@@ -128,7 +128,7 @@ export default function PerfilPrestadorPage() {
           )}
           <ul className="flex flex-col gap-3">
             {perfil.servicios.map((s) => (
-              <li key={s.categoriaId} className="bg-white border border-ink/10 rounded-lg p-4">
+              <li key={s.categoriaId} className="bg-surface border border-ink/10 rounded-lg p-4">
                 <div className="flex justify-between items-start gap-3">
                   <div>
                     <p className="font-medium text-ink">{s.categoriaNombre}</p>
@@ -167,7 +167,7 @@ export default function PerfilPrestadorPage() {
           )}
           <ul className="flex flex-col gap-3">
             {calificaciones.map((c) => (
-              <li key={c.id} className="bg-white border border-ink/10 rounded-lg p-4">
+              <li key={c.id} className="bg-surface border border-ink/10 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-medium text-sm text-ink">{c.clienteNombre}</span>
                   <div className="flex items-center gap-1">

@@ -178,11 +178,11 @@ export default function CalendarioSemanal({
           <span className="absolute -top-[5px] -left-[5px] w-2 h-2 rounded-full bg-copper" />
         )}
         {orden && (
-          <div className={`relative bg-white border-dashed border-ink/40 p-1 h-full ${bordesOrden}`}>
+          <div className={`relative bg-surface border-dashed border-ink/40 p-1 h-full ${bordesOrden}`}>
             {esInicioOrden && (
               <>
                 <span
-                  className={`absolute -top-1.5 -right-1 border rounded px-1 text-[7px] font-display rotate-6 bg-white z-10 ${colorEstado}`}
+                  className={`absolute -top-1.5 -right-1 border rounded px-1 text-[7px] font-display rotate-6 bg-surface z-10 ${colorEstado}`}
                 >
                   {codigoCategoria(orden.categoriaNombre)}
                 </span>
@@ -275,10 +275,10 @@ export default function CalendarioSemanal({
                     return (
                       <div
                         key={`${orden.fechaHoraProgramada}-${i}`}
-                        className="relative bg-white border border-dashed border-ink/40 rounded-lg p-3"
+                        className="relative bg-surface border border-dashed border-ink/40 rounded-lg p-3"
                       >
                         <span
-                          className={`absolute top-2.5 right-3 border-2 rounded px-1.5 py-0.5 text-[9px] font-display rotate-6 bg-white ${colorEstado}`}
+                          className={`absolute top-2.5 right-3 border-2 rounded px-1.5 py-0.5 text-[9px] font-display rotate-6 bg-surface ${colorEstado}`}
                         >
                           {codigoCategoria(orden.categoriaNombre)}
                         </span>
@@ -331,7 +331,7 @@ export default function CalendarioSemanal({
           <span className="w-3 border-t-2 border-dashed border-stamp/50 inline-block" /> Disponible
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm border border-dashed border-ink/40 bg-white inline-block" /> Turno agendado
+          <span className="w-2.5 h-2.5 rounded-sm border border-dashed border-ink/40 bg-surface inline-block" /> Turno agendado
         </span>
         {onCeldaDisponibleClick && (
           <span className="text-ink/40">Tocá un horario disponible para agendar un turno pendiente ahí</span>

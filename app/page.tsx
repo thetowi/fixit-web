@@ -140,9 +140,9 @@ export default function Home() {
 
       {usuario?.rol === "Prestador" && (
         <div className="w-full max-w-2xl pb-14 flex flex-col gap-6">
-          {errorTrabajos && <p className="text-red-700 text-sm text-center">{errorTrabajos}</p>}
+          {errorTrabajos && <p className="text-red-700 dark:text-red-400 text-sm text-center">{errorTrabajos}</p>}
 
-          <div className="bg-white border border-ink/10 rounded-lg p-5">
+          <div className="bg-surface border border-ink/10 rounded-lg p-5">
             <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Hoy</p>
             {cargandoTrabajos ? (
               <p className="text-sm text-ink/40">Cargando...</p>
@@ -185,7 +185,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="bg-white border border-ink/10 rounded-lg p-5">
+          <div className="bg-surface border border-ink/10 rounded-lg p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="font-mono text-xs tracking-widest text-copper uppercase">Esta semana</p>
               <Link href="/prestador/agenda" className="text-xs text-copper hover:underline whitespace-nowrap">
@@ -235,7 +235,7 @@ export default function Home() {
               <Link
                 key={p.id}
                 href={`/prestador/${p.id}`}
-                className="bg-white border border-ink/10 rounded-lg p-4 hover:border-copper transition-colors"
+                className="bg-surface border border-ink/10 rounded-lg p-4 hover:border-copper transition-colors"
               >
                 <div className="flex items-center gap-3 mb-2">
                   {p.fotoPerfilUrl ? (

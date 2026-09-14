@@ -137,7 +137,7 @@ function OrdenesContenido() {
 
         {mesesDisponibles.length > 0 && (
           <select
-            className="border border-ink/20 rounded p-2 bg-white text-sm"
+            className="border border-ink/20 rounded p-2 bg-surface text-sm"
             value={filtroMes}
             onChange={(e) => setFiltroMes(e.target.value)}
           >
@@ -157,7 +157,7 @@ function OrdenesContenido() {
         </p>
       )}
 
-      {error && <p className="text-red-700 text-sm mb-4">{error}</p>}
+      {error && <p className="text-red-700 dark:text-red-400 text-sm mb-4">{error}</p>}
 
       {ordenes.length === 0 && !error && (
         <p className="text-ink/50 text-sm">Todavía no tenés órdenes.</p>

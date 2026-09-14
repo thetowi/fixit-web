@@ -67,10 +67,10 @@ export default function MensajesPage() {
       </p>
       <h1 className="font-display text-2xl text-ink mb-6">Mensajes</h1>
 
-      {error && <p className="text-red-700 text-sm mb-4">{error}</p>}
+      {error && <p className="text-red-700 dark:text-red-400 text-sm mb-4">{error}</p>}
 
       {conversaciones.length === 0 ? (
-        <div className="bg-white border border-ink/10 rounded-lg p-6 text-center">
+        <div className="bg-surface border border-ink/10 rounded-lg p-6 text-center">
           <p className="text-ink/50 text-sm">Todavía no tenés conversaciones.</p>
         </div>
       ) : (
@@ -84,7 +84,7 @@ export default function MensajesPage() {
               <li key={c.id}>
                 <button
                   onClick={() => router.push(`/conversaciones/${c.id}`)}
-                  className="w-full flex items-center gap-3 bg-white border border-ink/10 rounded-lg p-3 text-left hover:border-ink/25 transition-colors"
+                  className="w-full flex items-center gap-3 bg-surface border border-ink/10 rounded-lg p-3 text-left hover:border-ink/25 transition-colors"
                 >
                   {otroFoto ? (
                     // eslint-disable-next-line @next/next/no-img-element
