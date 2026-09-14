@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
@@ -30,6 +30,14 @@ function etiquetaMes(clave: string): string {
 }
 
 export default function OrdenesPage() {
+  return (
+    <Suspense fallback={<p className="p-6 text-ink/60">Cargando...</p>}>
+      <OrdenesContenido />
+    </Suspense>
+  );
+}
+
+function OrdenesContenido() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const ordenCreadaId = searchParams.get("creada");
