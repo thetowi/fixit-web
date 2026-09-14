@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
-import { PerfilPrestador, ServicioOfrecido } from "@/types/perfil";
-import { CrearOrdenRequest, Orden } from "@/types/ordenes";
+import { PerfilPrestador } from "@/types/perfil";
+import { IniciarConversacionRequest, Conversacion } from "@/types/conversaciones";
 import Estrellas from "@/components/Estrellas";
-import { Calificacion } from "@/types/calificaciones";
+import { Calificacion, CRITERIOS_CALIFICACION } from "@/types/calificaciones";
 
 type Pestaña = "servicios" | "reseñas" | "acerca";
 
@@ -21,11 +21,7 @@ export default function PerfilPrestadorPage() {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [pestaña, setPestaña] = useState<Pestaña>("servicios");
-
-  const [servicioAContratar, setServicioAContratar] = useState<ServicioOfrecido | null>(null);
-  const [monto, setMonto] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [errorContratacion, setErrorContratacion] = useState<string | null>(null);
+  const [iniciandoChat, setIniciandoChat] = useState<number | null>(null);
 
   const usuario = obtenerUsuario();
 
@@ -46,44 +42,26 @@ export default function PerfilPrestadorPage() {
       .finally(() => setCargando(false));
   }, [id]);
 
-  function abrirFormularioContratacion(servicio: ServicioOfrecido) {
+  async function handleContratar(categoriaId: number) {
     if (!usuario) {
       router.push("/login");
       return;
     }
-    setServicioAContratar(servicio);
-    setMonto(servicio.precioReferencia ? String(servicio.precioReferencia) : "");
-    setErrorContratacion(null);
-  }
 
-  async function handleContratar(e: React.FormEvent) {
-    e.preventDefault();
-    if (!servicioAContratar) return;
+    setIniciandoChat(categoriaId);
+    setError(null);
 
-    const montoNumerico = Number(monto);
-    if (!montoNumerico || montoNumerico <= 0) {
-      setErrorContratacion("Ingresá un monto válido.");
-      return;
-    }
-
-    setEnviando(true);
-    setErrorContratacion(null);
-
-    const body: CrearOrdenRequest = {
-      prestadorId: id,
-      categoriaId: servicioAContratar.categoriaId,
-      montoTotal: montoNumerico,
-    };
+    const body: IniciarConversacionRequest = { prestadorId: id, categoriaId };
 
     try {
-      const orden = await apiFetch<Orden>("/api/ordenes", {
+      const conversacion = await apiFetch<Conversacion>("/api/conversaciones", {
         method: "POST",
         body: JSON.stringify(body),
       });
-      router.push(`/ordenes?creada=${orden.id}`);
+      router.push(`/conversaciones/${conversacion.id}`);
     } catch (err) {
-      setErrorContratacion(err instanceof ApiError ? err.message : "Error al crear la solicitud");
-      setEnviando(false);
+      setError(err instanceof ApiError ? err.message : "Error al iniciar el chat");
+      setIniciandoChat(null);
     }
   }
 
@@ -157,16 +135,17 @@ export default function PerfilPrestadorPage() {
                     {s.descripcion && <p className="text-sm text-ink/60">{s.descripcion}</p>}
                     {s.precioReferencia && (
                       <p className="font-mono text-sm text-ink/70 mt-1">
-                        Desde ${s.precioReferencia.toLocaleString("es-AR")}
+                        Desde ${s.precioReferencia.toLocaleString("es-AR")} /hora
                       </p>
                     )}
                   </div>
                   {esClientePropio && (
                     <button
-                      onClick={() => abrirFormularioContratacion(s)}
-                      className="bg-copper text-paper text-sm rounded px-3 py-1.5 whitespace-nowrap hover:bg-copper-dark transition-colors"
+                      onClick={() => handleContratar(s.categoriaId)}
+                      disabled={iniciandoChat === s.categoriaId}
+                      className="bg-copper text-paper text-sm rounded px-3 py-1.5 whitespace-nowrap hover:bg-copper-dark transition-colors disabled:opacity-40"
                     >
-                      Contratar
+                      {iniciandoChat === s.categoriaId ? "Abriendo chat..." : "Contactar"}
                     </button>
                   )}
                 </div>
@@ -191,9 +170,19 @@ export default function PerfilPrestadorPage() {
               <li key={c.id} className="bg-white border border-ink/10 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-medium text-sm text-ink">{c.clienteNombre}</span>
-                  <Estrellas valor={c.puntuacion} tamaño="text-sm" />
+                  <div className="flex items-center gap-1">
+                    <Estrellas valor={c.promedio} tamaño="text-sm" />
+                    <span className="text-xs text-ink/50">{c.promedio.toFixed(1)}</span>
+                  </div>
                 </div>
-                {c.comentario && <p className="text-sm text-ink/60">{c.comentario}</p>}
+                {c.comentario && <p className="text-sm text-ink/60 mb-2">{c.comentario}</p>}
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink/40 font-mono">
+                  {CRITERIOS_CALIFICACION.map((criterio) => (
+                    <span key={criterio.key}>
+                      {criterio.label}: {c[criterio.key]}★
+                    </span>
+                  ))}
+                </div>
               </li>
             ))}
           </ul>
@@ -227,50 +216,6 @@ export default function PerfilPrestadorPage() {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {servicioAContratar && (
-        <div className="fixed inset-0 bg-ink/50 flex items-center justify-center p-6">
-          <div className="bg-paper rounded-lg p-6 max-w-sm w-full border border-ink/10">
-            <h3 className="font-display text-lg text-ink mb-4">
-              Contratar: {servicioAContratar.categoriaNombre}
-            </h3>
-            <form onSubmit={handleContratar} className="flex flex-col gap-3">
-              <label className="text-sm text-ink/60">
-                Monto acordado
-                <input
-                  type="number"
-                  min={1}
-                  required
-                  className="border border-ink/20 rounded p-2 w-full mt-1 bg-white"
-                  value={monto}
-                  onChange={(e) => setMonto(e.target.value)}
-                />
-              </label>
-
-              {errorContratacion && (
-                <p className="text-red-700 text-sm">{errorContratacion}</p>
-              )}
-
-              <div className="flex gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setServicioAContratar(null)}
-                  className="border border-ink/20 rounded p-2 flex-1 text-ink"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={enviando}
-                  className="bg-copper text-paper rounded p-2 flex-1 hover:bg-copper-dark transition-colors disabled:opacity-40"
-                >
-                  {enviando ? "Enviando..." : "Confirmar"}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
     </div>

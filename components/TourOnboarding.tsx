@@ -23,6 +23,11 @@ const PASOS_CLIENTE: Step[] = [
     content: "O navegá por categoría sin necesidad de dar tu ubicación.",
   },
   {
+    target: "[data-tour='nav-mensajes']",
+    title: "Mensajes",
+    content: "Todas tus conversaciones con prestadores en un solo lugar, con aviso cuando te llega algo nuevo.",
+  },
+  {
     target: "[data-tour='nav-ordenes']",
     title: "Mis órdenes",
     content: "Acá vas a ver el estado de los trabajos que contrataste, y podés chatear con el prestador.",
@@ -42,19 +47,19 @@ const PASOS_PRESTADOR: Step[] = [
     content: "Te mostramos rápido cómo empezar a recibir trabajos.",
   },
   {
-    target: "[data-tour='nav-servicios']",
-    title: "Mis servicios",
-    content: "Cargá las categorías que ofrecés, con precio de referencia.",
-  },
-  {
-    target: "[data-tour='nav-acerca']",
-    title: "Acerca de mí",
-    content: "Contá tu experiencia y subí fotos de trabajos realizados — ayuda a que te elijan.",
+    target: "[data-tour='nav-cuenta']",
+    title: "Mi cuenta",
+    content: "Ahí cargás tus servicios, contás tu experiencia (Acerca de mí) y subís fotos de trabajos realizados.",
   },
   {
     target: "[data-tour='nav-agenda']",
     title: "Agenda",
     content: "Definí tus horarios de disponibilidad y programá tus turnos.",
+  },
+  {
+    target: "[data-tour='nav-mensajes']",
+    title: "Mensajes",
+    content: "Todas tus conversaciones con clientes en un solo lugar, con aviso cuando te llega algo nuevo.",
   },
   {
     target: "[data-tour='nav-ordenes']",

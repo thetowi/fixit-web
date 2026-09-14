@@ -1,12 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { Orden } from "@/types/ordenes";
-import { CrearCalificacionRequest } from "@/types/calificaciones";
+import { CrearCalificacionRequest, CRITERIOS_CALIFICACION } from "@/types/calificaciones";
 import OrdenTicket from "@/components/OrdenTicket";
+import SelectorEstrellas from "@/components/SelectorEstrellas";
+
+const CALIFICACION_INICIAL: Omit<CrearCalificacionRequest, "comentario"> = {
+  puntualidad: 0,
+  calidad: 0,
+  precio: 0,
+  comunicacion: 0,
+  limpieza: 0,
+  garantia: 0,
+};
+
+function claveMes(fechaISO: string): string {
+  const fecha = new Date(fechaISO);
+  return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function etiquetaMes(clave: string): string {
+  const [anio, mes] = clave.split("-").map(Number);
+  const texto = new Date(anio, mes - 1, 1).toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
 
 export default function OrdenesPage() {
   const router = useRouter();
@@ -17,8 +38,12 @@ export default function OrdenesPage() {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [ordenCalificando, setOrdenCalificando] = useState<string | null>(null);
-  const [puntuacion, setPuntuacion] = useState(5);
+  const [calificacionForm, setCalificacionForm] = useState(CALIFICACION_INICIAL);
+  const [criterioExpandido, setCriterioExpandido] = useState<string | null>(null);
   const [comentario, setComentario] = useState("");
+  const [filtroMes, setFiltroMes] = useState("todos");
+
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const usuario = obtenerUsuario();
 
@@ -29,6 +54,19 @@ export default function OrdenesPage() {
     }
     cargarOrdenes();
   }, [router]);
+
+  useEffect(() => {
+    if (!criterioExpandido) return;
+
+    function handleClickFuera(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setCriterioExpandido(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickFuera);
+    return () => document.removeEventListener("mousedown", handleClickFuera);
+  }, [criterioExpandido]);
 
   async function cargarOrdenes() {
     try {
@@ -55,7 +93,13 @@ export default function OrdenesPage() {
     e.preventDefault();
     if (!ordenCalificando) return;
 
-    const body: CrearCalificacionRequest = { puntuacion, comentario: comentario || undefined };
+    const faltantes = CRITERIOS_CALIFICACION.filter((c) => calificacionForm[c.key] === 0);
+    if (faltantes.length > 0) {
+      setError(`Te falta calificar: ${faltantes.map((c) => c.label).join(", ")}.`);
+      return;
+    }
+
+    const body: CrearCalificacionRequest = { ...calificacionForm, comentario: comentario || undefined };
 
     try {
       await apiFetch(`/api/ordenes/${ordenCalificando}/calificacion`, {
@@ -63,7 +107,7 @@ export default function OrdenesPage() {
         body: JSON.stringify(body),
       });
       setOrdenCalificando(null);
-      setPuntuacion(5);
+      setCalificacionForm(CALIFICACION_INICIAL);
       setComentario("");
       await cargarOrdenes();
     } catch (err) {
@@ -73,9 +117,31 @@ export default function OrdenesPage() {
 
   if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
 
+  const esCliente = usuario?.rol === "Cliente";
+
+  const mesesDisponibles = Array.from(new Set(ordenes.map((o) => claveMes(o.creadoEn)))).sort().reverse();
+  const ordenesFiltradas = filtroMes === "todos" ? ordenes : ordenes.filter((o) => claveMes(o.creadoEn) === filtroMes);
+
   return (
     <div className="max-w-lg mx-auto mt-16 p-6 w-full">
-      <h1 className="font-display text-2xl text-ink mb-6">Mis órdenes</h1>
+      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+        <h1 className="font-display text-2xl text-ink">Mis órdenes</h1>
+
+        {mesesDisponibles.length > 0 && (
+          <select
+            className="border border-ink/20 rounded p-2 bg-white text-sm"
+            value={filtroMes}
+            onChange={(e) => setFiltroMes(e.target.value)}
+          >
+            <option value="todos">Todos los meses</option>
+            {mesesDisponibles.map((clave) => (
+              <option key={clave} value={clave}>
+                {etiquetaMes(clave)}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {ordenCreadaId && (
         <p className="bg-stamp/10 text-stamp text-sm rounded p-3 mb-4 border border-stamp/30">
@@ -89,14 +155,18 @@ export default function OrdenesPage() {
         <p className="text-ink/50 text-sm">Todavía no tenés órdenes.</p>
       )}
 
+      {ordenes.length > 0 && ordenesFiltradas.length === 0 && (
+        <p className="text-ink/50 text-sm">No tenés órdenes en ese mes.</p>
+      )}
+
       <ul className="flex flex-col gap-4">
-        {ordenes.map((o) => {
-          const esCliente = usuario?.rol === "Cliente";
+        {ordenesFiltradas.map((o) => {
           const esPrestador = usuario?.rol === "Prestador";
+          const nombreContraparte = esCliente ? o.prestadorNombreCompleto : o.clienteNombreCompleto;
 
           return (
             <li key={o.id}>
-              <OrdenTicket orden={o}>
+              <OrdenTicket orden={o} nombreContraparte={nombreContraparte}>
                 <div className="flex items-center gap-3 flex-wrap">
                   {esPrestador && o.estado === "Pagado" && (
                     <button
@@ -118,7 +188,10 @@ export default function OrdenesPage() {
 
                   {esCliente && o.estado === "Completado" && !o.yaCalificada && (
                     <button
-                      onClick={() => setOrdenCalificando(o.id)}
+                      onClick={() => {
+                        setError(null);
+                        setOrdenCalificando(o.id);
+                      }}
                       className="text-sm border border-ink/30 text-ink rounded px-3 py-1 hover:border-ink transition-colors"
                     >
                       Calificar
@@ -131,21 +204,45 @@ export default function OrdenesPage() {
                 </div>
 
                 {ordenCalificando === o.id && (
-                  <form onSubmit={handleEnviarCalificacion} className="mt-3 pt-3 border-t border-ink/10 flex flex-col gap-2">
-                    <label className="text-sm text-ink/70">
-                      Puntuación
-                      <select
-                        className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
-                        value={puntuacion}
-                        onChange={(e) => setPuntuacion(Number(e.target.value))}
-                      >
-                        {[5, 4, 3, 2, 1].map((n) => (
-                          <option key={n} value={n}>
-                            {"★".repeat(n)} ({n})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                  <form onSubmit={handleEnviarCalificacion} className="mt-3 pt-3 border-t border-ink/10 flex flex-col gap-3">
+                    <p className="text-xs text-ink/50">
+                      Calificá cada aspecto del trabajo. Con esto armamos la calificación general del prestador.
+                    </p>
+
+                    {CRITERIOS_CALIFICACION.map((criterio) => (
+                      <div key={criterio.key} className="flex items-center justify-between gap-2">
+                        <span className="relative flex items-center gap-1">
+                          <label className="text-sm text-ink/70">{criterio.label}</label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCriterioExpandido((prev) => (prev === criterio.key ? null : criterio.key))
+                            }
+                            className="text-ink/40 hover:text-ink/70 text-xs w-4 h-4 rounded-full border border-ink/30 flex items-center justify-center leading-none shrink-0"
+                            aria-label={`Qué significa ${criterio.label}`}
+                          >
+                            i
+                          </button>
+
+                          {criterioExpandido === criterio.key && (
+                            <div
+                              ref={popoverRef}
+                              className="absolute z-10 top-full left-0 mt-1 w-48 bg-ink text-paper text-xs rounded-md shadow-lg p-2.5 leading-snug"
+                            >
+                              {criterio.descripcion}
+                            </div>
+                          )}
+                        </span>
+                        <SelectorEstrellas
+                          valor={calificacionForm[criterio.key]}
+                          onChange={(valor) =>
+                            setCalificacionForm((prev) => ({ ...prev, [criterio.key]: valor }))
+                          }
+                          tamaño="text-base"
+                        />
+                      </div>
+                    ))}
+
                     <textarea
                       placeholder="Comentario (opcional)"
                       className="border border-ink/20 rounded p-2 bg-paper"
@@ -155,7 +252,11 @@ export default function OrdenesPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setOrdenCalificando(null)}
+                        onClick={() => {
+                          setError(null);
+                          setOrdenCalificando(null);
+                          setCalificacionForm(CALIFICACION_INICIAL);
+                        }}
                         className="border border-ink/20 rounded p-2 flex-1 text-sm"
                       >
                         Cancelar

@@ -28,7 +28,7 @@ export default function RegistroPage() {
         method: "POST",
         body: JSON.stringify(form),
       });
-      router.push("/login?registrado=true");
+      router.push(`/confirmar-email?email=${encodeURIComponent(form.email)}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error inesperado");
     } finally {

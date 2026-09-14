@@ -3,11 +3,12 @@ export interface CrearOrdenRequest {
   categoriaId: number;
   montoTotal: number;
 }
-
 export interface Orden {
   id: string;
   prestadorId: string;
   prestadorNombreCompleto: string;
+  clienteId: string;
+  clienteNombreCompleto: string;
   categoriaId: number;
   categoriaNombre: string;
   estado: string;
@@ -15,4 +16,5 @@ export interface Orden {
   comisionPlataforma: number;
   creadoEn: string;
   yaCalificada: boolean;
+  conversacionId: string;
 }

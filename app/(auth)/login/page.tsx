@@ -170,7 +170,19 @@ export default function LoginPage() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
 
-          {error && <p className="text-red-700 text-sm">{error}</p>}
+          {error && (
+            <div className="text-red-700 text-sm">
+              <p>{error}</p>
+              {error.toLowerCase().includes("confirm") && (
+                <a
+                  href={`/confirmar-email?email=${encodeURIComponent(form.email)}`}
+                  className="text-copper hover:underline"
+                >
+                  Ir a confirmar mi email
+                </a>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

@@ -53,7 +53,7 @@ export default function ExplorarCategoriaPage() {
                   {p.descripcion && <p className="text-sm text-ink/60">{p.descripcion}</p>}
                   {p.precioReferencia && (
                     <p className="font-mono text-sm text-ink/80 mt-1">
-                      Desde ${p.precioReferencia.toLocaleString("es-AR")}
+                      Desde ${p.precioReferencia.toLocaleString("es-AR")} /hora
                     </p>
                   )}
                 </div>

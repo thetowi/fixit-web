@@ -20,6 +20,7 @@ export interface Usuario {
   nombre: string;
   apellido: string;
   rol: Rol;
+  tutorialVisto: boolean;
 }
 
 export interface LoginResponse {
@@ -42,4 +43,13 @@ export interface LoginGoogleResponse {
 export interface CompletarRegistroGoogleRequest {
   idToken: string;
   rol: "cliente" | "prestador";
+}
+
+export interface ConfirmarEmailRequest {
+  email: string;
+  codigo: string;
+}
+
+export interface ReenviarCodigoRequest {
+  email: string;
 }

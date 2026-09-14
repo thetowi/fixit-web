@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
-import { BloqueDisponibilidad, AgregarBloqueRequest, OrdenAgenda } from "@/types/agenda";
+import { BloqueDisponibilidad, DURACIONES_PREDEFINIDAS_MINUTOS, formatoDuracion, OrdenAgenda } from "@/types/agenda";
 import CalendarioSemanal from "@/components/CalendarioSemanal";
-
-const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 function inicioDeSemana(fecha: Date): Date {
   const d = new Date(fecha);
@@ -21,9 +19,6 @@ export default function AgendaPage() {
   const router = useRouter();
 
   const [bloques, setBloques] = useState<BloqueDisponibilidad[]>([]);
-  const [diaNuevo, setDiaNuevo] = useState(1);
-  const [horaInicioNueva, setHoraInicioNueva] = useState("09:00");
-  const [horaFinNueva, setHoraFinNueva] = useState("18:00");
 
   const [sinProgramar, setSinProgramar] = useState<OrdenAgenda[]>([]);
   const [programadas, setProgramadas] = useState<OrdenAgenda[]>([]);
@@ -31,6 +26,7 @@ export default function AgendaPage() {
   const [ordenAProgramar, setOrdenAProgramar] = useState<OrdenAgenda | null>(null);
   const [fechaTurno, setFechaTurno] = useState("");
   const [horaTurno, setHoraTurno] = useState("09:00");
+  const [duracionTurno, setDuracionTurno] = useState(60);
 
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -107,38 +103,31 @@ export default function AgendaPage() {
     await cargarSemana();
   }
 
-  async function handleAgregarBloque(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    const body: AgregarBloqueRequest = {
-      diaSemana: diaNuevo,
-      horaInicio: `${horaInicioNueva}:00`,
-      horaFin: `${horaFinNueva}:00`,
-    };
-
-    try {
-      await apiFetch("/api/prestador/disponibilidad", { method: "POST", body: JSON.stringify(body) });
-      await refrescarTodo();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al agregar el bloque");
-    }
-  }
-
-  async function handleQuitarBloque(id: number) {
-    try {
-      await apiFetch(`/api/prestador/disponibilidad/${id}`, { method: "DELETE" });
-      await refrescarTodo();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al quitar el bloque");
-    }
-  }
-
-  function abrirProgramar(orden: OrdenAgenda) {
+  function abrirProgramar(orden: OrdenAgenda, fechaPre?: string, horaPre?: string) {
     setOrdenAProgramar(orden);
-    setFechaTurno("");
-    setHoraTurno("09:00");
+    setFechaTurno(fechaPre ?? "");
+    setHoraTurno(horaPre ?? "09:00");
+    setDuracionTurno(60);
     setError(null);
+  }
+
+  function fechaAInputDate(fecha: Date): string {
+    const anio = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dia = String(fecha.getDate()).padStart(2, "0");
+    return `${anio}-${mes}-${dia}`;
+  }
+
+  function handleCeldaDisponibleClick(dia: Date, horaHHMM: string) {
+    if (sinProgramar.length === 0) {
+      setError("No tenés trabajos pendientes de agendar — primero necesitás una orden pagada sin programar.");
+      return;
+    }
+    if (sinProgramar.length === 1) {
+      abrirProgramar(sinProgramar[0], fechaAInputDate(dia), horaHHMM);
+      return;
+    }
+    setError("Tenés más de un trabajo pendiente: elegí cuál desde \"Pendientes de programar\" y después tocá el horario.");
   }
 
   async function handleProgramar(e: React.FormEvent) {
@@ -153,7 +142,7 @@ export default function AgendaPage() {
     try {
       await apiFetch(`/api/ordenes/${ordenAProgramar.id}/programar`, {
         method: "PUT",
-        body: JSON.stringify({ fechaHora: fechaHora.toISOString() }),
+        body: JSON.stringify({ fechaHora: fechaHora.toISOString(), duracionMinutos: duracionTurno }),
       });
       setOrdenAProgramar(null);
       await refrescarTodo();
@@ -175,61 +164,14 @@ export default function AgendaPage() {
 
       {error && <p className="text-red-700 text-sm mb-4">{error}</p>}
 
-      <div className="bg-white border border-ink/10 rounded-lg p-5 mb-6">
-        <p className="font-medium text-ink mb-3">Horarios en los que trabajo</p>
-
-        <ul className="flex flex-col gap-2 mb-4">
-          {bloques.length === 0 && (
-            <p className="text-ink/50 text-sm">Todavía no cargaste tus horarios.</p>
-          )}
-          {bloques.map((b) => (
-            <li key={b.id} className="flex justify-between items-center text-sm bg-paper rounded p-2">
-              <span className="text-ink">
-                {DIAS[b.diaSemana]} · {b.horaInicio.slice(0, 5)} a {b.horaFin.slice(0, 5)}
-              </span>
-              <button onClick={() => handleQuitarBloque(b.id)} className="text-red-700/70 hover:text-red-700 text-xs">
-                Quitar
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        <form onSubmit={handleAgregarBloque} className="flex gap-2 items-end flex-wrap">
-          <label className="text-xs text-ink/60">
-            Día
-            <select
-              className="border border-ink/20 rounded p-2 bg-paper block mt-1"
-              value={diaNuevo}
-              onChange={(e) => setDiaNuevo(Number(e.target.value))}
-            >
-              {DIAS.map((d, i) => (
-                <option key={i} value={i}>{d}</option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs text-ink/60">
-            Desde
-            <input
-              type="time"
-              className="border border-ink/20 rounded p-2 bg-paper block mt-1"
-              value={horaInicioNueva}
-              onChange={(e) => setHoraInicioNueva(e.target.value)}
-            />
-          </label>
-          <label className="text-xs text-ink/60">
-            Hasta
-            <input
-              type="time"
-              className="border border-ink/20 rounded p-2 bg-paper block mt-1"
-              value={horaFinNueva}
-              onChange={(e) => setHoraFinNueva(e.target.value)}
-            />
-          </label>
-          <button type="submit" className="bg-copper text-paper rounded px-4 py-2 text-sm hover:bg-copper-dark transition-colors">
-            Agregar
-          </button>
-        </form>
-      </div>
+      {bloques.length === 0 && (
+        <div className="bg-white border border-ink/10 rounded-lg p-4 mb-6 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-ink/60">Todavía no cargaste los horarios en los que trabajás.</p>
+          <a href="/cuenta" className="text-sm text-copper hover:underline whitespace-nowrap">
+            Configurar en Mi cuenta →
+          </a>
+        </div>
+      )}
 
       <div className="bg-white border border-ink/10 rounded-lg p-5 mb-6">
         <p className="font-medium text-ink mb-3">Pendientes de programar</p>
@@ -252,8 +194,8 @@ export default function AgendaPage() {
         )}
       </div>
 
-      <div className="bg-white border border-ink/10 rounded-lg p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-paper border border-dashed border-ink/30 rounded-lg p-5">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-dashed border-ink/20">
           <p className="font-medium text-ink">Calendario</p>
           <div className="flex items-center gap-3">
             <button
@@ -283,7 +225,12 @@ export default function AgendaPage() {
         {cargandoSemana ? (
           <p className="text-ink/50 text-sm">Cargando semana...</p>
         ) : (
-          <CalendarioSemanal inicioSemana={inicioSemana} bloques={bloques} ordenes={programadas} />
+          <CalendarioSemanal
+            inicioSemana={inicioSemana}
+            bloques={bloques}
+            ordenes={programadas}
+            onCeldaDisponibleClick={handleCeldaDisponibleClick}
+          />
         )}
       </div>
 
@@ -305,7 +252,7 @@ export default function AgendaPage() {
                 />
               </label>
               <label className="text-sm text-ink/60">
-                Hora
+                Hora de inicio
                 <input
                   type="time"
                   required
@@ -313,6 +260,20 @@ export default function AgendaPage() {
                   value={horaTurno}
                   onChange={(e) => setHoraTurno(e.target.value)}
                 />
+              </label>
+              <label className="text-sm text-ink/60">
+                Duración del trabajo
+                <select
+                  className="border border-ink/20 rounded p-2 w-full mt-1 bg-white"
+                  value={duracionTurno}
+                  onChange={(e) => setDuracionTurno(Number(e.target.value))}
+                >
+                  {DURACIONES_PREDEFINIDAS_MINUTOS.map((min) => (
+                    <option key={min} value={min}>
+                      {formatoDuracion(min)}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               {error && <p className="text-red-700 text-sm">{error}</p>}

@@ -2,21 +2,81 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { obtenerUbicacionActual } from "@/lib/geolocation";
 import { Usuario } from "@/types/auth";
 import { PrestadorDestacado } from "@/types/destacados";
+import { OrdenAgenda, formatoDuracion } from "@/types/agenda";
+import { ESTADO_LABELS } from "@/components/OrdenTicket";
 import Estrellas from "@/components/Estrellas";
+
+function fechaHoyEsIgual(a: Date, b: Date): boolean {
+  return a.toDateString() === b.toDateString();
+}
 
 export default function Home() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [destacados, setDestacados] = useState<PrestadorDestacado[]>([]);
   const [cargandoDestacados, setCargandoDestacados] = useState(true);
 
+  const [trabajosHoy, setTrabajosHoy] = useState<OrdenAgenda[]>([]);
+  const [trabajosSemana, setTrabajosSemana] = useState<OrdenAgenda[]>([]);
+  const [cargandoTrabajos, setCargandoTrabajos] = useState(true);
+  const [errorTrabajos, setErrorTrabajos] = useState<string | null>(null);
+  const [iniciandoId, setIniciandoId] = useState<string | null>(null);
+
   useEffect(() => {
     setUsuario(obtenerUsuario());
   }, []);
+
+  useEffect(() => {
+    if (usuario?.rol !== "Prestador") return;
+    cargarTrabajos();
+  }, [usuario]);
+
+  async function cargarTrabajos() {
+    setCargandoTrabajos(true);
+    try {
+      const hoy = new Date();
+      const inicioHoy = new Date(hoy);
+      inicioHoy.setHours(0, 0, 0, 0);
+
+      // Fin de la semana actual (domingo a sábado, mismo criterio que /prestador/agenda)
+      const finSemana = new Date(inicioHoy);
+      finSemana.setDate(finSemana.getDate() + (6 - hoy.getDay()));
+      finSemana.setHours(23, 59, 59, 999);
+
+      const data = await apiFetch<OrdenAgenda[]>(
+        `/api/prestador/agenda?desde=${inicioHoy.toISOString()}&hasta=${finSemana.toISOString()}`
+      );
+
+      const deHoy = data.filter((o) => o.fechaHoraProgramada && fechaHoyEsIgual(new Date(o.fechaHoraProgramada), hoy));
+      const deLaSemana = data.filter(
+        (o) => o.fechaHoraProgramada && !fechaHoyEsIgual(new Date(o.fechaHoraProgramada), hoy)
+      );
+
+      setTrabajosHoy(deHoy);
+      setTrabajosSemana(deLaSemana);
+    } catch (err) {
+      setErrorTrabajos(err instanceof ApiError ? err.message : "No pudimos cargar tus trabajos programados.");
+    } finally {
+      setCargandoTrabajos(false);
+    }
+  }
+
+  async function iniciarTrabajo(id: string) {
+    setIniciandoId(id);
+    setErrorTrabajos(null);
+    try {
+      await apiFetch(`/api/ordenes/${id}/iniciar`, { method: "PUT" });
+      await cargarTrabajos();
+    } catch (err) {
+      setErrorTrabajos(err instanceof ApiError ? err.message : "No pudimos iniciar el trabajo.");
+    } finally {
+      setIniciandoId(null);
+    }
+  }
 
   useEffect(() => {
     async function cargarDestacados() {
@@ -77,6 +137,93 @@ export default function Home() {
           </Link>
         )}
       </div>
+
+      {usuario?.rol === "Prestador" && (
+        <div className="w-full max-w-2xl pb-14 flex flex-col gap-6">
+          {errorTrabajos && <p className="text-red-700 text-sm text-center">{errorTrabajos}</p>}
+
+          <div className="bg-white border border-ink/10 rounded-lg p-5">
+            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Hoy</p>
+            {cargandoTrabajos ? (
+              <p className="text-sm text-ink/40">Cargando...</p>
+            ) : trabajosHoy.length === 0 ? (
+              <p className="text-sm text-ink/50">No tenés trabajos programados para hoy.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {trabajosHoy.map((o) => (
+                  <li
+                    key={o.id}
+                    className="flex items-center justify-between gap-3 bg-paper rounded p-3 flex-wrap"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-ink/45">
+                        {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
+                      </p>
+                      <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
+                      <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
+                    </div>
+                    {o.estado === "Pagado" ? (
+                      <button
+                        onClick={() => iniciarTrabajo(o.id)}
+                        disabled={iniciandoId === o.id}
+                        className="bg-safety text-ink rounded px-3 py-1.5 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {iniciandoId === o.id ? "Iniciando..." : "Iniciar trabajo"}
+                      </button>
+                    ) : (
+                      <span className="text-xs font-mono uppercase text-stamp border border-stamp rounded px-2 py-1 whitespace-nowrap">
+                        {ESTADO_LABELS[o.estado] ?? o.estado}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="bg-white border border-ink/10 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-mono text-xs tracking-widest text-copper uppercase">Esta semana</p>
+              <Link href="/prestador/agenda" className="text-xs text-copper hover:underline whitespace-nowrap">
+                Ver agenda completa →
+              </Link>
+            </div>
+            {cargandoTrabajos ? (
+              <p className="text-sm text-ink/40">Cargando...</p>
+            ) : trabajosSemana.length === 0 ? (
+              <p className="text-sm text-ink/50">No tenés más trabajos programados esta semana.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {trabajosSemana.map((o) => (
+                  <li key={o.id} className="flex items-center justify-between gap-3 bg-paper rounded p-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-ink/45">
+                        {new Date(o.fechaHoraProgramada!).toLocaleDateString("es-AR", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                        })}{" "}
+                        ·{" "}
+                        {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
+                      </p>
+                      <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
+                      <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
       {usuario?.rol !== "Prestador" && !cargandoDestacados && destacados.length > 0 && (
         <div className="w-full max-w-4xl pb-20">
