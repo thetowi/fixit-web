@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario, cerrarSesion, guardarSesion } from "@/lib/auth";
 import { PerfilPropio, ActualizarPerfilRequest } from "@/types/perfilPropio";
@@ -9,10 +9,11 @@ import { BloqueDisponibilidad, AgregarBloqueRequest } from "@/types/agenda";
 import { PerfilPrestador, FotoTrabajo } from "@/types/perfil";
 import { Categoria, PrestadorCategoria, AgregarCategoriaRequest } from "@/types/categorias";
 import { VerificacionEstado } from "@/types/verificacion";
+import { ConexionMercadoPago, IniciarConexionMercadoPago } from "@/types/mercadoPago";
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
-type Seccion = "perfil" | "servicios" | "acerca" | "horarios" | "verificacion";
+type Seccion = "perfil" | "servicios" | "acerca" | "horarios" | "verificacion" | "cobros";
 
 const SECCIONES: { id: Seccion; label: string }[] = [
   { id: "perfil", label: "Perfil" },
@@ -20,6 +21,7 @@ const SECCIONES: { id: Seccion; label: string }[] = [
   { id: "acerca", label: "Acerca de mí" },
   { id: "horarios", label: "Horarios" },
   { id: "verificacion", label: "Verificación" },
+  { id: "cobros", label: "Cobros" },
 ];
 
 function CampoDocumento({
@@ -60,7 +62,16 @@ function CampoDocumento({
 }
 
 export default function CuentaPage() {
+  return (
+    <Suspense fallback={<p className="p-6 text-ink/60">Cargando...</p>}>
+      <CuentaContenido />
+    </Suspense>
+  );
+}
+
+function CuentaContenido() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [seccion, setSeccion] = useState<Seccion>("perfil");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRefTrabajo = useRef<HTMLInputElement>(null);
@@ -107,6 +118,12 @@ export default function CuentaPage() {
   const [errorVerif, setErrorVerif] = useState<string | null>(null);
   const [enviandoVerif, setEnviandoVerif] = useState(false);
 
+  // --- Cobros / Mercado Pago (Prestador) ---
+  const [mpEstado, setMpEstado] = useState<ConexionMercadoPago | null>(null);
+  const [errorMp, setErrorMp] = useState<string | null>(null);
+  const [conectandoMp, setConectandoMp] = useState(false);
+  const [mensajeMp, setMensajeMp] = useState<string | null>(null);
+
   useEffect(() => {
     if (!obtenerUsuario()) {
       router.push("/login");
@@ -115,13 +132,31 @@ export default function CuentaPage() {
     cargarPerfil();
   }, [router]);
 
+  // Mercado Pago nos redirige de vuelta acá con ?mp=conectado o ?mp=error tras el flujo de OAuth
+  useEffect(() => {
+    const resultadoMp = searchParams.get("mp");
+    if (!resultadoMp) return;
+
+    if (resultadoMp === "conectado") {
+      setMensajeMp("¡Listo! Tu cuenta de Mercado Pago quedó conectada.");
+      setSeccion("cobros");
+      cargarEstadoMp();
+    } else if (resultadoMp === "error") {
+      setMensajeMp("No pudimos conectar tu cuenta de Mercado Pago. Probá de nuevo.");
+      setSeccion("cobros");
+    }
+
+    router.replace("/cuenta");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   async function cargarPerfil() {
     try {
       const data = await apiFetch<PerfilPropio>("/api/usuarios/perfil");
       setPerfil(data);
       setForm({ nombre: data.nombre, apellido: data.apellido, telefono: data.telefono });
       if (data.rol === "Prestador") {
-        await Promise.all([cargarBloques(), cargarPerfilPrestador(), cargarServicios(), cargarVerificacion()]);
+        await Promise.all([cargarBloques(), cargarPerfilPrestador(), cargarServicios(), cargarVerificacion(), cargarEstadoMp()]);
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al cargar tu perfil");
@@ -171,6 +206,27 @@ export default function CuentaPage() {
       setVerifEstado(data);
     } catch (err) {
       setErrorVerif(err instanceof ApiError ? err.message : "Error al cargar tu verificación");
+    }
+  }
+
+  async function cargarEstadoMp() {
+    try {
+      const data = await apiFetch<ConexionMercadoPago>("/api/mercadopago/estado");
+      setMpEstado(data);
+    } catch (err) {
+      setErrorMp(err instanceof ApiError ? err.message : "Error al consultar el estado de Mercado Pago");
+    }
+  }
+
+  async function handleConectarMp() {
+    setErrorMp(null);
+    setConectandoMp(true);
+    try {
+      const data = await apiFetch<IniciarConexionMercadoPago>("/api/mercadopago/oauth/iniciar");
+      window.location.href = data.initPoint;
+    } catch (err) {
+      setErrorMp(err instanceof ApiError ? err.message : "Error al iniciar la conexión con Mercado Pago");
+      setConectandoMp(false);
     }
   }
 
@@ -823,6 +879,54 @@ export default function CuentaPage() {
               </form>
             </>
           )}
+        </div>
+      )}
+
+      {perfil.rol === "Prestador" && seccion === "cobros" && (
+        <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-cobros">
+          <p className="font-medium text-ink mb-1">Cobros</p>
+          <p className="text-xs text-ink/50 mb-4">
+            Conectá tu propia cuenta de Mercado Pago para que los pagos de tus trabajos se depositen
+            directo ahí. FixIt se queda con su comisión automáticamente al momento del cobro.
+          </p>
+
+          {mensajeMp && (
+            <div className="border border-copper/30 bg-copper/5 rounded-lg p-3 mb-4">
+              <p className="text-sm text-ink">{mensajeMp}</p>
+            </div>
+          )}
+
+          {mpEstado?.conectado ? (
+            <div className="border border-stamp/30 bg-stamp/5 rounded-lg p-4">
+              <p className="text-sm text-ink flex items-center gap-2 mb-1">
+                <span className="text-stamp text-lg">✓</span> Tu cuenta de Mercado Pago está conectada.
+              </p>
+              {mpEstado.trabajosGratisRestantes > 0 ? (
+                <p className="text-xs text-ink/60">
+                  Te quedan <span className="font-medium text-ink">{mpEstado.trabajosGratisRestantes}</span> trabajos
+                  sin comisión de FixIt (ya cobraste {mpEstado.trabajosPagados}).
+                </p>
+              ) : (
+                <p className="text-xs text-ink/60">
+                  Ya usaste tus trabajos sin comisión ({mpEstado.trabajosPagados} cobrados en total) — de acá en
+                  más se aplica la comisión de FixIt en cada cobro.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-ink/70">Todavía no conectaste ninguna cuenta de Mercado Pago.</p>
+              <button
+                onClick={handleConectarMp}
+                disabled={conectandoMp}
+                className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 self-start px-4"
+              >
+                {conectandoMp ? "Redirigiendo..." : "Conectar con Mercado Pago"}
+              </button>
+            </div>
+          )}
+
+          {errorMp && <p className="text-red-700 dark:text-red-400 text-sm mt-3">{errorMp}</p>}
         </div>
       )}
 
