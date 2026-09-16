@@ -49,8 +49,10 @@ export default function OrdenTicket({
       <p className="font-mono text-[11px] text-ink/40 mb-1">
         ORDEN #{orden.id.slice(0, 8).toUpperCase()} · {formatearFecha(orden.creadoEn)}
       </p>
-      <p className="font-medium text-ink pr-28">{orden.categoriaNombre}</p>
-      <p className="text-sm text-ink/60 mb-3">Con {nombreContraparte}</p>
+      <p className="font-medium text-ink pr-28">{orden.descripcion || orden.categoriaNombre}</p>
+      <p className="text-sm text-ink/60 mb-3">
+        {orden.categoriaNombre} · Con {nombreContraparte}
+      </p>
 
       <div className="flex justify-between items-end">
         <span className="font-mono text-sm text-ink">${orden.montoTotal.toLocaleString("es-AR")}</span>

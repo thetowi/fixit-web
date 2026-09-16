@@ -18,6 +18,7 @@ export default function ConversacionPage() {
   const [error, setError] = useState<string | null>(null);
   const [conectado, setConectado] = useState(false);
   const [mostrandoOferta, setMostrandoOferta] = useState(false);
+  const [descripcionOferta, setDescripcionOferta] = useState("");
   const [montoOferta, setMontoOferta] = useState("");
   const [pagando, setPagando] = useState(false);
 
@@ -113,6 +114,10 @@ export default function ConversacionPage() {
   async function handleEnviarOferta(e: React.FormEvent) {
     e.preventDefault();
     const monto = Number(montoOferta);
+    if (!descripcionOferta.trim()) {
+      setError('Contá brevemente qué trabajo es (ej. "Arreglo farola").');
+      return;
+    }
     if (!monto || monto <= 0) {
       setError("Ingresá un monto válido.");
       return;
@@ -121,13 +126,14 @@ export default function ConversacionPage() {
     try {
       const mensaje = await apiFetch<Mensaje>(`/api/conversaciones/${conversacionId}/ofertas`, {
         method: "POST",
-        body: JSON.stringify({ monto }),
+        body: JSON.stringify({ monto, descripcion: descripcionOferta.trim() }),
       });
       setMensajes((prev) => [
         ...prev.map((m) => (m.tipo === "Oferta" ? { ...m, ofertaVigente: false } : m)),
         mensaje,
       ]);
       setMostrandoOferta(false);
+      setDescripcionOferta("");
       setMontoOferta("");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al enviar la oferta");
@@ -188,6 +194,9 @@ export default function ConversacionPage() {
                 </div>
 
                 <div className="bg-surface px-3.5 py-3">
+                  {m.descripcionOferta && (
+                    <p className="text-sm text-ink/70 mb-1">{m.descripcionOferta}</p>
+                  )}
                   <p className="font-display text-3xl text-ink leading-none">
                     ${m.montoOferta!.toLocaleString("es-AR")}
                   </p>
@@ -237,16 +246,23 @@ export default function ConversacionPage() {
       {mostrandoOferta ? (
         <form onSubmit={handleEnviarOferta} className="flex gap-2 mb-2">
           <input
+            type="text"
+            placeholder="¿Qué trabajo es? (ej. Arreglo farola)"
+            autoFocus
+            className="border border-ink/20 rounded p-2 flex-[2] bg-surface"
+            value={descripcionOferta}
+            onChange={(e) => setDescripcionOferta(e.target.value)}
+          />
+          <input
             type="number"
             placeholder="Monto"
-            autoFocus
             className="border border-ink/20 rounded p-2 flex-1 bg-surface"
             value={montoOferta}
             onChange={(e) => setMontoOferta(e.target.value)}
           />
           <button
             type="submit"
-            disabled={!montoOferta || Number(montoOferta) <= 0}
+            disabled={!descripcionOferta.trim() || !montoOferta || Number(montoOferta) <= 0}
             className="bg-copper text-paper rounded px-4 hover:bg-copper-dark transition-colors disabled:opacity-40"
           >
             Enviar
@@ -256,6 +272,7 @@ export default function ConversacionPage() {
             onClick={() => {
               setError(null);
               setMostrandoOferta(false);
+              setDescripcionOferta("");
               setMontoOferta("");
             }}
             className="border border-ink/20 rounded px-3 text-ink"

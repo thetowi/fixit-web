@@ -7,6 +7,7 @@ export interface Mensaje {
   contenido: string | null;
   imagenUrl: string | null;
   montoOferta: number | null;
+  descripcionOferta: string | null;
   ofertaVigente: boolean;
   enviadoEn: string;
 }

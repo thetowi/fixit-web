@@ -11,6 +11,7 @@ export interface Orden {
   clienteNombreCompleto: string;
   categoriaId: number;
   categoriaNombre: string;
+  descripcion: string;
   estado: string;
   montoTotal: number;
   comisionPlataforma: number;
