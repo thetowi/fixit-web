@@ -163,7 +163,7 @@ export default function ConversacionPage() {
     <div className="max-w-lg mx-auto mt-8 p-6 flex flex-col h-[85vh] w-full">
       <h1 className="font-display text-xl text-ink mb-4">Chat</h1>
 
-      <div className="flex-1 overflow-y-auto bg-surface border border-ink/10 rounded-lg p-3 flex flex-col gap-2 mb-3">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-surface border border-ink/10 rounded-lg p-3 flex flex-col gap-2 mb-3">
         {mensajes.map((m) => {
           const esMio = m.emisorId === usuario?.id;
 
@@ -171,7 +171,7 @@ export default function ConversacionPage() {
             return (
               <div
                 key={m.id}
-                className={`max-w-[90%] w-[280px] rounded-xl overflow-hidden shadow-md border-2 ${
+                className={`max-w-[90%] w-[280px] shrink-0 rounded-xl overflow-hidden shadow-md border-2 ${
                   m.ofertaVigente ? "border-copper" : "border-ink/10 opacity-60"
                 } ${esMio ? "self-end" : "self-start"}`}
               >
@@ -229,7 +229,7 @@ export default function ConversacionPage() {
           return (
             <div
               key={m.id}
-              className={`max-w-[75%] rounded-lg p-2 text-sm ${
+              className={`max-w-[75%] shrink-0 rounded-lg p-2 text-sm ${
                 esMio ? "bg-ink text-paper self-end" : "bg-paper border border-ink/10 self-start"
               }`}
             >
