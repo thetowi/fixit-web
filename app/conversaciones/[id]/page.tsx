@@ -77,7 +77,7 @@ export default function ConversacionPage() {
             return [...actualizados, mensaje];
           });
 
-          if (mensaje.emisorId !== usuarioActual.id) {
+          if (usuarioActual && mensaje.emisorId !== usuarioActual.id) {
             marcarLeidoYAvisar();
           }
         });

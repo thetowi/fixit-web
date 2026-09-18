@@ -2,11 +2,15 @@ import { apiFetch } from "@/lib/api";
 
 // Convierte la clave pública VAPID (base64 URL-safe, como la devuelve el backend/web-push)
 // al formato Uint8Array que pide PushManager.subscribe()
-function claveUrlBase64AUint8Array(claveBase64: string): Uint8Array {
+function claveUrlBase64AUint8Array(claveBase64: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (claveBase64.length % 4)) % 4);
   const base64 = (claveBase64 + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
+  // Ojo: "new Uint8Array(rawData.length)" tipa el array como Uint8Array<ArrayBufferLike>, que
+  // TypeScript ya no acepta como "applicationServerKey" de subscribe() (pide específicamente
+  // ArrayBuffer, no el ArrayBufferLike más genérico que también incluiría un SharedArrayBuffer).
+  // Creando el ArrayBuffer explícito de entrada, el tipo queda como Uint8Array<ArrayBuffer>.
+  const outputArray = new Uint8Array(new ArrayBuffer(rawData.length));
   for (let i = 0; i < rawData.length; i++) {
     outputArray[i] = rawData.charCodeAt(i);
   }
