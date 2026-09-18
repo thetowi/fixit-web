@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
-import { BloqueDisponibilidad, DURACIONES_PREDEFINIDAS_MINUTOS, formatoDuracion, OrdenAgenda } from "@/types/agenda";
+import { BloqueDisponibilidad, DURACIONES_PREDEFINIDAS_MINUTOS, formatoDistancia, formatoDuracion, OrdenAgenda } from "@/types/agenda";
 import CalendarioSemanal from "@/components/CalendarioSemanal";
+import { linkGoogleMaps } from "@/lib/mapas";
 
 function inicioDeSemana(fecha: Date): Date {
   const d = new Date(fecha);
@@ -180,11 +181,36 @@ export default function AgendaPage() {
         ) : (
           <ul className="flex flex-col gap-2">
             {sinProgramar.map((o) => (
-              <li key={o.id} className="flex justify-between items-center text-sm bg-paper rounded p-2">
-                <span className="text-ink">{o.categoriaNombre} · {o.clienteNombreCompleto}</span>
+              <li key={o.id} className="flex justify-between items-center gap-3 text-sm bg-paper rounded p-2">
+                <div className="min-w-0">
+                  <p className="text-ink truncate">
+                    {o.descripcion || o.categoriaNombre} · {o.clienteNombreCompleto}
+                  </p>
+                  <p className="text-xs text-ink/40 truncate">
+                    {o.categoriaNombre}
+                    {o.clienteDireccion && (
+                      <>
+                        {" · 📍 "}
+                        <a
+                          href={linkGoogleMaps(o.clienteDireccion, o.clienteDireccionLat, o.clienteDireccionLon)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline decoration-dotted hover:text-copper"
+                        >
+                          {o.clienteDireccion}
+                        </a>
+                        {o.clienteDireccionVerificada ? " ✓" : ""}
+                      </>
+                    )}
+                    {o.clienteTelefono ? ` · ${o.clienteTelefono}` : ""}
+                  </p>
+                  {o.clienteDistanciaKm != null && (
+                    <p className="text-xs text-ink/35 truncate">{formatoDistancia(o.clienteDistanciaKm)}</p>
+                  )}
+                </div>
                 <button
                   onClick={() => abrirProgramar(o)}
-                  className="bg-ink text-paper rounded px-3 py-1 text-xs hover:bg-ink/80 transition-colors"
+                  className="bg-ink text-paper rounded px-3 py-1 text-xs hover:bg-ink/80 transition-colors shrink-0"
                 >
                   Programar
                 </button>
@@ -237,9 +263,29 @@ export default function AgendaPage() {
       {ordenAProgramar && (
         <div className="fixed inset-0 bg-ink/50 flex items-center justify-center p-6">
           <div className="bg-paper rounded-lg p-6 max-w-sm w-full border border-ink/10">
-            <h3 className="font-display text-lg text-ink mb-4">
-              Programar: {ordenAProgramar.categoriaNombre}
+            <h3 className="font-display text-lg text-ink mb-1">
+              Programar: {ordenAProgramar.descripcion || ordenAProgramar.categoriaNombre}
             </h3>
+            <p className={`text-xs text-ink/50 ${ordenAProgramar.clienteDistanciaKm != null ? "mb-1" : "mb-4"}`}>
+              {ordenAProgramar.clienteNombreCompleto}
+              {ordenAProgramar.clienteDireccion && (
+                <>
+                  {" · 📍 "}
+                  <a
+                    href={linkGoogleMaps(ordenAProgramar.clienteDireccion, ordenAProgramar.clienteDireccionLat, ordenAProgramar.clienteDireccionLon)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-dotted hover:text-copper"
+                  >
+                    {ordenAProgramar.clienteDireccion}
+                  </a>
+                  {ordenAProgramar.clienteDireccionVerificada ? " ✓" : ""}
+                </>
+              )}
+            </p>
+            {ordenAProgramar.clienteDistanciaKm != null && (
+              <p className="text-xs text-ink/35 mb-4">{formatoDistancia(ordenAProgramar.clienteDistanciaKm)}</p>
+            )}
             <form onSubmit={handleProgramar} className="flex flex-col gap-3">
               <label className="text-sm text-ink/60">
                 Fecha

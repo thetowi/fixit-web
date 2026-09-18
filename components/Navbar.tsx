@@ -8,12 +8,17 @@ import { obtenerUsuario, cerrarSesion } from "@/lib/auth";
 import { Usuario } from "@/types/auth";
 import { apiFetch } from "@/lib/api";
 import { crearConexionChat } from "@/lib/chatConnection";
+import { TITULO_BASE, mostrarNotificacionNavegador, pedirPermisoNotificaciones } from "@/lib/notificacionesNavegador";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [noLeidos, setNoLeidos] = useState(0);
+  // Mientras esto esté en true, el título de la pestaña parpadea entre "FixIt" y el aviso.
+  // Se prende cuando llega un mensaje nuevo con la pestaña en segundo plano, y se apaga solo
+  // al volver a mirarla (no hace falta entrar a leer el mensaje puntual para que pare).
+  const [parpadeando, setParpadeando] = useState(false);
   // Menú desplegable de mobile: en pantallas angostas los links no entran en una
   // sola fila (se pisaban entre sí), así que a partir de "md" se esconden detrás
   // de un botón de hamburguesa que despliega un panel vertical.
@@ -45,13 +50,25 @@ export default function Navbar() {
     }
 
     actualizarConteo();
+    pedirPermisoNotificaciones();
 
     async function conectar() {
       try {
         conexion = crearConexionChat();
-        conexion.on("NuevaActividad", () => {
+        conexion.on("NuevaActividad", (data: { conversacionId: string; emisorNombre?: string; preview?: string }) => {
           console.info("[FixIt] Evento NuevaActividad recibido, actualizando contador de no leídos.");
           actualizarConteo();
+
+          // NuevaActividad también se dispara al cancelar una oferta (para refrescar el badge),
+          // que no es un "mensaje nuevo" — esos eventos no traen emisorNombre, así que solo
+          // parpadeamos/notificamos para los que sí son mensajes o ofertas de verdad
+          if (data.emisorNombre) {
+            setParpadeando(true);
+            mostrarNotificacionNavegador(`${data.emisorNombre} te escribió`, {
+              body: data.preview || undefined,
+              tag: data.conversacionId,
+            });
+          }
         });
         conexion.onreconnected(() => {
           console.info("[FixIt] SignalR reconectado, volviendo a unirse a notificaciones.");
@@ -77,6 +94,35 @@ export default function Navbar() {
       window.removeEventListener("fixit:no-leidos-actualizado", actualizarConteo);
     };
   }, [usuario?.id, usuario?.rol]);
+
+  // El parpadeo se apaga solo con volver a mirar la pestaña (no hace falta leer el mensaje)
+  useEffect(() => {
+    function detenerParpadeo() {
+      if (document.visibilityState === "visible") setParpadeando(false);
+    }
+    document.addEventListener("visibilitychange", detenerParpadeo);
+    window.addEventListener("focus", detenerParpadeo);
+    return () => {
+      document.removeEventListener("visibilitychange", detenerParpadeo);
+      window.removeEventListener("focus", detenerParpadeo);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!parpadeando) {
+      document.title = TITULO_BASE;
+      return;
+    }
+    let mostrandoAviso = false;
+    const intervalId = setInterval(() => {
+      mostrandoAviso = !mostrandoAviso;
+      document.title = mostrandoAviso ? "¡Tenés mensajes nuevos!" : TITULO_BASE;
+    }, 1500);
+    return () => {
+      clearInterval(intervalId);
+      document.title = TITULO_BASE;
+    };
+  }, [parpadeando]);
 
   function handleLogout() {
     cerrarSesion();

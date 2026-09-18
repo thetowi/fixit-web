@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario, cerrarSesion, guardarSesion } from "@/lib/auth";
@@ -10,15 +11,29 @@ import { PerfilPrestador, FotoTrabajo } from "@/types/perfil";
 import { Categoria, PrestadorCategoria, AgregarCategoriaRequest } from "@/types/categorias";
 import { VerificacionEstado } from "@/types/verificacion";
 import { ConexionMercadoPago, IniciarConexionMercadoPago } from "@/types/mercadoPago";
+import { activarPush, desactivarPush, pushSoportado, yaSuscriptoPush } from "@/lib/push";
+import { buscarDirecciones, SugerenciaDireccion } from "@/lib/geocodificacion";
+
+// Leaflet toca "window" en el momento de importarse, así que no puede renderizarse en el
+// servidor: lo cargamos solo del lado del cliente.
+const MapaCobertura = dynamic(() => import("@/components/MapaCobertura"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-lg border border-ink/10 bg-paper flex items-center justify-center text-sm text-ink/40" style={{ height: 320 }}>
+      Cargando mapa...
+    </div>
+  ),
+});
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
-type Seccion = "perfil" | "servicios" | "acerca" | "horarios" | "verificacion" | "cobros";
+type Seccion = "perfil" | "servicios" | "acerca" | "cobertura" | "horarios" | "verificacion" | "cobros";
 
 const SECCIONES: { id: Seccion; label: string }[] = [
   { id: "perfil", label: "Perfil" },
   { id: "servicios", label: "Mis servicios" },
   { id: "acerca", label: "Acerca de mí" },
+  { id: "cobertura", label: "Cobertura" },
   { id: "horarios", label: "Horarios" },
   { id: "verificacion", label: "Verificación" },
   { id: "cobros", label: "Cobros" },
@@ -80,12 +95,102 @@ function CuentaContenido() {
   const fileInputRefMatricula = useRef<HTMLInputElement>(null);
 
   const [perfil, setPerfil] = useState<PerfilPropio | null>(null);
-  const [form, setForm] = useState<ActualizarPerfilRequest>({ nombre: "", apellido: "", telefono: "" });
+  const [form, setForm] = useState<ActualizarPerfilRequest>({ nombre: "", apellido: "", telefono: "", direccion: "" });
+
+  // --- Autocompletado/verificación de dirección (Nominatim/OpenStreetMap) ---
+  // El campo de texto busca/verifica la CALLE (+ localidad, que queda guardada aparte); el
+  // número de la casa se carga en un campo propio, con un checkbox por si no tiene.
+  const [sugerenciasDireccion, setSugerenciasDireccion] = useState<SugerenciaDireccion[]>([]);
+  const [buscandoDireccion, setBuscandoDireccion] = useState(false);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  const [calleDireccion, setCalleDireccion] = useState("");
+  const [localidadDireccion, setLocalidadDireccion] = useState("");
+  const [numeroDireccion, setNumeroDireccion] = useState("");
+  const [sinNumeroDireccion, setSinNumeroDireccion] = useState(false);
+  const direccionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleCambiarCalleDireccion(texto: string) {
+    // Escribir a mano invalida cualquier selección previa: solo queda "verificada" si elige
+    // una sugerencia de la lista, así que sacamos lat/lon hasta que vuelva a elegir una.
+    setCalleDireccion(texto);
+    setLocalidadDireccion("");
+    setForm((f) => ({ ...f, direccionLat: undefined, direccionLon: undefined }));
+    setMostrarSugerencias(true);
+
+    if (direccionDebounceRef.current) clearTimeout(direccionDebounceRef.current);
+    if (texto.trim().length < 4) {
+      setSugerenciasDireccion([]);
+      return;
+    }
+
+    direccionDebounceRef.current = setTimeout(async () => {
+      setBuscandoDireccion(true);
+      const resultados = await buscarDirecciones(texto);
+      setSugerenciasDireccion(resultados);
+      setBuscandoDireccion(false);
+    }, 500);
+  }
+
+  function handleElegirSugerenciaDireccion(sugerencia: SugerenciaDireccion) {
+    setCalleDireccion(sugerencia.calle);
+    setLocalidadDireccion(sugerencia.localidad);
+    setForm((f) => ({ ...f, direccionLat: sugerencia.lat, direccionLon: sugerencia.lon }));
+    setSugerenciasDireccion([]);
+    setMostrarSugerencias(false);
+  }
+
+  function handleToggleSinNumero(marcado: boolean) {
+    setSinNumeroDireccion(marcado);
+    if (marcado) setNumeroDireccion("");
+  }
+
+  // Arma el texto final que se guarda: "Calle Número, Localidad" (localidad solo si la tenemos,
+  // que es únicamente cuando la calle salió de una sugerencia verificada)
+  function armarDireccionCompleta(): string {
+    if (!calleDireccion.trim()) return "";
+    const calleYNumero = sinNumeroDireccion
+      ? `${calleDireccion} s/n`
+      : numeroDireccion.trim()
+      ? `${calleDireccion} ${numeroDireccion.trim()}`
+      : calleDireccion;
+    return localidadDireccion ? `${calleYNumero}, ${localidadDireccion}` : calleYNumero;
+  }
   const [error, setError] = useState<string | null>(null);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+
+  // --- Notificaciones push (Cliente y Prestador) ---
+  const [pushActivo, setPushActivo] = useState<boolean | null>(null); // null = todavía no se chequeó
+  const [cambiandoPush, setCambiandoPush] = useState(false);
+  const [errorPush, setErrorPush] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!pushSoportado()) {
+      setPushActivo(false);
+      return;
+    }
+    yaSuscriptoPush().then(setPushActivo);
+  }, []);
+
+  async function handleTogglePush() {
+    setErrorPush(null);
+    setCambiandoPush(true);
+    try {
+      if (pushActivo) {
+        await desactivarPush();
+        setPushActivo(false);
+      } else {
+        await activarPush();
+        setPushActivo(true);
+      }
+    } catch (err) {
+      setErrorPush(err instanceof Error ? err.message : "No se pudo cambiar el estado de las notificaciones.");
+    } finally {
+      setCambiandoPush(false);
+    }
+  }
 
   const [bloques, setBloques] = useState<BloqueDisponibilidad[]>([]);
   const [diaNuevo, setDiaNuevo] = useState(1);
@@ -94,12 +199,20 @@ function CuentaContenido() {
 
   // --- Acerca de mí (Prestador) ---
   const [biografia, setBiografia] = useState("");
-  const [radioAlcanceKm, setRadioAlcanceKm] = useState("");
   const [fotosTrabajo, setFotosTrabajo] = useState<FotoTrabajo[]>([]);
   const [errorAcerca, setErrorAcerca] = useState<string | null>(null);
   const [mensajeExitoAcerca, setMensajeExitoAcerca] = useState<string | null>(null);
   const [guardandoAcerca, setGuardandoAcerca] = useState(false);
   const [subiendoFotoTrabajo, setSubiendoFotoTrabajo] = useState(false);
+
+  // --- Cobertura (Prestador): ubicación base + radio de trabajo ---
+  const [coberturaLat, setCoberturaLat] = useState<number | null>(null);
+  const [coberturaLng, setCoberturaLng] = useState<number | null>(null);
+  const [coberturaRadioKm, setCoberturaRadioKm] = useState(10);
+  const [errorCobertura, setErrorCobertura] = useState<string | null>(null);
+  const [mensajeExitoCobertura, setMensajeExitoCobertura] = useState<string | null>(null);
+  const [guardandoCobertura, setGuardandoCobertura] = useState(false);
+  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
 
   // --- Mis servicios (Prestador) ---
   const [categoriasDisponibles, setCategoriasDisponibles] = useState<Categoria[]>([]);
@@ -154,14 +267,82 @@ function CuentaContenido() {
     try {
       const data = await apiFetch<PerfilPropio>("/api/usuarios/perfil");
       setPerfil(data);
-      setForm({ nombre: data.nombre, apellido: data.apellido, telefono: data.telefono });
+      setForm({ nombre: data.nombre, apellido: data.apellido, telefono: data.telefono, direccion: data.direccion ?? "" });
+      // La dirección ya guardada se precarga tal cual en el campo de "calle" (no la separamos en
+      // calle/número/localidad porque no guardamos esas partes por separado) — si el usuario no
+      // la toca, se vuelve a mandar igual; si la re-busca y elige una sugerencia nueva, ahí sí
+      // queda estructurada y verificada.
+      setCalleDireccion(data.direccion ?? "");
+      setLocalidadDireccion("");
+      setNumeroDireccion("");
+      setSinNumeroDireccion(false);
+
       if (data.rol === "Prestador") {
+        setCoberturaLat(data.latitud);
+        setCoberturaLng(data.longitud);
+        if (data.radioAlcanceKm) setCoberturaRadioKm(data.radioAlcanceKm);
+
+        // Si todavía no configuró su ubicación, le pedimos el GPS del dispositivo para
+        // centrar el mapa ahí directamente (puede corregirla arrastrando el pin después)
+        if (data.latitud === null && data.longitud === null) {
+          obtenerUbicacionActual({ silencioso: true });
+        }
+
         await Promise.all([cargarBloques(), cargarPerfilPrestador(), cargarServicios(), cargarVerificacion(), cargarEstadoMp()]);
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al cargar tu perfil");
     } finally {
       setCargando(false);
+    }
+  }
+
+  function obtenerUbicacionActual({ silencioso = false }: { silencioso?: boolean } = {}) {
+    if (!navigator.geolocation) {
+      if (!silencioso) setErrorCobertura("Tu navegador no permite obtener la ubicación automáticamente.");
+      return;
+    }
+
+    setBuscandoUbicacion(true);
+    navigator.geolocation.getCurrentPosition(
+      (posicion) => {
+        setCoberturaLat(posicion.coords.latitude);
+        setCoberturaLng(posicion.coords.longitude);
+        setBuscandoUbicacion(false);
+      },
+      () => {
+        setBuscandoUbicacion(false);
+        if (!silencioso) {
+          setErrorCobertura("No pudimos acceder a tu ubicación. Marcá el punto directamente en el mapa.");
+        }
+      }
+    );
+  }
+
+  async function handleGuardarCobertura() {
+    setErrorCobertura(null);
+    setMensajeExitoCobertura(null);
+
+    if (coberturaLat === null || coberturaLng === null) {
+      setErrorCobertura("Marcá tu ubicación en el mapa antes de guardar.");
+      return;
+    }
+
+    setGuardandoCobertura(true);
+    try {
+      await apiFetch("/api/usuarios/ubicacion", {
+        method: "PUT",
+        body: JSON.stringify({
+          latitud: coberturaLat,
+          longitud: coberturaLng,
+          radioAlcanceKm: coberturaRadioKm,
+        }),
+      });
+      setMensajeExitoCobertura("Tu cobertura quedó actualizada.");
+    } catch (err) {
+      setErrorCobertura(err instanceof ApiError ? err.message : "Error al guardar tu cobertura");
+    } finally {
+      setGuardandoCobertura(false);
     }
   }
 
@@ -180,7 +361,6 @@ function CuentaContenido() {
     try {
       const data = await apiFetch<PerfilPrestador>(`/api/prestadores/${usuario.id}`);
       setBiografia(data.biografia ?? "");
-      setRadioAlcanceKm(data.radioAlcanceKm ? String(data.radioAlcanceKm) : "");
       setFotosTrabajo(data.fotosTrabajo);
     } catch (err) {
       setErrorAcerca(err instanceof ApiError ? err.message : "Error al cargar tu perfil de prestador");
@@ -305,9 +485,10 @@ function CuentaContenido() {
     setGuardando(true);
 
     try {
+      const cuerpo = { ...form, direccion: armarDireccionCompleta() };
       const actualizado = await apiFetch<PerfilPropio>("/api/usuarios/perfil", {
         method: "PUT",
-        body: JSON.stringify(form),
+        body: JSON.stringify(cuerpo),
       });
       setPerfil(actualizado);
 
@@ -369,7 +550,6 @@ function CuentaContenido() {
         method: "PUT",
         body: JSON.stringify({
           biografia: biografia || null,
-          radioAlcanceKm: radioAlcanceKm ? Number(radioAlcanceKm) : null,
         }),
       });
       setMensajeExitoAcerca("Datos actualizados correctamente.");
@@ -565,6 +745,75 @@ function CuentaContenido() {
               onChange={(e) => setForm({ ...form, telefono: e.target.value })}
             />
           </label>
+          <label className="text-sm text-ink/60 relative">
+            Dirección
+            <div className="flex gap-2 mt-1">
+              <input
+                type="text"
+                placeholder="Empezá a tipear la calle y elegí una sugerencia para verificarla"
+                className="border border-ink/20 rounded p-2 flex-1 bg-paper"
+                value={calleDireccion}
+                onChange={(e) => handleCambiarCalleDireccion(e.target.value)}
+                onFocus={() => setMostrarSugerencias(true)}
+                onBlur={() => setTimeout(() => setMostrarSugerencias(false), 150)}
+                autoComplete="off"
+              />
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="Número"
+                disabled={sinNumeroDireccion}
+                className="border border-ink/20 rounded p-2 w-24 bg-paper disabled:opacity-40"
+                value={numeroDireccion}
+                onChange={(e) => setNumeroDireccion(e.target.value)}
+              />
+            </div>
+
+            <label className="flex items-center gap-1.5 mt-1.5 text-xs text-ink/50 font-normal">
+              <input
+                type="checkbox"
+                checked={sinNumeroDireccion}
+                onChange={(e) => handleToggleSinNumero(e.target.checked)}
+              />
+              Sin número
+            </label>
+
+            {mostrarSugerencias && (buscandoDireccion || sugerenciasDireccion.length > 0) && (
+              <ul className="absolute z-20 left-0 right-0 mt-1 bg-surface border border-ink/15 rounded-lg shadow-lg overflow-hidden">
+                {buscandoDireccion && (
+                  <li className="px-3 py-2 text-xs text-ink/40">Buscando...</li>
+                )}
+                {!buscandoDireccion &&
+                  sugerenciasDireccion.map((s, i) => (
+                    <li key={i}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()} // evita que el blur se dispare antes del click
+                        onClick={() => handleElegirSugerenciaDireccion(s)}
+                        className="w-full text-left px-3 py-2 text-xs text-ink hover:bg-copper/10 transition-colors"
+                      >
+                        {s.calle}{s.localidad ? `, ${s.localidad}` : ""}
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            )}
+
+            {perfil.direccion && (
+              perfil.direccionVerificada ? (
+                <span className="text-xs text-stamp flex items-center gap-1 mt-1">✓ Dirección verificada</span>
+              ) : (
+                <span className="text-xs text-ink/40 block mt-1">
+                  Sin verificar — elegí una sugerencia de la lista para verificarla.
+                </span>
+              )
+            )}
+            {perfil.rol === "Cliente" && (
+              <span className="text-xs text-ink/40 block mt-1">
+                El prestador la va a ver al programar el turno de un trabajo tuyo.
+              </span>
+            )}
+          </label>
 
           {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
           {mensajeExito && <p className="text-stamp text-sm">{mensajeExito}</p>}
@@ -577,6 +826,37 @@ function CuentaContenido() {
             {guardando ? "Guardando..." : "Guardar cambios"}
           </button>
         </form>
+      </div>
+      )}
+
+      {(perfil.rol !== "Prestador" || seccion === "perfil") && (
+      <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6">
+        <p className="font-medium text-ink mb-1">Notificaciones</p>
+        <p className="text-xs text-ink/50 mb-3">
+          Activá los avisos de este navegador para enterarte de mensajes y ofertas nuevas aunque
+          no tengas FixIt abierto en una pestaña.
+        </p>
+
+        {!pushSoportado() ? (
+          <p className="text-xs text-ink/40">Este navegador no soporta notificaciones push.</p>
+        ) : (
+          <>
+            {errorPush && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{errorPush}</p>}
+            <button
+              onClick={handleTogglePush}
+              disabled={cambiandoPush || pushActivo === null}
+              className={`text-sm rounded-lg px-4 py-2 font-medium transition-colors disabled:opacity-40 ${
+                pushActivo ? "border border-ink/20 text-ink/60 hover:border-ink/40" : "bg-copper text-paper hover:bg-copper-dark"
+              }`}
+            >
+              {cambiandoPush
+                ? "Actualizando..."
+                : pushActivo
+                ? "Desactivar notificaciones"
+                : "Activar notificaciones en este dispositivo"}
+            </button>
+          </>
+        )}
       </div>
       )}
 
@@ -669,17 +949,6 @@ function CuentaContenido() {
               />
             </label>
 
-            <label className="text-sm text-ink/60">
-              Radio de alcance (km desde tu zona)
-              <input
-                type="number"
-                min={0}
-                className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
-                value={radioAlcanceKm}
-                onChange={(e) => setRadioAlcanceKm(e.target.value)}
-              />
-            </label>
-
             {errorAcerca && <p className="text-red-700 dark:text-red-400 text-sm">{errorAcerca}</p>}
             {mensajeExitoAcerca && <p className="text-stamp text-sm">{mensajeExitoAcerca}</p>}
 
@@ -730,6 +999,69 @@ function CuentaContenido() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {perfil.rol === "Prestador" && seccion === "cobertura" && (
+        <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-cobertura">
+          <p className="font-medium text-ink mb-1">Cobertura</p>
+          <p className="text-xs text-ink/50 mb-4">
+            Marcá desde dónde vas a prestar tus servicios y hasta qué distancia estás dispuesto a moverte.
+            Solo vas a aparecer en las búsquedas de clientes que estén dentro de ese radio.
+          </p>
+
+          <MapaCobertura
+            latitud={coberturaLat}
+            longitud={coberturaLng}
+            radioKm={coberturaRadioKm}
+            onCambiarUbicacion={(lat, lng) => {
+              setCoberturaLat(lat);
+              setCoberturaLng(lng);
+            }}
+          />
+
+          <div className="flex items-center justify-between mt-3">
+            <p className="text-xs text-ink/50">
+              {coberturaLat !== null && coberturaLng !== null
+                ? "Tocá el mapa o arrastrá el pin para ajustar tu ubicación."
+                : "Todavía no marcaste tu ubicación."}
+            </p>
+            <button
+              type="button"
+              onClick={() => obtenerUbicacionActual()}
+              disabled={buscandoUbicacion}
+              className="text-xs text-copper hover:underline disabled:opacity-40 whitespace-nowrap ml-3"
+            >
+              {buscandoUbicacion ? "Buscando..." : "Usar mi ubicación actual"}
+            </button>
+          </div>
+
+          <div className="mt-5">
+            <label className="text-sm text-ink/60 flex items-center justify-between">
+              <span>Radio de cobertura</span>
+              <span className="font-mono text-ink text-sm">{coberturaRadioKm} km</span>
+            </label>
+            <input
+              type="range"
+              min={1}
+              max={100}
+              value={coberturaRadioKm}
+              onChange={(e) => setCoberturaRadioKm(Number(e.target.value))}
+              className="w-full mt-2 accent-copper"
+            />
+          </div>
+
+          {errorCobertura && <p className="text-red-700 dark:text-red-400 text-sm mt-3">{errorCobertura}</p>}
+          {mensajeExitoCobertura && <p className="text-stamp text-sm mt-3">{mensajeExitoCobertura}</p>}
+
+          <button
+            type="button"
+            onClick={handleGuardarCobertura}
+            disabled={guardandoCobertura}
+            className="w-full mt-4 bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+          >
+            {guardandoCobertura ? "Guardando..." : "Guardar cobertura"}
+          </button>
         </div>
       )}
 

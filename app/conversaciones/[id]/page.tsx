@@ -7,6 +7,9 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { crearConexionChat } from "@/lib/chatConnection";
 import { Mensaje } from "@/types/mensajes";
+import { Usuario } from "@/types/auth";
+import { Conversacion } from "@/types/conversaciones";
+import Link from "next/link";
 
 export default function ConversacionPage() {
   const params = useParams();
@@ -21,16 +24,24 @@ export default function ConversacionPage() {
   const [descripcionOferta, setDescripcionOferta] = useState("");
   const [montoOferta, setMontoOferta] = useState("");
   const [pagando, setPagando] = useState(false);
+  const [cancelandoOfertaId, setCancelandoOfertaId] = useState<string | null>(null);
 
   const conexionRef = useRef<signalR.HubConnection | null>(null);
   const finalMensajesRef = useRef<HTMLDivElement>(null);
-  const [usuario] = useState(() => obtenerUsuario());
+  // obtenerUsuario() lee localStorage, que no existe en el server: si lo leyéramos ya en el
+  // useState inicial, el primer render del cliente (hidratación) no coincidiría con el HTML
+  // que mandó el server (que siempre lo ve como null) y React tira "Hydration failed". Por eso
+  // arrancamos en null y lo cargamos recién en el efecto, ya del lado del cliente.
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [conversacion, setConversacion] = useState<Conversacion | null>(null);
 
   useEffect(() => {
-    if (!usuario) {
+    const usuarioActual = obtenerUsuario();
+    if (!usuarioActual) {
       router.push("/login");
       return;
     }
+    setUsuario(usuarioActual);
 
     let activo = true;
 
@@ -44,9 +55,13 @@ export default function ConversacionPage() {
 
     async function iniciar() {
       try {
-        const historial = await apiFetch<Mensaje[]>(`/api/conversaciones/${conversacionId}/mensajes`);
+        const [historial, datosConversacion] = await Promise.all([
+          apiFetch<Mensaje[]>(`/api/conversaciones/${conversacionId}/mensajes`),
+          apiFetch<Conversacion>(`/api/conversaciones/${conversacionId}`),
+        ]);
         if (!activo) return;
         setMensajes(historial);
+        setConversacion(datosConversacion);
 
         marcarLeidoYAvisar();
 
@@ -62,9 +77,15 @@ export default function ConversacionPage() {
             return [...actualizados, mensaje];
           });
 
-          if (mensaje.emisorId !== usuario?.id) {
+          if (mensaje.emisorId !== usuarioActual.id) {
             marcarLeidoYAvisar();
           }
+        });
+
+        // A diferencia de RecibirMensaje, esto no agrega un mensaje nuevo: actualiza en el
+        // lugar una oferta existente (ej. cuando el prestador la cancela)
+        conexion.on("OfertaActualizada", (mensaje: Mensaje) => {
+          setMensajes((prev) => prev.map((m) => (m.id === mensaje.id ? mensaje : m)));
         });
 
         conexion.onreconnected(() => {
@@ -94,6 +115,14 @@ export default function ConversacionPage() {
       conexionRef.current?.stop();
     };
   }, [conversacionId, router]);
+
+  // Con ofertas que vencen en 30 minutos, refrescamos el contador cada 30s aunque no llegue
+  // ningún mensaje nuevo, para que no se quede mostrando un tiempo viejo mientras el chat está abierto
+  const [, forzarRefrescoVencimiento] = useState(0);
+  useEffect(() => {
+    const intervalId = setInterval(() => forzarRefrescoVencimiento((t) => t + 1), 30000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     finalMensajesRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -154,41 +183,115 @@ export default function ConversacionPage() {
     }
   }
 
+  async function handleCancelarOferta(mensajeId: string) {
+    setCancelandoOfertaId(mensajeId);
+    setError(null);
+    try {
+      const mensaje = await apiFetch<Mensaje>(`/api/conversaciones/${conversacionId}/ofertas/${mensajeId}/cancelar`, {
+        method: "POST",
+      });
+      setMensajes((prev) => prev.map((m) => (m.id === mensaje.id ? mensaje : m)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cancelar la oferta");
+    } finally {
+      setCancelandoOfertaId(null);
+    }
+  }
+
+  function textoVencimiento(ofertaExpiraEn: string | null): string | null {
+    if (!ofertaExpiraEn) return null;
+    const minutosRestantes = (new Date(ofertaExpiraEn).getTime() - Date.now()) / (1000 * 60);
+    if (minutosRestantes <= 0) return "Venció";
+    if (minutosRestantes < 1) return "Vence en instantes";
+    if (minutosRestantes < 60) return `Vence en ${Math.round(minutosRestantes)} min`;
+    if (minutosRestantes < 60 * 24) return `Vence en ${Math.round(minutosRestantes / 60)} hs`;
+    return `Vence en ${Math.round(minutosRestantes / (60 * 24))} días`;
+  }
+
   if (error && mensajes.length === 0) return <p className="p-6 text-red-700 dark:text-red-400">{error}</p>;
 
   const esPrestador = usuario?.rol === "Prestador";
   const esCliente = usuario?.rol === "Cliente";
 
+  // El cliente ve la foto/nombre del prestador y viceversa; solo el prestador tiene perfil
+  // público hoy (/prestador/[id]), así que el nombre solo es clickeable en ese sentido
+  const otroNombre = conversacion
+    ? esCliente
+      ? conversacion.prestadorNombreCompleto
+      : conversacion.clienteNombreCompleto
+    : null;
+  const otroFoto = conversacion
+    ? esCliente
+      ? conversacion.prestadorFotoUrl
+      : conversacion.clienteFotoUrl
+    : null;
+  const iniciales = otroNombre
+    ? otroNombre.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("")
+    : "";
+
   return (
     <div className="max-w-lg mx-auto mt-8 p-6 flex flex-col h-[85vh] w-full">
-      <h1 className="font-display text-xl text-ink mb-4">Chat</h1>
+      <div className="flex items-center gap-3 mb-4">
+        {otroFoto ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={otroFoto} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+        ) : (
+          otroNombre && (
+            <div className="w-10 h-10 rounded-full bg-ink/10 flex items-center justify-center font-display text-sm text-ink shrink-0">
+              {iniciales}
+            </div>
+          )
+        )}
+        <div className="min-w-0">
+          <h1 className="font-display text-xl text-ink truncate">Chat</h1>
+          {otroNombre && (
+            esCliente && conversacion ? (
+              <Link
+                href={`/prestador/${conversacion.prestadorId}`}
+                className="text-xs text-copper hover:underline truncate block"
+              >
+                {otroNombre} · ver perfil
+              </Link>
+            ) : (
+              <p className="text-xs text-ink/50 truncate">{otroNombre}</p>
+            )
+          )}
+        </div>
+      </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto bg-surface border border-ink/10 rounded-lg p-3 flex flex-col gap-2 mb-3">
         {mensajes.map((m) => {
           const esMio = m.emisorId === usuario?.id;
 
           if (m.tipo === "Oferta") {
+            const colorBorde = m.ofertaPagada
+              ? "border-emerald-600"
+              : m.ofertaVigente
+              ? "border-copper"
+              : "border-ink/10 opacity-60";
+            const colorHeader = m.ofertaPagada
+              ? "bg-emerald-600 text-paper"
+              : m.ofertaVigente
+              ? "bg-copper text-paper"
+              : "bg-ink/10 text-ink/50";
+
             return (
               <div
                 key={m.id}
-                className={`max-w-[90%] w-[280px] shrink-0 rounded-xl overflow-hidden shadow-md border-2 ${
-                  m.ofertaVigente ? "border-copper" : "border-ink/10 opacity-60"
-                } ${esMio ? "self-end" : "self-start"}`}
+                className={`max-w-[90%] w-[280px] shrink-0 rounded-xl overflow-hidden shadow-md border-2 ${colorBorde} ${
+                  esMio ? "self-end" : "self-start"
+                }`}
               >
-                <div
-                  className={`flex items-center gap-2 px-3.5 py-2 ${
-                    m.ofertaVigente ? "bg-copper text-paper" : "bg-ink/10 text-ink/50"
-                  }`}
-                >
+                <div className={`flex items-center gap-2 px-3.5 py-2 ${colorHeader}`}>
                   <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-display shrink-0">
-                    $
+                    {m.ofertaPagada ? "✓" : "$"}
                   </span>
                   <p className="font-mono text-[10px] uppercase tracking-widest truncate">
                     {esMio ? "Enviaste una oferta" : `${m.emisorNombre} te envió una oferta`}
                   </p>
-                  {m.ofertaVigente && (
+                  {(m.ofertaPagada || m.ofertaVigente) && (
                     <span className="ml-auto font-mono text-[9px] uppercase tracking-widest bg-white/20 rounded-full px-2 py-0.5 shrink-0">
-                      Vigente
+                      {m.ofertaPagada ? "Pagada" : "Vigente"}
                     </span>
                   )}
                 </div>
@@ -201,25 +304,50 @@ export default function ConversacionPage() {
                     ${m.montoOferta!.toLocaleString("es-AR")}
                   </p>
 
-                  {!m.ofertaVigente && (
-                    <p className="text-xs text-ink/40 mt-2">Superada por una oferta más reciente</p>
-                  )}
-
-                  {m.ofertaVigente && esCliente && !esMio && (
-                    <button
-                      onClick={() => handlePagar(m.id)}
-                      disabled={pagando}
-                      className="w-full mt-3 bg-safety text-ink text-sm font-semibold rounded-lg px-3 py-2.5 hover:brightness-95 transition-all disabled:opacity-40"
-                    >
-                      {pagando ? "Redirigiendo..." : "Pagar con Mercado Pago"}
-                    </button>
-                  )}
-
-                  {m.ofertaVigente && esMio && (
-                    <p className="text-xs text-ink/50 mt-3 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-safety animate-pulse shrink-0" />
-                      Esperando que el cliente pague...
+                  {m.ofertaPagada ? (
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-3 flex items-center gap-1.5 font-medium">
+                      <span className="text-emerald-600">✓</span> Esta oferta ya fue pagada
                     </p>
+                  ) : (
+                    <>
+                      {!m.ofertaVigente && (
+                        <p className="text-xs text-ink/40 mt-2">
+                          {m.ofertaExpiraEn && new Date(m.ofertaExpiraEn).getTime() <= Date.now()
+                            ? "Esta oferta venció"
+                            : "Superada por una oferta más reciente"}
+                        </p>
+                      )}
+
+                      {m.ofertaVigente && esCliente && !esMio && (
+                        <button
+                          onClick={() => handlePagar(m.id)}
+                          disabled={pagando}
+                          className="w-full mt-3 bg-safety text-ink text-sm font-semibold rounded-lg px-3 py-2.5 hover:brightness-95 transition-all disabled:opacity-40"
+                        >
+                          {pagando ? "Redirigiendo..." : "Pagar con Mercado Pago"}
+                        </button>
+                      )}
+
+                      {m.ofertaVigente && esMio && (
+                        <>
+                          <p className="text-xs text-ink/50 mt-3 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-safety animate-pulse shrink-0" />
+                            Esperando que el cliente pague...
+                          </p>
+                          <button
+                            onClick={() => handleCancelarOferta(m.id)}
+                            disabled={cancelandoOfertaId === m.id}
+                            className="w-full mt-2 border border-ink/20 text-ink/60 text-xs rounded-lg px-3 py-1.5 hover:border-ink/40 hover:text-ink transition-colors disabled:opacity-40"
+                          >
+                            {cancelandoOfertaId === m.id ? "Cancelando..." : "Cancelar oferta"}
+                          </button>
+                        </>
+                      )}
+
+                      {m.ofertaVigente && textoVencimiento(m.ofertaExpiraEn) && (
+                        <p className="text-[11px] text-ink/40 mt-2">{textoVencimiento(m.ofertaExpiraEn)}</p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

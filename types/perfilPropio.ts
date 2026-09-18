@@ -7,10 +7,19 @@ export interface PerfilPropio {
   rol: string;
   fotoPerfilUrl: string | null;
   verificado: boolean;
+  direccion: string | null;
+  direccionVerificada: boolean;
+  latitud: number | null;
+  longitud: number | null;
+  radioAlcanceKm: number | null;
 }
 
 export interface ActualizarPerfilRequest {
   nombre: string;
   apellido: string;
   telefono: string;
+  direccion?: string;
+  // Solo se mandan cuando el usuario eligió una sugerencia del autocompletado de direcciones
+  direccionLat?: number;
+  direccionLon?: number;
 }

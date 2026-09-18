@@ -15,6 +15,13 @@ export interface OrdenAgenda {
   id: string;
   categoriaNombre: string;
   clienteNombreCompleto: string;
+  clienteDireccion: string | null;
+  clienteDireccionVerificada: boolean;
+  clienteDireccionLat: number | null;
+  clienteDireccionLon: number | null;
+  clienteDistanciaKm: number | null;
+  clienteTelefono: string | null;
+  descripcion: string;
   estado: string;
   fechaHoraProgramada: string | null;
   duracionMinutos: number | null;
@@ -34,4 +41,10 @@ export function formatoDuracion(minutos: number): string {
   if (horas === 0) return `${mins} min`;
   if (mins === 0) return `${horas}h`;
   return `${horas}h ${mins}min`;
+}
+
+// "queda a X km de tu ubicación" / "queda a X m de tu ubicación" (para distancias cortas)
+export function formatoDistancia(km: number): string {
+  if (km < 1) return `queda a ${Math.round(km * 1000)} m de tu ubicación`;
+  return `queda a ${km.toFixed(1)} km de tu ubicación`;
 }

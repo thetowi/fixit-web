@@ -41,6 +41,7 @@ function OrdenesContenido() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const ordenCreadaId = searchParams.get("creada");
+  const estadoPago = searchParams.get("pago"); // "exitoso" | "fallido" | "pendiente", tras volver de Mercado Pago
 
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +63,16 @@ function OrdenesContenido() {
     }
     cargarOrdenes();
   }, [router]);
+
+  useEffect(() => {
+    // El webhook de Mercado Pago puede tardar unos segundos en confirmar el pago y actualizar
+    // la orden acá. Si venimos de un pago exitoso o pendiente, reintentamos una vez más al ratito
+    // para no dejar al usuario mirando "Pendiente de pago" innecesariamente.
+    if (estadoPago === "exitoso" || estadoPago === "pendiente") {
+      const timeoutId = setTimeout(() => cargarOrdenes(), 4000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [estadoPago]);
 
   useEffect(() => {
     if (!criterioExpandido) return;
@@ -154,6 +165,24 @@ function OrdenesContenido() {
       {ordenCreadaId && (
         <p className="bg-stamp/10 text-stamp text-sm rounded p-3 mb-4 border border-stamp/30">
           Tu solicitud fue creada. Un administrador debe confirmar el pago antes de continuar.
+        </p>
+      )}
+
+      {estadoPago === "exitoso" && (
+        <p className="bg-stamp/10 text-stamp text-sm rounded p-3 mb-4 border border-stamp/30">
+          ¡Pago recibido! Puede tardar unos segundos en reflejarse acá abajo.
+        </p>
+      )}
+
+      {estadoPago === "pendiente" && (
+        <p className="bg-safety/10 text-safety text-sm rounded p-3 mb-4 border border-safety/30">
+          Tu pago quedó pendiente de aprobación en Mercado Pago. Te va a figurar acá apenas se confirme.
+        </p>
+      )}
+
+      {estadoPago === "fallido" && (
+        <p className="bg-red-700/10 text-red-700 dark:text-red-400 text-sm rounded p-3 mb-4 border border-red-700/30">
+          El pago no se pudo completar. Volvé al chat y probá pagar de nuevo la oferta.
         </p>
       )}
 

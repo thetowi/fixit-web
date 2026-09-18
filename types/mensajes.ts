@@ -9,5 +9,7 @@ export interface Mensaje {
   montoOferta: number | null;
   descripcionOferta: string | null;
   ofertaVigente: boolean;
+  ofertaExpiraEn: string | null;
+  ofertaPagada: boolean;
   enviadoEn: string;
 }
