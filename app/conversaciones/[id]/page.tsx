@@ -273,8 +273,23 @@ export default function ConversacionPage() {
           detenerGrabacion(true);
         }
       }, 1000);
-    } catch {
-      setError("No pudimos acceder al micrófono. Revisá los permisos del navegador.");
+    } catch (err) {
+      // getUserMedia es justo lo que dispara el cartel nativo del navegador pidiendo permiso
+      // de micrófono la primera vez — pero si el usuario ya lo bloqueó una vez (o el navegador
+      // lo negó de entrada), el navegador NO vuelve a mostrar ese cartel solo: hay que habilitarlo
+      // a mano desde la configuración del sitio. Por eso acá distinguimos ese caso puntual
+      // (NotAllowedError/PermissionDeniedError) para explicar los pasos concretos, en vez de un
+      // mensaje genérico que no ayuda a resolverlo.
+      const nombreError = err instanceof Error ? err.name : "";
+      if (nombreError === "NotAllowedError" || nombreError === "PermissionDeniedError") {
+        setError(
+          "El micrófono está bloqueado para este sitio. Para habilitarlo: tocá el ícono de candado/información (ⓘ) al lado de la URL, arriba del navegador, entrá a \"Permisos\" y activá \"Micrófono\". Después volvé a intentar."
+        );
+      } else if (nombreError === "NotFoundError" || nombreError === "DevicesNotFoundError") {
+        setError("No encontramos ningún micrófono en este dispositivo.");
+      } else {
+        setError("No pudimos acceder al micrófono. Revisá los permisos del navegador.");
+      }
     }
   }
 
