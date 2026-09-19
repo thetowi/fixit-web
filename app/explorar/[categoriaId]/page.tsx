@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/api";
 import { PrestadorEncontrado } from "@/types/busqueda";
 import Estrellas from "@/components/Estrellas";
+import InsigniaVerificado from "@/components/InsigniaVerificado";
 
 export default function ExplorarCategoriaPage() {
   const params = useParams();
@@ -48,7 +49,7 @@ export default function ExplorarCategoriaPage() {
                 <div>
                   <p className="font-medium text-ink">
                     {p.nombre} {p.apellido}
-                    {p.verificado && <span className="text-stamp text-xs ml-2">✓ Verificado</span>}
+                    {p.verificado && <InsigniaVerificado size={14} conTexto className="ml-2" />}
                   </p>
                   {p.descripcion && <p className="text-sm text-ink/60">{p.descripcion}</p>}
                   {p.precioReferencia && (

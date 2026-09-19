@@ -13,6 +13,7 @@ import { VerificacionEstado } from "@/types/verificacion";
 import { ConexionMercadoPago, IniciarConexionMercadoPago } from "@/types/mercadoPago";
 import { activarPush, desactivarPush, pushSoportado, yaSuscriptoPush } from "@/lib/push";
 import { buscarDirecciones, SugerenciaDireccion } from "@/lib/geocodificacion";
+import InsigniaVerificado from "@/components/InsigniaVerificado";
 
 // Leaflet toca "window" en el momento de importarse, así que no puede renderizarse en el
 // servidor: lo cargamos solo del lado del cliente.
@@ -710,7 +711,7 @@ function CuentaContenido() {
             />
             <p className="text-xs text-ink/50 mt-1">
               {perfil.email} · <span className="uppercase">{perfil.rol}</span>
-              {perfil.verificado && <span className="text-stamp ml-1">✓</span>}
+              {perfil.verificado && <InsigniaVerificado size={14} className="ml-1" />}
             </p>
           </div>
         </div>

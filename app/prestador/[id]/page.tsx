@@ -8,6 +8,7 @@ import { PerfilPrestador } from "@/types/perfil";
 import { IniciarConversacionRequest, Conversacion } from "@/types/conversaciones";
 import Estrellas from "@/components/Estrellas";
 import { Calificacion, CRITERIOS_CALIFICACION } from "@/types/calificaciones";
+import InsigniaVerificado from "@/components/InsigniaVerificado";
 
 type Pestaña = "servicios" | "reseñas" | "acerca";
 
@@ -91,9 +92,7 @@ export default function PerfilPrestadorPage() {
         <div>
           <h1 className="font-display text-2xl text-ink">
             {perfil.nombre} {perfil.apellido}
-            {perfil.verificado && (
-              <span className="text-stamp text-sm ml-2 align-middle">✓ Verificado</span>
-            )}
+            {perfil.verificado && <InsigniaVerificado size={18} conTexto className="ml-2" />}
           </h1>
           <p className="text-sm text-ink/50">Miembro desde {miembroDesde}</p>
           {perfil.cantidadCalificaciones > 0 && (

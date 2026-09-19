@@ -3,9 +3,10 @@ export interface Mensaje {
   conversacionId: string;
   emisorId: string;
   emisorNombre: string;
-  tipo: "Texto" | "Imagen" | "Oferta";
+  tipo: "Texto" | "Imagen" | "Oferta" | "Audio" | "Video";
   contenido: string | null;
-  imagenUrl: string | null;
+  archivoUrl: string | null;
+  duracionSegundos: number | null;
   montoOferta: number | null;
   descripcionOferta: string | null;
   ofertaVigente: boolean;

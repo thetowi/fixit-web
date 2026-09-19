@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 import TourOnboarding from "@/components/TourOnboarding";
-import ThemeToggle from "@/components/ThemeToggle";
+import Footer from "@/components/Footer";
 
 const archivoBlack = Archivo_Black({
   weight: "400",
@@ -50,7 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Navbar />
           <TourOnboarding />
           {children}
-          <ThemeToggle />
+          <Footer />
         </GoogleAuthProvider>
       </body>
     </html>

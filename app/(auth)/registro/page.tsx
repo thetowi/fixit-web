@@ -17,10 +17,15 @@ export default function RegistroPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!aceptaTerminos) {
+      setError("Tenés que aceptar los Términos y la Política de Privacidad para crear tu cuenta.");
+      return;
+    }
     setCargando(true);
 
     try {
@@ -92,11 +97,28 @@ export default function RegistroPage() {
           <option value="prestador">Quiero ofrecer servicios</option>
         </select>
 
+        <label className="flex items-start gap-2 text-xs text-ink/70 leading-snug">
+          <input
+            type="checkbox"
+            required
+            checked={aceptaTerminos}
+            onChange={(e) => setAceptaTerminos(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            Acepto los{" "}
+            <a href="/terminos" target="_blank" className="text-copper hover:underline">Términos y Condiciones</a>
+            {" "}y la{" "}
+            <a href="/privacidad" target="_blank" className="text-copper hover:underline">Política de Privacidad</a>
+            {" "}de FixIt.
+          </span>
+        </label>
+
         {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
 
         <button
           type="submit"
-          disabled={cargando}
+          disabled={cargando || !aceptaTerminos}
           className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
         >
           {cargando ? "Creando cuenta..." : "Crear cuenta"}

@@ -24,7 +24,10 @@
   --copper: #B5651D;
   --copper-dark: #8F4F16;
   --safety: #F0A202;
-  --stamp: #3F7D53;
+  /* Verde/teal sacado a mano de la insignia de "Verificado" (public/insignia-verificado.png),
+     para que el texto "Verificado" no se desfase del color del ícono. Si se cambia el PNG,
+     hay que volver a sacar el color acá (promedio de los píxeles opacos del ícono). */
+  --stamp: #177762;
 }
 
 .dark {
@@ -40,7 +43,7 @@
   --copper: #D08A44;
   --copper-dark: #E6A868;
   --safety: #F4B22E;
-  --stamp: #5FAE79;
+  --stamp: #2DC2A0;
 }
 
 @theme inline {

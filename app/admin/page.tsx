@@ -7,6 +7,7 @@ import { obtenerUsuario } from "@/lib/auth";
 import { CategoriaAdmin, CrearCategoriaRequest, UsuarioAdmin } from "@/types/admin";
 import { Orden } from "@/types/ordenes";
 import { VerificacionAdmin } from "@/types/verificacion";
+import { ICONOS_CATEGORIA, iconoCategoria } from "@/lib/iconosCategoria";
 
 const ESTADO_LABELS: Record<string, string> = {
   PendientePago: "Pendiente de pago",
@@ -26,6 +27,7 @@ export default function AdminPage() {
   const [motivos, setMotivos] = useState<Record<string, string>>({});
   const [procesandoVerif, setProcesandoVerif] = useState<string | null>(null);
   const [nombreNueva, setNombreNueva] = useState("");
+  const [iconoNuevo, setIconoNuevo] = useState(ICONOS_CATEGORIA[0].clave);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [seccion, setSeccion] = useState<"categorias" | "usuarios" | "ordenes" | "verificaciones">("categorias");
@@ -66,7 +68,7 @@ export default function AdminPage() {
     e.preventDefault();
     if (!nombreNueva.trim()) return;
 
-    const body: CrearCategoriaRequest = { nombre: nombreNueva };
+    const body: CrearCategoriaRequest = { nombre: nombreNueva, icono: iconoNuevo };
 
     try {
       await apiFetch<CategoriaAdmin>("/api/admin/categorias", {
@@ -74,6 +76,7 @@ export default function AdminPage() {
         body: JSON.stringify(body),
       });
       setNombreNueva("");
+      setIconoNuevo(ICONOS_CATEGORIA[0].clave);
       await cargarDatos();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al crear la categoría");
@@ -166,35 +169,65 @@ export default function AdminPage() {
 
       {seccion === "categorias" && (
         <>
-          <form onSubmit={handleCrearCategoria} className="flex gap-2 mb-6">
+          <form onSubmit={handleCrearCategoria} className="bg-surface border border-ink/10 rounded-lg p-4 mb-6 flex flex-col gap-3">
             <input
               type="text"
               placeholder="Nombre de la categoría nueva"
-              className="border border-ink/20 rounded p-2 flex-1 bg-surface"
+              className="border border-ink/20 rounded p-2 bg-paper"
               value={nombreNueva}
               onChange={(e) => setNombreNueva(e.target.value)}
             />
-            <button type="submit" className="bg-copper text-paper rounded px-4 hover:bg-copper-dark transition-colors">
+
+            <div>
+              <p className="text-xs text-ink/50 mb-2">Ícono</p>
+              <div className="grid grid-cols-6 sm:grid-cols-9 gap-1.5">
+                {ICONOS_CATEGORIA.map((op) => (
+                  <button
+                    key={op.clave}
+                    type="button"
+                    onClick={() => setIconoNuevo(op.clave)}
+                    title={op.etiqueta}
+                    aria-label={op.etiqueta}
+                    className={`aspect-square rounded-lg border flex items-center justify-center transition-colors ${
+                      iconoNuevo === op.clave
+                        ? "border-copper bg-copper/10 text-copper"
+                        : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
+                    }`}
+                  >
+                    <op.Icono size={18} strokeWidth={1.75} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="bg-copper text-paper rounded px-4 py-2 self-start hover:bg-copper-dark transition-colors"
+            >
               Crear
             </button>
           </form>
 
           <ul className="flex flex-col gap-2">
-            {categorias.map((c) => (
-              <li key={c.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex justify-between items-center">
-                <span className={c.activa ? "text-ink" : "text-ink/30 line-through"}>
-                  {c.nombre}
-                </span>
-                <button
-                  onClick={() => handleCambiarEstado(c)}
-                  className={`text-sm rounded px-3 py-1 border ${
-                    c.activa ? "border-stamp text-stamp" : "border-ink/20 text-ink/50"
-                  }`}
-                >
-                  {c.activa ? "Desactivar" : "Activar"}
-                </button>
-              </li>
-            ))}
+            {categorias.map((c) => {
+              const IconoCategoria = iconoCategoria(c.icono);
+              return (
+                <li key={c.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex justify-between items-center">
+                  <span className={`flex items-center gap-2.5 ${c.activa ? "text-ink" : "text-ink/30 line-through"}`}>
+                    <IconoCategoria size={17} strokeWidth={1.75} className={c.activa ? "text-copper" : "text-ink/30"} />
+                    {c.nombre}
+                  </span>
+                  <button
+                    onClick={() => handleCambiarEstado(c)}
+                    className={`text-sm rounded px-3 py-1 border ${
+                      c.activa ? "border-stamp text-stamp" : "border-ink/20 text-ink/50"
+                    }`}
+                  >
+                    {c.activa ? "Desactivar" : "Activar"}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}

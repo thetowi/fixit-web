@@ -10,6 +10,7 @@ import { PrestadorDestacado } from "@/types/destacados";
 import { OrdenAgenda, formatoDuracion } from "@/types/agenda";
 import { ESTADO_LABELS } from "@/components/OrdenTicket";
 import Estrellas from "@/components/Estrellas";
+import InsigniaVerificado from "@/components/InsigniaVerificado";
 
 function fechaHoyEsIgual(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString();
@@ -249,7 +250,7 @@ export default function Home() {
                   <div className="min-w-0">
                     <p className="font-medium text-ink truncate">
                       {p.nombre} {p.apellido}
-                      {p.verificado && <span className="text-stamp text-xs ml-1">✓</span>}
+                      {p.verificado && <InsigniaVerificado size={14} className="ml-1" />}
                     </p>
                     <p className="text-xs text-ink/50 truncate">{p.categorias.join(" · ")}</p>
                   </div>

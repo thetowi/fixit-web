@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { BloqueDisponibilidad, formatoDistancia, formatoDuracion, OrdenAgenda } from "@/types/agenda";
 import { linkGoogleMaps } from "@/lib/mapas";
+import { colorCategoria } from "@/lib/coloresCategoria";
 
 const DURACION_POR_DEFECTO = 60; // para turnos viejos que quedaron sin duracionMinutos cargado
-import { ESTADO_COLOR } from "@/components/OrdenTicket";
 
 const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const PASO_MINUTOS = 30;
 const RANGO_POR_DEFECTO = { desde: 8 * 60, hasta: 20 * 60 }; // 8:00 a 20:00, si no hay disponibilidad cargada
+const PX_HORA = 56; // alto de una hora en la grilla semanal (desktop)
 
 function minutosDelString(hora: string): number {
   const [h, m] = hora.split(":").map(Number);
@@ -30,14 +31,6 @@ function fechaHoyEsIgual(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString();
 }
 
-// Código corto tipo "remito" para la etiqueta del turno: "Plomería" -> "PLOM"
-function codigoCategoria(nombre: string): string {
-  const sinAcentos = nombre
-    .normalize("NFD")
-    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "");
-  return sinAcentos.slice(0, 4).toUpperCase();
-}
-
 export default function CalendarioSemanal({
   inicioSemana,
   bloques,
@@ -51,7 +44,7 @@ export default function CalendarioSemanal({
 }) {
   const hoy = new Date();
   // Turno tocado para ver el detalle completo (nombre, dirección, teléfono, rubro, título del
-  // trabajo) — las celdas de la grilla son muy chicas para mostrar todo eso de una, así que se
+  // trabajo) — las tarjetas de la grilla son chicas para mostrar todo eso de una, así que se
   // abre un detalle aparte al tocar el turno.
   const [ordenSeleccionada, setOrdenSeleccionada] = useState<OrdenAgenda | null>(null);
   const [diaMovilIndex, setDiaMovilIndex] = useState(() => {
@@ -81,8 +74,9 @@ export default function CalendarioSemanal({
     };
   })();
 
-  const slots: number[] = [];
-  for (let m = inicioRango; m < finRango; m += PASO_MINUTOS) slots.push(m);
+  const horas: number[] = [];
+  for (let m = inicioRango; m < finRango; m += 60) horas.push(m);
+  const altoTotal = ((finRango - inicioRango) / 60) * PX_HORA;
 
   function estaDisponible(dia: Date, slotInicio: number): boolean {
     return bloques.some(
@@ -98,32 +92,56 @@ export default function CalendarioSemanal({
     return { inicio, fin: inicio + (o.duracionMinutos ?? DURACION_POR_DEFECTO) };
   }
 
-  // Devuelve la orden que ocupa este casillero de 30 min, ya sea porque arranca ahí o porque
-  // el trabajo (con su duración) todavía sigue en curso a esa hora.
-  function ordenEnCelda(dia: Date, slotInicio: number): OrdenAgenda | undefined {
+  // Devuelve la orden que ocupa este horario, ya sea porque arranca ahí o porque el trabajo (con
+  // su duración) todavía sigue en curso a esa hora — se usa para no ofrecer agendar encima de un
+  // turno ya agendado.
+  function ordenEnMinuto(dia: Date, minuto: number): OrdenAgenda | undefined {
     return ordenes.find((o) => {
       if (!o.fechaHoraProgramada) return false;
       const fecha = new Date(o.fechaHoraProgramada);
       if (!fechaHoyEsIgual(fecha, dia)) return false;
       const { inicio, fin } = rangoDeOrden(o);
-      return slotInicio < fin && slotInicio + PASO_MINUTOS > inicio;
+      return minuto >= inicio && minuto < fin;
     });
   }
 
-  // Turnos del día, ordenados cronológicamente (para la vista mobile en lista).
+  // Turnos del día, ordenados cronológicamente.
   function turnosDelDia(dia: Date): OrdenAgenda[] {
     return ordenes
       .filter((o) => o.fechaHoraProgramada && fechaHoyEsIgual(new Date(o.fechaHoraProgramada), dia))
       .sort((a, b) => new Date(a.fechaHoraProgramada!).getTime() - new Date(b.fechaHoraProgramada!).getTime());
   }
 
-  // Franjas libres del día, fusionando slots de 30 min consecutivos disponibles y sin turno
-  // (para mostrarlas como chips tocables en la vista mobile en lugar de celda por celda).
+  // Franjas de disponibilidad declarada del día (independiente de si ya tienen un turno encima:
+  // el turno se dibuja arriba, con su propia tarjeta), fusionando slots de 30 min consecutivos
+  // para pintar un solo rectángulo de fondo por franja en vez de una rayita por casillero.
+  function franjasDisponiblesDia(dia: Date): { inicio: number; fin: number }[] {
+    const franjas: { inicio: number; fin: number }[] = [];
+    let actual: { inicio: number; fin: number } | null = null;
+    for (let slot = inicioRango; slot < finRango; slot += PASO_MINUTOS) {
+      if (estaDisponible(dia, slot)) {
+        if (actual && actual.fin === slot) {
+          actual.fin = slot + PASO_MINUTOS;
+        } else {
+          if (actual) franjas.push(actual);
+          actual = { inicio: slot, fin: slot + PASO_MINUTOS };
+        }
+      } else if (actual) {
+        franjas.push(actual);
+        actual = null;
+      }
+    }
+    if (actual) franjas.push(actual);
+    return franjas;
+  }
+
+  // Igual que arriba, pero restando lo ya ocupado por un turno — es lo que se ofrece como chip
+  // tocable en la vista mobile.
   function franjasLibresDelDia(dia: Date): { inicio: number; fin: number }[] {
     const libres: { inicio: number; fin: number }[] = [];
     let actual: { inicio: number; fin: number } | null = null;
-    for (const slot of slots) {
-      const libre = estaDisponible(dia, slot) && !ordenEnCelda(dia, slot);
+    for (let slot = inicioRango; slot < finRango; slot += PASO_MINUTOS) {
+      const libre = estaDisponible(dia, slot) && !ordenEnMinuto(dia, slot);
       if (libre) {
         if (actual && actual.fin === slot) {
           actual.fin = slot + PASO_MINUTOS;
@@ -142,73 +160,42 @@ export default function CalendarioSemanal({
 
   const minutosAhora = minutosDelDia(hoy);
 
-  function renderCelda(dia: Date, slotInicio: number, key: React.Key) {
-    const disponible = estaDisponible(dia, slotInicio);
-    const orden = ordenEnCelda(dia, slotInicio);
-    const esHoy = fechaHoyEsIgual(dia, hoy);
-    const esAhora = esHoy && minutosAhora >= slotInicio && minutosAhora < slotInicio + PASO_MINUTOS;
-    const clickeable = disponible && !orden && !!onCeldaDisponibleClick;
-    const colorEstado = orden ? ESTADO_COLOR[orden.estado] ?? "border-ink/30 text-ink/50" : "";
+  // Tocar un tramo vacío de la columna agenda un turno ahí: convertimos la posición Y del click
+  // dentro de la columna a minutos del día, redondeando al escalón de 30 min más cercano.
+  function handleClickColumna(e: React.MouseEvent<HTMLDivElement>, dia: Date) {
+    if (!onCeldaDisponibleClick) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    let minuto = inicioRango + Math.round((offsetY / PX_HORA) * 60 / PASO_MINUTOS) * PASO_MINUTOS;
+    minuto = Math.max(inicioRango, Math.min(finRango - PASO_MINUTOS, minuto));
+    if (!estaDisponible(dia, minuto) || ordenEnMinuto(dia, minuto)) return;
+    onCeldaDisponibleClick(dia, formatoHora(minuto));
+  }
 
-    // El turno se dibuja como una píldora continua a lo largo de todos los casilleros que dura el
-    // trabajo: acá determinamos si este casillero es el inicio, el final, o un tramo del medio,
-    // para redondear y bordear solo en las puntas y que se vea como un único bloque.
-    let esInicioOrden = false;
-    let esFinOrden = false;
-    if (orden) {
-      const { inicio, fin } = rangoDeOrden(orden);
-      esInicioOrden = slotInicio <= inicio && slotInicio + PASO_MINUTOS > inicio;
-      esFinOrden = slotInicio < fin && slotInicio + PASO_MINUTOS >= fin;
-    }
-
-    const bordesOrden = esInicioOrden && esFinOrden
-      ? "rounded border"
-      : esInicioOrden
-      ? "rounded-t border-t border-l border-r"
-      : esFinOrden
-      ? "rounded-b border-b border-l border-r"
-      : "border-l border-r";
+  function TarjetaTurno({ orden, dia }: { orden: OrdenAgenda; dia: Date }) {
+    const { inicio, fin } = rangoDeOrden(orden);
+    const top = ((Math.max(inicio, inicioRango) - inicioRango) / 60) * PX_HORA;
+    const alto = Math.max(((Math.min(fin, finRango) - Math.max(inicio, inicioRango)) / 60) * PX_HORA, 30);
+    const color = colorCategoria(orden.categoriaNombre);
+    void dia;
 
     return (
       <div
-        key={key}
-        onClick={clickeable ? () => onCeldaDisponibleClick!(dia, formatoHora(slotInicio)) : undefined}
-        className={`min-h-[26px] p-0.5 relative ${
-          esAhora ? "border-t-2 border-copper" : "border-t border-dashed border-ink/10"
-        } ${disponible ? "border-l-2 border-dashed border-stamp/40" : ""} ${
-          clickeable ? "cursor-pointer hover:bg-stamp/10 transition-colors" : ""
-        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOrdenSeleccionada(orden);
+        }}
+        title={`${orden.clienteNombreCompleto} · ${orden.descripcion || orden.categoriaNombre}`}
+        style={{ top, height: alto, borderLeftColor: color }}
+        className="absolute left-1 right-1 bg-surface rounded-lg border-l-[3px] shadow-sm px-2 py-1 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
       >
-        {esAhora && (
-          <span className="absolute -top-[5px] -left-[5px] w-2 h-2 rounded-full bg-copper" />
-        )}
-        {orden && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              setOrdenSeleccionada(orden);
-            }}
-            title={`${orden.clienteNombreCompleto} · ${orden.descripcion || orden.categoriaNombre}`}
-            className={`relative bg-surface border-dashed border-ink/40 p-1 h-full cursor-pointer hover:border-copper/60 transition-colors ${bordesOrden}`}
-          >
-            {esInicioOrden && (
-              <>
-                <span
-                  className={`absolute -top-1.5 -right-1 border rounded px-1 text-[7px] font-display rotate-6 bg-surface z-10 ${colorEstado}`}
-                >
-                  {codigoCategoria(orden.categoriaNombre)}
-                </span>
-                <p className="font-mono text-[9px] text-ink/40 leading-none">
-                  {new Date(orden.fechaHoraProgramada!).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
-                  {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
-                </p>
-                <p className="text-[10px] font-medium text-ink leading-tight truncate">{orden.clienteNombreCompleto}</p>
-                {orden.descripcion && (
-                  <p className="text-[9px] text-ink/50 leading-tight truncate">{orden.descripcion}</p>
-                )}
-              </>
-            )}
-          </div>
+        <p className="font-mono text-[9px] text-ink/40 leading-none">
+          {formatoHora(inicio)}
+          {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
+        </p>
+        <p className="text-[11px] font-semibold text-ink leading-tight truncate mt-0.5">{orden.clienteNombreCompleto}</p>
+        {orden.descripcion && (
+          <p className="text-[10px] text-ink/55 leading-tight truncate">{orden.descripcion}</p>
         )}
       </div>
     );
@@ -218,59 +205,100 @@ export default function CalendarioSemanal({
     <div>
       {/* --- Vista semanal (md en adelante) --- */}
       <div className="hidden md:block overflow-x-auto">
-        <div className="grid grid-cols-[50px_repeat(7,minmax(90px,1fr))] w-full min-w-[680px]">
+        <div className="grid grid-cols-[52px_repeat(7,minmax(96px,1fr))] w-full min-w-[700px]">
           <div />
-          {dias.map((d, i) => (
-            <div
-              key={i}
-              className={`relative text-center pb-2 pt-5 border-b ${
-                fechaHoyEsIgual(d, hoy) ? "border-stamp" : "border-dashed border-ink/15"
-              }`}
-            >
-              {fechaHoyEsIgual(d, hoy) && (
-                <span className="absolute top-1 left-1/2 -translate-x-1/2 border-2 border-stamp text-stamp rounded px-1 text-[7px] font-display rotate-6 bg-paper whitespace-nowrap z-10">
-                  HOY
+          {dias.map((d, i) => {
+            const esHoy = fechaHoyEsIgual(d, hoy);
+            return (
+              <div key={i} className="text-center pb-2.5 border-b border-ink/8">
+                <p className={`font-mono text-[10px] uppercase tracking-wide ${esHoy ? "text-copper" : "text-ink/40"}`}>
+                  {DIAS_CORTOS[d.getDay()]}
+                </p>
+                <span
+                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full mt-1 text-[13px] font-semibold ${
+                    esHoy ? "bg-copper text-paper" : "text-ink"
+                  }`}
+                >
+                  {d.getDate()}
                 </span>
-              )}
-              <p className={`font-mono text-[10px] uppercase ${fechaHoyEsIgual(d, hoy) ? "text-stamp font-medium" : "text-ink/40"}`}>
-                {DIAS_CORTOS[d.getDay()]}
-              </p>
-              <p className={`font-mono text-xs ${fechaHoyEsIgual(d, hoy) ? "text-stamp font-medium" : "text-ink/70"}`}>
-                {d.getDate()}
-              </p>
-            </div>
-          ))}
-
-          {slots.map((slot) => (
-            <div key={slot} className="contents">
-              <div className="text-right pr-2 py-0.5 font-mono text-[10px] text-ink/35">
-                {slot % 60 === 0 ? formatoHora(slot) : ""}
               </div>
-              {dias.map((dia, i) => renderCelda(dia, slot, i))}
-            </div>
-          ))}
+            );
+          })}
+
+          {/* Columna de horas */}
+          <div>
+            {horas.map((m) => (
+              <div key={m} className="font-mono text-[10px] text-ink/35 text-right pr-2" style={{ height: PX_HORA }}>
+                <span className="relative -top-1.5">{formatoHora(m)}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Columnas de días */}
+          {dias.map((dia, i) => {
+            const esHoy = fechaHoyEsIgual(dia, hoy);
+            const clickeable = !!onCeldaDisponibleClick;
+            return (
+              <div
+                key={i}
+                onClick={clickeable ? (e) => handleClickColumna(e, dia) : undefined}
+                style={{ height: altoTotal }}
+                className={`relative border-l border-ink/6 ${esHoy ? "bg-copper/[0.03]" : ""} ${
+                  clickeable ? "cursor-pointer" : ""
+                }`}
+              >
+                {franjasDisponiblesDia(dia).map((f, fi) => (
+                  <div
+                    key={fi}
+                    style={{ top: ((f.inicio - inicioRango) / 60) * PX_HORA, height: ((f.fin - f.inicio) / 60) * PX_HORA }}
+                    className="absolute left-0 right-0 bg-stamp/[0.09] pointer-events-none"
+                  />
+                ))}
+                {esHoy && minutosAhora >= inicioRango && minutosAhora < finRango && (
+                  <div
+                    style={{ top: ((minutosAhora - inicioRango) / 60) * PX_HORA }}
+                    className="absolute left-0 right-0 border-t-2 border-copper pointer-events-none z-10"
+                  >
+                    <span className="absolute -left-[3px] -top-[4px] w-2 h-2 rounded-full bg-copper" />
+                  </div>
+                )}
+                {turnosDelDia(dia).map((orden) => (
+                  <TarjetaTurno key={orden.id} orden={orden} dia={dia} />
+                ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* --- Vista día a día (mobile): lista de turnos + franjas libres --- */}
       <div className="md:hidden">
         <div className="grid grid-cols-7 gap-1 mb-4">
-          {dias.map((d, i) => (
-            <button
-              key={i}
-              onClick={() => setDiaMovilIndex(i)}
-              className={`flex flex-col items-center rounded-lg px-1 py-1.5 border border-dashed ${
-                i === diaMovilIndex
-                  ? "bg-copper text-paper border-copper"
-                  : fechaHoyEsIgual(d, hoy)
-                  ? "border-stamp text-stamp"
-                  : "border-ink/15 text-ink/60"
-              }`}
-            >
-              <span className="font-mono text-[10px] uppercase">{DIAS_CORTOS[d.getDay()]}</span>
-              <span className="font-mono text-sm">{d.getDate()}</span>
-            </button>
-          ))}
+          {dias.map((d, i) => {
+            const tieneTrabajos = turnosDelDia(d).length > 0;
+            const seleccionado = i === diaMovilIndex;
+            return (
+              <button
+                key={i}
+                onClick={() => setDiaMovilIndex(i)}
+                className={`flex flex-col items-center rounded-lg px-1 py-1.5 border ${
+                  seleccionado
+                    ? "bg-copper text-paper border-copper"
+                    : fechaHoyEsIgual(d, hoy)
+                    ? "border-copper/40 text-copper"
+                    : "border-ink/10 text-ink/60"
+                }`}
+              >
+                <span className="font-mono text-[10px] uppercase">{DIAS_CORTOS[d.getDay()]}</span>
+                <span className="font-mono text-sm">{d.getDate()}</span>
+                <span
+                  className={`w-1 h-1 rounded-full mt-0.5 ${
+                    tieneTrabajos ? (seleccionado ? "bg-paper" : "bg-copper") : "bg-transparent"
+                  }`}
+                />
+              </button>
+            );
+          })}
         </div>
 
         {(() => {
@@ -286,44 +314,44 @@ export default function CalendarioSemanal({
               ) : (
                 <div className="space-y-2 mb-5">
                   {turnosDia.map((orden, i) => {
-                    const colorEstado = ESTADO_COLOR[orden.estado] ?? "border-ink/30 text-ink/50";
+                    const color = colorCategoria(orden.categoriaNombre);
                     return (
                       <div
                         key={`${orden.fechaHoraProgramada}-${i}`}
                         onClick={() => setOrdenSeleccionada(orden)}
-                        className="relative bg-surface border border-dashed border-ink/40 rounded-lg p-3 cursor-pointer hover:border-copper/60 transition-colors"
+                        style={{ borderLeftColor: color }}
+                        className="relative flex gap-3 bg-surface border border-ink/10 border-l-4 rounded-xl p-3 cursor-pointer hover:border-copper/50 transition-colors"
                       >
-                        <span
-                          className={`absolute top-2.5 right-3 border-2 rounded px-1.5 py-0.5 text-[9px] font-display rotate-6 bg-surface ${colorEstado}`}
-                        >
-                          {codigoCategoria(orden.categoriaNombre)}
-                        </span>
-                        <p className="font-mono text-xs text-ink/45 mb-0.5">
-                          {new Date(orden.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
-                        </p>
-                        <p className="font-medium text-ink pr-16">{orden.clienteNombreCompleto}</p>
-                        <p className="text-sm text-ink/55">{orden.descripcion || orden.categoriaNombre}</p>
-                        {orden.clienteDireccion && (
-                          <p className="text-xs text-ink/40 mt-0.5">
-                            <a
-                              href={linkGoogleMaps(orden.clienteDireccion, orden.clienteDireccionLat, orden.clienteDireccionLon)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()} // no abrir el modal de detalle al tocar el link
-                              className="underline decoration-dotted hover:text-copper"
-                            >
-                              📍 {orden.clienteDireccion}
-                            </a>
-                            {orden.clienteDireccionVerificada && <span className="text-stamp"> ✓</span>}
-                            {orden.clienteDistanciaKm != null && (
-                              <span className="block text-ink/35">{formatoDistancia(orden.clienteDistanciaKm)}</span>
-                            )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-xs text-ink/45 mb-0.5">
+                            {new Date(orden.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                            {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
+                            {" · "}
+                            {orden.categoriaNombre}
                           </p>
-                        )}
+                          <p className="font-medium text-ink">{orden.clienteNombreCompleto}</p>
+                          <p className="text-sm text-ink/55">{orden.descripcion || orden.categoriaNombre}</p>
+                          {orden.clienteDireccion && (
+                            <p className="text-xs text-ink/40 mt-0.5">
+                              <a
+                                href={linkGoogleMaps(orden.clienteDireccion, orden.clienteDireccionLat, orden.clienteDireccionLon)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()} // no abrir el modal de detalle al tocar el link
+                                className="underline decoration-dotted hover:text-copper"
+                              >
+                                📍 {orden.clienteDireccion}
+                              </a>
+                              {orden.clienteDireccionVerificada && <span className="text-stamp"> ✓</span>}
+                              {orden.clienteDistanciaKm != null && (
+                                <span className="block text-ink/35">{formatoDistancia(orden.clienteDistanciaKm)}</span>
+                              )}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -344,7 +372,7 @@ export default function CalendarioSemanal({
                           : undefined
                       }
                       disabled={!onCeldaDisponibleClick}
-                      className="border border-dashed border-stamp text-stamp bg-stamp/5 rounded-lg px-3 py-2 font-mono text-xs disabled:opacity-60 disabled:cursor-default hover:bg-stamp/10 transition-colors"
+                      className="bg-stamp/10 text-stamp rounded-full px-3.5 py-2 font-mono text-xs disabled:opacity-60 disabled:cursor-default hover:bg-stamp/15 transition-colors"
                     >
                       {formatoHora(franja.inicio)}–{formatoHora(franja.fin)}
                     </button>
@@ -359,12 +387,12 @@ export default function CalendarioSemanal({
         })()}
       </div>
 
-      <div className="hidden md:flex items-center gap-4 mt-3 pt-2 border-t border-dashed border-ink/15 text-xs text-ink/50">
+      <div className="hidden md:flex items-center gap-5 mt-4 pt-3 border-t border-ink/8 text-xs text-ink/50">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 border-t-2 border-dashed border-stamp/50 inline-block" /> Disponible
+          <span className="w-3 h-3 rounded-sm bg-stamp/20 inline-block" /> Disponible
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm border border-dashed border-ink/40 bg-surface inline-block" /> Turno agendado
+          <span className="w-3 h-3 rounded-sm border border-ink/15 bg-surface inline-block" /> Turno agendado
         </span>
         {onCeldaDisponibleClick && (
           <span className="text-ink/40">Tocá un horario disponible para agendar un turno pendiente ahí</span>
@@ -374,11 +402,11 @@ export default function CalendarioSemanal({
       {ordenSeleccionada && (
         <div
           onClick={() => setOrdenSeleccionada(null)}
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-ink/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-surface border border-dashed border-ink/30 rounded-lg p-5 max-w-sm w-full"
+            className="bg-surface border border-ink/10 rounded-xl shadow-xl p-5 max-w-sm w-full"
           >
             <div className="flex items-start justify-between gap-3 mb-3">
               <p className="font-display text-lg text-ink leading-tight">

@@ -7,11 +7,11 @@ import { obtenerUbicacionActual, Coordenadas } from "@/lib/geolocation";
 import { Categoria } from "@/types/categorias";
 import { PrestadorEncontrado } from "@/types/busqueda";
 import Estrellas from "@/components/Estrellas";
+import InsigniaVerificado from "@/components/InsigniaVerificado";
 
 export default function BuscarPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriaId, setCategoriaId] = useState<number | "">("");
-  const [radioKm, setRadioKm] = useState(10);
   const [ubicacion, setUbicacion] = useState<Coordenadas | null>(null);
   const [resultados, setResultados] = useState<PrestadorEncontrado[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,8 @@ export default function BuscarPage() {
     obtenerUbicacionActual()
       .then(setUbicacion)
       .catch(() => {
-        // Sin problema: la búsqueda funciona igual sin ubicación, solo no se puede filtrar por radio
+        // Sin problema: la búsqueda funciona igual sin ubicación, solo no vamos a poder mostrar
+        // la distancia a cada prestador ni ordenar los resultados por cercanía.
       });
   }, []);
 
@@ -44,7 +45,6 @@ export default function BuscarPage() {
       if (ubicacion) {
         params.set("latitud", String(ubicacion.latitud));
         params.set("longitud", String(ubicacion.longitud));
-        params.set("radioKm", String(radioKm));
       }
 
       const data = await apiFetch<PrestadorEncontrado[]>(`/api/prestadores/buscar?${params}`);
@@ -75,19 +75,7 @@ export default function BuscarPage() {
           ))}
         </select>
 
-        {ubicacion ? (
-          <label className="text-sm text-ink/60">
-            Radio de búsqueda: <span className="font-mono text-ink">{radioKm} km</span>
-            <input
-              type="range"
-              min={1}
-              max={50}
-              value={radioKm}
-              onChange={(e) => setRadioKm(Number(e.target.value))}
-              className="w-full accent-copper"
-            />
-          </label>
-        ) : (
+        {!ubicacion && (
           <p className="text-xs text-ink/40">
             Sin acceso a tu ubicación — vamos a mostrar los mejor calificados, sin filtrar por distancia.
           </p>
@@ -111,7 +99,7 @@ export default function BuscarPage() {
           </p>
           {resultados.length === 0 && (
             <p className="text-ink/50 text-sm">
-              No encontramos prestadores de esta categoría{ubicacion ? " en el radio elegido" : ""}.
+              No encontramos prestadores de esta categoría{ubicacion ? " que lleguen hasta tu zona" : ""}.
             </p>
           )}
           <ul className="flex flex-col gap-3">
@@ -128,7 +116,7 @@ export default function BuscarPage() {
                     <div>
                       <p className="font-medium text-ink">
                         {p.nombre} {p.apellido}
-                        {p.verificado && <span className="text-stamp text-xs ml-2">✓ Verificado</span>}
+                        {p.verificado && <InsigniaVerificado size={14} conTexto className="ml-2" />}
                       </p>
                       {p.descripcion && <p className="text-sm text-ink/60">{p.descripcion}</p>}
                       {p.precioReferencia && (

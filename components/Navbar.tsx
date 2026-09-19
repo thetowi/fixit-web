@@ -9,6 +9,8 @@ import { Usuario } from "@/types/auth";
 import { apiFetch } from "@/lib/api";
 import { crearConexionChat } from "@/lib/chatConnection";
 import { TITULO_BASE, mostrarNotificacionNavegador, pedirPermisoNotificaciones } from "@/lib/notificacionesNavegador";
+import { suscribirseAMenuMovilTour } from "@/lib/menuMovilTour";
+import { ThemeToggleMenuMovil } from "@/components/ThemeToggle";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -28,6 +30,15 @@ export default function Navbar() {
     setUsuario(obtenerUsuario());
     setMenuAbierto(false); // navegar a otra página cierra el menú mobile
   }, [pathname]);
+
+  // El tutorial de onboarding (TourOnboarding.tsx) necesita poder abrir/cerrar este menú a
+  // demanda, ya que en mobile es donde viven los links a los que apunta (ver menuMovilTour.ts).
+  useEffect(() => {
+    return suscribirseAMenuMovilTour(
+      () => setMenuAbierto(true),
+      () => setMenuAbierto(false)
+    );
+  }, []);
 
   useEffect(() => {
     if (!usuario || (usuario.rol !== "Cliente" && usuario.rol !== "Prestador")) {
@@ -280,7 +291,11 @@ export default function Navbar() {
 
         <div className="flex flex-col px-5 py-2 overflow-y-auto">
           {usuario?.rol !== "Prestador" && (
-            <Link href="/explorar" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">
+            <Link
+              href="/explorar"
+              className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors"
+              data-tour-mobile="nav-explorar"
+            >
               Explorar
             </Link>
           )}
@@ -298,13 +313,13 @@ export default function Navbar() {
 
           {usuario?.rol === "Cliente" && (
             <>
-              <Link href="/buscar" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Buscar</Link>
-              <Link href="/mensajes" className="relative py-3 border-b border-on-nav/10 hover:text-safety transition-colors">
+              <Link href="/buscar" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-buscar">Buscar</Link>
+              <Link href="/mensajes" className="relative py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-mensajes">
                 Mensajes
                 <BadgeNoLeidos />
               </Link>
-              <Link href="/ordenes" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Mis ordenes</Link>
-              <Link href="/cuenta" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Mi cuenta</Link>
+              <Link href="/ordenes" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-ordenes">Mis ordenes</Link>
+              <Link href="/cuenta" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-cuenta">Mi cuenta</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
                 Cerrar sesion
               </button>
@@ -313,13 +328,13 @@ export default function Navbar() {
 
           {usuario?.rol === "Prestador" && (
             <>
-              <Link href="/prestador/agenda" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Agenda</Link>
-              <Link href="/mensajes" className="relative py-3 border-b border-on-nav/10 hover:text-safety transition-colors">
+              <Link href="/prestador/agenda" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-agenda">Agenda</Link>
+              <Link href="/mensajes" className="relative py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-mensajes">
                 Mensajes
                 <BadgeNoLeidos />
               </Link>
-              <Link href="/ordenes" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Mis ordenes</Link>
-              <Link href="/cuenta" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Mi cuenta</Link>
+              <Link href="/ordenes" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-ordenes">Mis ordenes</Link>
+              <Link href="/cuenta" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-cuenta">Mi cuenta</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
                 Cerrar sesion
               </button>
@@ -334,6 +349,10 @@ export default function Navbar() {
               </button>
             </>
           )}
+
+          <div className="border-t border-on-nav/10 mt-1">
+            <ThemeToggleMenuMovil />
+          </div>
         </div>
       </div>
     </nav>

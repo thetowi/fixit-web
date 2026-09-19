@@ -6,8 +6,12 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { Orden } from "@/types/ordenes";
 import { CrearCalificacionRequest, CRITERIOS_CALIFICACION } from "@/types/calificaciones";
-import OrdenTicket from "@/components/OrdenTicket";
+import OrdenTicket, { ESTADO_LABELS } from "@/components/OrdenTicket";
 import SelectorEstrellas from "@/components/SelectorEstrellas";
+
+// Orden fijo (sigue el flujo real de una orden) para que el filtro de estado no salte de forma
+// arbitraria según qué estados haya en los datos.
+const ORDEN_ESTADOS = ["PendientePago", "Pagado", "EnCurso", "Completado", "Cancelado", "EnDisputa"];
 
 const CALIFICACION_INICIAL: Omit<CrearCalificacionRequest, "comentario"> = {
   puntualidad: 0,
@@ -51,6 +55,7 @@ function OrdenesContenido() {
   const [criterioExpandido, setCriterioExpandido] = useState<string | null>(null);
   const [comentario, setComentario] = useState("");
   const [filtroMes, setFiltroMes] = useState("todos");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
 
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -139,27 +144,48 @@ function OrdenesContenido() {
   const esCliente = usuario?.rol === "Cliente";
 
   const mesesDisponibles = Array.from(new Set(ordenes.map((o) => claveMes(o.creadoEn)))).sort().reverse();
-  const ordenesFiltradas = filtroMes === "todos" ? ordenes : ordenes.filter((o) => claveMes(o.creadoEn) === filtroMes);
+  const estadosDisponibles = ORDEN_ESTADOS.filter((e) => ordenes.some((o) => o.estado === e));
+  const ordenesFiltradas = ordenes
+    .filter((o) => filtroMes === "todos" || claveMes(o.creadoEn) === filtroMes)
+    .filter((o) => filtroEstado === "todos" || o.estado === filtroEstado);
+  const hayFiltrosActivos = filtroMes !== "todos" || filtroEstado !== "todos";
 
   return (
     <div className="max-w-lg mx-auto mt-16 p-6 w-full">
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <h1 className="font-display text-2xl text-ink">Mis órdenes</h1>
 
-        {mesesDisponibles.length > 0 && (
-          <select
-            className="border border-ink/20 rounded p-2 bg-surface text-sm"
-            value={filtroMes}
-            onChange={(e) => setFiltroMes(e.target.value)}
-          >
-            <option value="todos">Todos los meses</option>
-            {mesesDisponibles.map((clave) => (
-              <option key={clave} value={clave}>
-                {etiquetaMes(clave)}
-              </option>
-            ))}
-          </select>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {estadosDisponibles.length > 0 && (
+            <select
+              className="border border-ink/20 rounded p-2 bg-surface text-sm"
+              value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value)}
+            >
+              <option value="todos">Todos los estados</option>
+              {estadosDisponibles.map((estado) => (
+                <option key={estado} value={estado}>
+                  {ESTADO_LABELS[estado] ?? estado}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {mesesDisponibles.length > 0 && (
+            <select
+              className="border border-ink/20 rounded p-2 bg-surface text-sm"
+              value={filtroMes}
+              onChange={(e) => setFiltroMes(e.target.value)}
+            >
+              <option value="todos">Todos los meses</option>
+              {mesesDisponibles.map((clave) => (
+                <option key={clave} value={clave}>
+                  {etiquetaMes(clave)}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {ordenCreadaId && (
@@ -193,7 +219,9 @@ function OrdenesContenido() {
       )}
 
       {ordenes.length > 0 && ordenesFiltradas.length === 0 && (
-        <p className="text-ink/50 text-sm">No tenés órdenes en ese mes.</p>
+        <p className="text-ink/50 text-sm">
+          {hayFiltrosActivos ? "No tenés órdenes con ese filtro." : "No tenés órdenes."}
+        </p>
       )}
 
       <ul className="flex flex-col gap-4">

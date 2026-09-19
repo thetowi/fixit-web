@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
+import { Paperclip, Mic, Check, X } from "lucide-react";
+import fixWebmDuration from "fix-webm-duration";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { crearConexionChat } from "@/lib/chatConnection";
@@ -10,6 +12,11 @@ import { Mensaje } from "@/types/mensajes";
 import { Usuario } from "@/types/auth";
 import { Conversacion } from "@/types/conversaciones";
 import Link from "next/link";
+
+// Tope de duración de un audio grabado en el chat, para que nadie mande sin querer una nota de
+// voz de 10 minutos que tarda una eternidad en subir — 2 minutos alcanza de sobra para explicar
+// un problema o coordinar algo.
+const MAX_SEGUNDOS_AUDIO = 120;
 
 export default function ConversacionPage() {
   const params = useParams();
@@ -23,11 +30,27 @@ export default function ConversacionPage() {
   const [mostrandoOferta, setMostrandoOferta] = useState(false);
   const [descripcionOferta, setDescripcionOferta] = useState("");
   const [montoOferta, setMontoOferta] = useState("");
+  const [enviandoOferta, setEnviandoOferta] = useState(false);
   const [pagando, setPagando] = useState(false);
   const [cancelandoOfertaId, setCancelandoOfertaId] = useState<string | null>(null);
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+  const [grabando, setGrabando] = useState(false);
+  const [segundosGrabados, setSegundosGrabados] = useState(0);
+  const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
 
   const conexionRef = useRef<signalR.HubConnection | null>(null);
   const finalMensajesRef = useRef<HTMLDivElement>(null);
+  const inputArchivoRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksAudioRef = useRef<Blob[]>([]);
+  const streamAudioRef = useRef<MediaStream | null>(null);
+  const timerGrabacionRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const descartarGrabacionRef = useRef(false);
+  // Además del estado (para repintar el contador en pantalla), guardamos los segundos en un ref:
+  // el callback `onstop` de MediaRecorder se define una sola vez al iniciar la grabación, así que
+  // si leyera el estado de React ahí adentro vería siempre el valor de ese momento (0), no el
+  // último.
+  const segundosGrabadosRef = useRef(0);
   // obtenerUsuario() lee localStorage, que no existe en el server: si lo leyéramos ya en el
   // useState inicial, el primer render del cliente (hidratación) no coincidiría con el HTML
   // que mandó el server (que siempre lo ve como null) y React tira "Hydration failed". Por eso
@@ -70,6 +93,12 @@ export default function ConversacionPage() {
 
         conexion.on("RecibirMensaje", (mensaje: Mensaje) => {
           setMensajes((prev) => {
+            // El backend difunde este mismo mensaje a TODO el grupo de la conversación, incluido
+            // quien lo mandó (que además ya lo agrega apenas le llega la respuesta del POST/invoke
+            // correspondiente). Sin este chequeo, a quien envía una oferta le terminaba apareciendo
+            // duplicada: una vez por la respuesta directa y otra por este broadcast.
+            if (prev.some((m) => m.id === mensaje.id)) return prev;
+
             // Si llega una oferta nueva, marcamos las anteriores como no vigentes en pantalla también
             const actualizados = mensaje.tipo === "Oferta"
               ? prev.map((m) => (m.tipo === "Oferta" ? { ...m, ofertaVigente: false } : m))
@@ -140,8 +169,149 @@ export default function ConversacionPage() {
     }
   }
 
+  // Sube un archivo (foto/cámara, video, o el blob de un audio grabado) y lo agrega al chat.
+  // Mismo patrón que las ofertas: POST directo (no un método de Hub, que no es buen canal para
+  // binarios) y el broadcast de SignalR es lo que lo hace aparecer en tiempo real de los dos lados.
+  async function subirArchivo(
+    archivo: Blob,
+    tipo: "Imagen" | "Audio" | "Video",
+    nombreArchivo: string,
+    duracionSegundos?: number
+  ) {
+    setError(null);
+    setSubiendoArchivo(true);
+
+    const token = localStorage.getItem("fixit_token");
+    const formData = new FormData();
+    formData.append("tipo", tipo);
+    formData.append("archivo", archivo, nombreArchivo);
+    if (duracionSegundos !== undefined) {
+      formData.append("duracionSegundos", String(duracionSegundos));
+    }
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/api/conversaciones/${conversacionId}/mensajes/archivo`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error ?? "No se pudo enviar el archivo");
+      }
+
+      const mensaje: Mensaje = await response.json();
+      setMensajes((prev) => {
+        // Mismo chequeo de siempre: si el broadcast de SignalR ya llegó antes que esta respuesta
+        // del POST se resuelva, no lo dupliquemos.
+        if (prev.some((m) => m.id === mensaje.id)) return prev;
+        return [...prev, mensaje];
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo enviar el archivo");
+    } finally {
+      setSubiendoArchivo(false);
+    }
+  }
+
+  function handleArchivoSeleccionado(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0];
+    e.target.value = ""; // permite elegir el mismo archivo dos veces seguidas
+    if (!archivo) return;
+
+    const tipo = archivo.type.startsWith("video/") ? "Video" : "Imagen";
+    subirArchivo(archivo, tipo, archivo.name || (tipo === "Video" ? "video.mp4" : "foto.jpg"));
+  }
+
+  async function iniciarGrabacion() {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamAudioRef.current = stream;
+      chunksAudioRef.current = [];
+      descartarGrabacionRef.current = false;
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (evento) => {
+        if (evento.data.size > 0) chunksAudioRef.current.push(evento.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        streamAudioRef.current = null;
+
+        if (!descartarGrabacionRef.current && chunksAudioRef.current.length > 0) {
+          const blobCrudo = new Blob(chunksAudioRef.current, { type: mediaRecorder.mimeType || "audio/webm" });
+          // Los .webm que arma MediaRecorder no traen la duración en el header del contenedor
+          // (se arma "en vivo", pensado para irse reproduciendo mientras se graba, no para
+          // guardarse y abrirse después). Por eso al subirlo y reproducirlo desde una URL —a
+          // diferencia de reproducirlo al toque desde el mismo blob en memoria— Chrome no puede
+          // calcular la duración y el reproductor nativo queda pegado en "0:00 / 0:00" sin poder
+          // arrancar. fix-webm-duration reescribe ese header con la duración real (bug conocido
+          // de Chrome/MediaRecorder) antes de subirlo.
+          const duracionMs = segundosGrabadosRef.current * 1000;
+          fixWebmDuration(blobCrudo, duracionMs, (blobCorregido: Blob) => {
+            subirArchivo(blobCorregido, "Audio", "audio.webm", segundosGrabadosRef.current);
+          });
+        }
+        chunksAudioRef.current = [];
+      };
+
+      mediaRecorder.start();
+      setGrabando(true);
+      setSegundosGrabados(0);
+      segundosGrabadosRef.current = 0;
+
+      timerGrabacionRef.current = setInterval(() => {
+        segundosGrabadosRef.current += 1;
+        setSegundosGrabados(segundosGrabadosRef.current);
+        if (segundosGrabadosRef.current >= MAX_SEGUNDOS_AUDIO) {
+          detenerGrabacion(true);
+        }
+      }, 1000);
+    } catch {
+      setError("No pudimos acceder al micrófono. Revisá los permisos del navegador.");
+    }
+  }
+
+  function detenerGrabacion(enviar: boolean) {
+    descartarGrabacionRef.current = !enviar;
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+
+    if (timerGrabacionRef.current) {
+      clearInterval(timerGrabacionRef.current);
+      timerGrabacionRef.current = null;
+    }
+    setGrabando(false);
+    setSegundosGrabados(0);
+  }
+
+  // Por si el usuario cierra/navega afuera de la página con el micrófono todavía abierto
+  useEffect(() => {
+    return () => {
+      if (timerGrabacionRef.current) clearInterval(timerGrabacionRef.current);
+      streamAudioRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  function formatoTiempo(segundos: number): string {
+    const min = Math.floor(segundos / 60);
+    const seg = segundos % 60;
+    return `${min}:${seg.toString().padStart(2, "0")}`;
+  }
+
   async function handleEnviarOferta(e: React.FormEvent) {
     e.preventDefault();
+    // Guard contra doble envío: sin esto, un doble click/doble tap en "Ofertar" dispara dos
+    // POST antes de que termine el primero (el botón solo se deshabilitaba por validación de los
+    // campos, no mientras la request estaba en curso) y quedaban dos ofertas cargadas de verdad.
+    if (enviandoOferta) return;
+
     const monto = Number(montoOferta);
     if (!descripcionOferta.trim()) {
       setError('Contá brevemente qué trabajo es (ej. "Arreglo farola").');
@@ -152,20 +322,28 @@ export default function ConversacionPage() {
       return;
     }
 
+    setEnviandoOferta(true);
     try {
       const mensaje = await apiFetch<Mensaje>(`/api/conversaciones/${conversacionId}/ofertas`, {
         method: "POST",
         body: JSON.stringify({ monto, descripcion: descripcionOferta.trim() }),
       });
-      setMensajes((prev) => [
-        ...prev.map((m) => (m.tipo === "Oferta" ? { ...m, ofertaVigente: false } : m)),
-        mensaje,
-      ]);
+      setMensajes((prev) => {
+        // Mismo chequeo que en RecibirMensaje: si el broadcast de SignalR ya llegó antes de que
+        // esta respuesta del POST se resuelva, no la dupliquemos.
+        if (prev.some((m) => m.id === mensaje.id)) return prev;
+        return [
+          ...prev.map((m) => (m.tipo === "Oferta" ? { ...m, ofertaVigente: false } : m)),
+          mensaje,
+        ];
+      });
       setMostrandoOferta(false);
       setDescripcionOferta("");
       setMontoOferta("");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al enviar la oferta");
+    } finally {
+      setEnviandoOferta(false);
     }
   }
 
@@ -354,6 +532,56 @@ export default function ConversacionPage() {
             );
           }
 
+          if (m.tipo === "Imagen") {
+            return (
+              <div
+                key={m.id}
+                className={`max-w-[70%] shrink-0 rounded-lg overflow-hidden ${esMio ? "self-end" : "self-start"}`}
+              >
+                {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
+                <button type="button" onClick={() => setImagenAmpliada(m.archivoUrl)} className="block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={m.archivoUrl ?? ""}
+                    alt="Foto enviada en el chat"
+                    className="max-h-64 w-auto rounded-lg object-cover hover:brightness-95 transition-all"
+                  />
+                </button>
+              </div>
+            );
+          }
+
+          if (m.tipo === "Video") {
+            return (
+              <div
+                key={m.id}
+                className={`max-w-[70%] shrink-0 rounded-lg overflow-hidden ${esMio ? "self-end" : "self-start"}`}
+              >
+                {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
+                <video controls src={m.archivoUrl ?? ""} className="max-h-64 w-auto rounded-lg" />
+              </div>
+            );
+          }
+
+          if (m.tipo === "Audio") {
+            return (
+              <div
+                key={m.id}
+                className={`max-w-[85%] w-[260px] shrink-0 rounded-lg p-2 ${
+                  esMio ? "bg-ink text-paper self-end" : "bg-paper border border-ink/10 self-start"
+                }`}
+              >
+                {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
+                <audio controls src={m.archivoUrl ?? ""} className="w-full h-9" />
+                {m.duracionSegundos != null && (
+                  <p className={`text-[11px] mt-1 ${esMio ? "text-paper/60" : "text-ink/40"}`}>
+                    {formatoTiempo(m.duracionSegundos)}
+                  </p>
+                )}
+              </div>
+            );
+          }
+
           return (
             <div
               key={m.id}
@@ -369,55 +597,68 @@ export default function ConversacionPage() {
         <div ref={finalMensajesRef} />
       </div>
 
-      {error && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{error}</p>}
+      {error && !mostrandoOferta && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{error}</p>}
+      {subiendoArchivo && <p className="text-ink/40 text-xs mb-2">Enviando...</p>}
 
-      {mostrandoOferta ? (
-        <form onSubmit={handleEnviarOferta} className="flex gap-2 mb-2">
-          <input
-            type="text"
-            placeholder="¿Qué trabajo es? (ej. Arreglo farola)"
-            autoFocus
-            className="border border-ink/20 rounded p-2 flex-[2] bg-surface"
-            value={descripcionOferta}
-            onChange={(e) => setDescripcionOferta(e.target.value)}
-          />
-          <input
-            type="number"
-            placeholder="Monto"
-            className="border border-ink/20 rounded p-2 flex-1 bg-surface"
-            value={montoOferta}
-            onChange={(e) => setMontoOferta(e.target.value)}
-          />
+      <input
+        ref={inputArchivoRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={handleArchivoSeleccionado}
+      />
+
+      {grabando ? (
+        <div className="flex items-center gap-2 border border-ink/20 rounded p-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse shrink-0" />
+          <p className="text-sm text-ink flex-1">Grabando audio... {formatoTiempo(segundosGrabados)}</p>
           <button
-            type="submit"
-            disabled={!descripcionOferta.trim() || !montoOferta || Number(montoOferta) <= 0}
-            className="bg-copper text-paper rounded px-4 hover:bg-copper-dark transition-colors disabled:opacity-40"
+            type="button"
+            onClick={() => detenerGrabacion(false)}
+            aria-label="Cancelar grabación"
+            className="text-ink/50 hover:text-ink transition-colors p-1"
           >
-            Enviar
+            <X size={18} />
           </button>
           <button
             type="button"
-            onClick={() => {
-              setError(null);
-              setMostrandoOferta(false);
-              setDescripcionOferta("");
-              setMontoOferta("");
-            }}
-            className="border border-ink/20 rounded px-3 text-ink"
+            onClick={() => detenerGrabacion(true)}
+            aria-label="Enviar audio"
+            className="bg-ink text-paper rounded-full p-1.5 hover:bg-ink/80 transition-colors"
           >
-            Cancelar
+            <Check size={16} />
           </button>
-        </form>
+        </div>
       ) : (
         <form onSubmit={handleEnviar} className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => inputArchivoRef.current?.click()}
+            disabled={!conectado || subiendoArchivo}
+            aria-label="Adjuntar foto o video"
+            className="text-ink/50 hover:text-ink transition-colors disabled:opacity-40 shrink-0 px-1"
+          >
+            <Paperclip size={20} />
+          </button>
           <input
             type="text"
             placeholder={conectado ? "Escribí un mensaje..." : "Conectando..."}
             disabled={!conectado}
-            className="border border-ink/20 rounded p-2 flex-1 bg-surface disabled:opacity-50"
+            className="border border-ink/20 rounded p-2 flex-1 min-w-0 bg-surface disabled:opacity-50"
             value={nuevoMensaje}
             onChange={(e) => setNuevoMensaje(e.target.value)}
           />
+          {!nuevoMensaje.trim() && (
+            <button
+              type="button"
+              onClick={iniciarGrabacion}
+              disabled={!conectado || subiendoArchivo}
+              aria-label="Grabar audio"
+              className="text-ink/50 hover:text-ink transition-colors disabled:opacity-40 shrink-0 px-1"
+            >
+              <Mic size={20} />
+            </button>
+          )}
           {esPrestador && (
             <button
               type="button"
@@ -432,12 +673,107 @@ export default function ConversacionPage() {
           )}
           <button
             type="submit"
-            disabled={!conectado}
+            disabled={!conectado || !nuevoMensaje.trim()}
             className="bg-ink text-paper rounded px-4 hover:bg-ink/80 transition-colors disabled:opacity-40"
           >
             Enviar
           </button>
         </form>
+      )}
+
+      {imagenAmpliada && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 backdrop-blur-sm p-4"
+          onClick={() => setImagenAmpliada(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imagenAmpliada} alt="Foto ampliada" className="max-w-full max-h-full rounded-lg" />
+          <button
+            type="button"
+            onClick={() => setImagenAmpliada(null)}
+            aria-label="Cerrar"
+            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+          >
+            <X size={28} />
+          </button>
+        </div>
+      )}
+
+      {mostrandoOferta && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4"
+          onClick={() => {
+            if (enviandoOferta) return;
+            setError(null);
+            setMostrandoOferta(false);
+            setDescripcionOferta("");
+            setMontoOferta("");
+          }}
+        >
+          <form
+            onSubmit={handleEnviarOferta}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-surface rounded-xl shadow-xl border border-ink/10 w-full max-w-sm p-5 flex flex-col gap-4"
+          >
+            <div>
+              <p className="font-mono text-xs tracking-widest text-copper uppercase mb-1">Nueva oferta</p>
+              <h2 className="font-display text-lg text-ink">
+                {otroNombre ? `Ofertale un trabajo a ${otroNombre}` : "Ofertale un trabajo a tu cliente"}
+              </h2>
+            </div>
+
+            <label className="text-sm text-ink/60">
+              Título
+              <input
+                type="text"
+                placeholder="¿Qué trabajo es? (ej. Arreglo farola)"
+                autoFocus
+                className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
+                value={descripcionOferta}
+                onChange={(e) => setDescripcionOferta(e.target.value)}
+              />
+            </label>
+
+            <label className="text-sm text-ink/60">
+              Precio
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40 text-sm pointer-events-none">$</span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="border border-ink/20 rounded p-2 pl-6 w-full bg-paper"
+                  value={montoOferta}
+                  onChange={(e) => setMontoOferta(e.target.value)}
+                />
+              </div>
+            </label>
+
+            {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
+
+            <div className="flex gap-2 mt-1">
+              <button
+                type="button"
+                disabled={enviandoOferta}
+                onClick={() => {
+                  setError(null);
+                  setMostrandoOferta(false);
+                  setDescripcionOferta("");
+                  setMontoOferta("");
+                }}
+                className="flex-1 border border-ink/20 text-ink rounded-lg py-2.5 font-medium hover:border-ink/40 transition-colors disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={enviandoOferta || !descripcionOferta.trim() || !montoOferta || Number(montoOferta) <= 0}
+                className="flex-1 bg-copper text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+              >
+                {enviandoOferta ? "Enviando..." : "Ofertar"}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );
