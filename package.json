@@ -11,7 +11,6 @@
   "dependencies": {
     "@microsoft/signalr": "^10.0.11",
     "@react-oauth/google": "^0.13.5",
-    "fix-webm-duration": "^1.0.6",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.47.0",
     "next": "16.3.2",

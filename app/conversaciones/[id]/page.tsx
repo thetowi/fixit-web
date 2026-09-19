@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
-import { Paperclip, Mic, Check, X } from "lucide-react";
-import fixWebmDuration from "fix-webm-duration";
+import { Paperclip, Mic, Check, X, Send, BanknoteArrowUp } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { crearConexionChat } from "@/lib/chatConnection";
@@ -253,15 +252,18 @@ export default function ConversacionPage() {
           const blobCrudo = new Blob(chunksAudioRef.current, { type: mediaRecorder.mimeType || "audio/webm" });
           // Los .webm que arma MediaRecorder no traen la duración en el header del contenedor
           // (se arma "en vivo", pensado para irse reproduciendo mientras se graba, no para
-          // guardarse y abrirse después). Por eso al subirlo y reproducirlo desde una URL —a
-          // diferencia de reproducirlo al toque desde el mismo blob en memoria— Chrome no puede
-          // calcular la duración y el reproductor nativo queda pegado en "0:00 / 0:00" sin poder
-          // arrancar. fix-webm-duration reescribe ese header con la duración real (bug conocido
-          // de Chrome/MediaRecorder) antes de subirlo.
-          const duracionMs = segundosGrabadosRef.current * 1000;
-          fixWebmDuration(blobCrudo, duracionMs, (blobCorregido: Blob) => {
-            subirArchivo(blobCorregido, "Audio", "audio.webm", segundosGrabadosRef.current);
-          });
+          // guardarse y abrirse después). Habíamos probado reescribir ese header con
+          // fix-webm-duration antes de subir, pero en producción (19/09) eso rompió la
+          // reproducción del audio en el MISMO celular Android que lo grabó (MediaError código 4,
+          // "formato no soportado") aunque en la PC receptora sí andaba: el parcheo de bytes que
+          // hace esa librería arma un archivo que el demuxer más estricto de ese celular rechaza
+          // directamente, algo que Chrome de escritorio tolera. Como la duración que mostramos en
+          // pantalla (más abajo, "m.duracionSegundos") ya viene aparte —contada en vivo con un
+          // contador propio, no leída del header del archivo—, no hace falta tocar el blob para
+          // nada: lo subimos tal cual lo entrega MediaRecorder. El único costo es que el control
+          // nativo del navegador puede no mostrar bien su propia barra de progreso/duración, pero
+          // el audio se reproduce sin problemas en cualquier dispositivo.
+          subirArchivo(blobCrudo, "Audio", "audio.webm", segundosGrabadosRef.current);
         }
         chunksAudioRef.current = [];
       };
@@ -711,17 +713,19 @@ export default function ConversacionPage() {
                 setError(null);
                 setMostrandoOferta(true);
               }}
-              className="border border-copper text-copper rounded px-3 whitespace-nowrap hover:bg-copper/5 transition-colors"
+              aria-label="Ofertar un trabajo"
+              className="border border-copper text-copper rounded px-3 shrink-0 hover:bg-copper/5 transition-colors flex items-center justify-center"
             >
-              Ofertar
+              <BanknoteArrowUp size={18} />
             </button>
           )}
           <button
             type="submit"
             disabled={!conectado || !nuevoMensaje.trim()}
-            className="bg-ink text-paper rounded px-4 hover:bg-ink/80 transition-colors disabled:opacity-40"
+            aria-label="Enviar mensaje"
+            className="bg-ink text-paper rounded px-4 hover:bg-ink/80 transition-colors disabled:opacity-40 flex items-center justify-center"
           >
-            Enviar
+            <Send size={18} />
           </button>
         </form>
       )}
