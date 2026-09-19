@@ -37,6 +37,11 @@ export default function ConversacionPage() {
   const [grabando, setGrabando] = useState(false);
   const [segundosGrabados, setSegundosGrabados] = useState(0);
   const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
+  // Diagnóstico temporal (19/09): cuando el navegador no puede reproducir un audio, guardamos
+  // acá el código de error real del elemento <audio> (MediaError) para mostrarlo directo en la
+  // burbuja del chat — así se puede ver la causa exacta desde el celular mismo, sin necesitar
+  // conectar el teléfono a una compu para abrir la consola del navegador.
+  const [erroresAudio, setErroresAudio] = useState<Record<string, string>>({});
 
   const conexionRef = useRef<signalR.HubConnection | null>(null);
   const finalMensajesRef = useRef<HTMLDivElement>(null);
@@ -587,7 +592,32 @@ export default function ConversacionPage() {
                 }`}
               >
                 {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
-                <audio controls src={m.archivoUrl ?? ""} className="w-full h-9" />
+                <audio
+                  controls
+                  src={m.archivoUrl ?? ""}
+                  className="w-full h-9"
+                  onError={(e) => {
+                    const codigo = e.currentTarget.error?.code;
+                    // Códigos estándar de MediaError (spec HTML5): 1 abortado, 2 red, 3 no se
+                    // pudo decodificar el archivo (lo más probable acá), 4 formato/fuente no
+                    // soportada por este navegador/dispositivo en particular.
+                    const nombres: Record<number, string> = {
+                      1: "cancelado",
+                      2: "de red",
+                      3: "no se pudo decodificar el archivo",
+                      4: "formato no soportado en este dispositivo",
+                    };
+                    setErroresAudio((prev) => ({
+                      ...prev,
+                      [m.id]: codigo ? (nombres[codigo] ?? `código ${codigo}`) : "desconocido",
+                    }));
+                  }}
+                />
+                {erroresAudio[m.id] && (
+                  <p className="text-[11px] mt-1 text-red-400">
+                    Error de audio: {erroresAudio[m.id]}
+                  </p>
+                )}
                 {m.duracionSegundos != null && (
                   <p className={`text-[11px] mt-1 ${esMio ? "text-paper/60" : "text-ink/40"}`}>
                     {formatoTiempo(m.duracionSegundos)}
