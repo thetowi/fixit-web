@@ -53,3 +53,13 @@ export interface ConfirmarEmailRequest {
 export interface ReenviarCodigoRequest {
   email: string;
 }
+
+export interface SolicitarRecuperacionRequest {
+  email: string;
+}
+
+export interface RestablecerPasswordRequest {
+  email: string;
+  codigo: string;
+  nuevaPassword: string;
+}

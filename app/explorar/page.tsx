@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { Categoria } from "@/types/categorias";
-import { iconoCategoria } from "@/lib/iconosCategoria";
+import IconoLucide from "@/components/IconoLucide";
 
 export default function ExplorarPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -24,19 +24,16 @@ export default function ExplorarPage() {
       <h1 className="font-display text-2xl text-ink mb-6">¿Qué necesitás arreglar?</h1>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {categorias.map((c) => {
-          const IconoCategoria = iconoCategoria(c.icono);
-          return (
-            <Link
-              key={c.id}
-              href={`/explorar/${c.id}`}
-              className="bg-surface border border-ink/10 rounded-lg p-5 flex flex-col items-center gap-2 hover:border-copper transition-colors"
-            >
-              <IconoCategoria size={26} strokeWidth={1.75} className="text-copper" />
-              <span className="font-medium text-ink text-sm text-center">{c.nombre}</span>
-            </Link>
-          );
-        })}
+        {categorias.map((c) => (
+          <Link
+            key={c.id}
+            href={`/explorar/${c.id}`}
+            className="bg-surface border border-ink/10 rounded-lg p-5 flex flex-col items-center gap-2 hover:border-copper transition-colors"
+          >
+            <IconoLucide nombre={c.icono} size={26} strokeWidth={1.75} className="text-copper" />
+            <span className="font-medium text-ink text-sm text-center">{c.nombre}</span>
+          </Link>
+        ))}
       </div>
     </div>
   );

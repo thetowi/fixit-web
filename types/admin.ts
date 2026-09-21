@@ -10,6 +10,11 @@ export interface CrearCategoriaRequest {
   icono?: string;
 }
 
+export interface EditarCategoriaRequest {
+  nombre: string;
+  icono?: string;
+}
+
 export interface UsuarioAdmin {
   id: string;
   nombre: string;

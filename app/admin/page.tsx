@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
-import { CategoriaAdmin, CrearCategoriaRequest, UsuarioAdmin } from "@/types/admin";
+import { CategoriaAdmin, CrearCategoriaRequest, EditarCategoriaRequest, UsuarioAdmin } from "@/types/admin";
 import { Orden } from "@/types/ordenes";
 import { VerificacionAdmin } from "@/types/verificacion";
-import { ICONOS_CATEGORIA, iconoCategoria } from "@/lib/iconosCategoria";
+import IconoLucide from "@/components/IconoLucide";
+import SelectorIconoLucide from "@/components/SelectorIconoLucide";
 
 const ESTADO_LABELS: Record<string, string> = {
   PendientePago: "Pendiente de pago",
@@ -27,7 +28,11 @@ export default function AdminPage() {
   const [motivos, setMotivos] = useState<Record<string, string>>({});
   const [procesandoVerif, setProcesandoVerif] = useState<string | null>(null);
   const [nombreNueva, setNombreNueva] = useState("");
-  const [iconoNuevo, setIconoNuevo] = useState(ICONOS_CATEGORIA[0].clave);
+  const [iconoNuevo, setIconoNuevo] = useState("wrench");
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [nombreEditado, setNombreEditado] = useState("");
+  const [iconoEditado, setIconoEditado] = useState("wrench");
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [seccion, setSeccion] = useState<"categorias" | "usuarios" | "ordenes" | "verificaciones">("categorias");
@@ -76,10 +81,44 @@ export default function AdminPage() {
         body: JSON.stringify(body),
       });
       setNombreNueva("");
-      setIconoNuevo(ICONOS_CATEGORIA[0].clave);
+      setIconoNuevo("wrench");
       await cargarDatos();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al crear la categoría");
+    }
+  }
+
+  function iniciarEdicion(categoria: CategoriaAdmin) {
+    setEditandoId(categoria.id);
+    setNombreEditado(categoria.nombre);
+    setIconoEditado(categoria.icono ?? "wrench");
+    setError(null);
+  }
+
+  function cancelarEdicion() {
+    setEditandoId(null);
+  }
+
+  async function handleGuardarEdicion(id: number) {
+    if (!nombreEditado.trim()) {
+      setError("El nombre no puede quedar vacío.");
+      return;
+    }
+
+    const body: EditarCategoriaRequest = { nombre: nombreEditado, icono: iconoEditado };
+
+    setGuardandoEdicion(true);
+    try {
+      await apiFetch<CategoriaAdmin>(`/api/admin/categorias/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      setEditandoId(null);
+      await cargarDatos();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al editar la categoría");
+    } finally {
+      setGuardandoEdicion(false);
     }
   }
 
@@ -180,24 +219,7 @@ export default function AdminPage() {
 
             <div>
               <p className="text-xs text-ink/50 mb-2">Ícono</p>
-              <div className="grid grid-cols-6 sm:grid-cols-9 gap-1.5">
-                {ICONOS_CATEGORIA.map((op) => (
-                  <button
-                    key={op.clave}
-                    type="button"
-                    onClick={() => setIconoNuevo(op.clave)}
-                    title={op.etiqueta}
-                    aria-label={op.etiqueta}
-                    className={`aspect-square rounded-lg border flex items-center justify-center transition-colors ${
-                      iconoNuevo === op.clave
-                        ? "border-copper bg-copper/10 text-copper"
-                        : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
-                    }`}
-                  >
-                    <op.Icono size={18} strokeWidth={1.75} />
-                  </button>
-                ))}
-              </div>
+              <SelectorIconoLucide valor={iconoNuevo} onChange={setIconoNuevo} />
             </div>
 
             <button
@@ -210,21 +232,59 @@ export default function AdminPage() {
 
           <ul className="flex flex-col gap-2">
             {categorias.map((c) => {
-              const IconoCategoria = iconoCategoria(c.icono);
+              const enEdicion = editandoId === c.id;
               return (
-                <li key={c.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex justify-between items-center">
-                  <span className={`flex items-center gap-2.5 ${c.activa ? "text-ink" : "text-ink/30 line-through"}`}>
-                    <IconoCategoria size={17} strokeWidth={1.75} className={c.activa ? "text-copper" : "text-ink/30"} />
-                    {c.nombre}
-                  </span>
-                  <button
-                    onClick={() => handleCambiarEstado(c)}
-                    className={`text-sm rounded px-3 py-1 border ${
-                      c.activa ? "border-stamp text-stamp" : "border-ink/20 text-ink/50"
-                    }`}
-                  >
-                    {c.activa ? "Desactivar" : "Activar"}
-                  </button>
+                <li key={c.id} className="bg-surface border border-ink/10 rounded-lg p-3">
+                  {enEdicion ? (
+                    <div className="flex flex-col gap-3">
+                      <input
+                        type="text"
+                        className="border border-ink/20 rounded p-2 bg-paper text-sm"
+                        value={nombreEditado}
+                        onChange={(e) => setNombreEditado(e.target.value)}
+                      />
+                      <SelectorIconoLucide valor={iconoEditado} onChange={setIconoEditado} />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleGuardarEdicion(c.id)}
+                          disabled={guardandoEdicion}
+                          className="text-sm bg-copper text-paper rounded px-3 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-40"
+                        >
+                          {guardandoEdicion ? "Guardando..." : "Guardar"}
+                        </button>
+                        <button
+                          onClick={cancelarEdicion}
+                          disabled={guardandoEdicion}
+                          className="text-sm border border-ink/20 text-ink/60 rounded px-3 py-1.5 hover:text-ink transition-colors disabled:opacity-40"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className={`flex items-center gap-2.5 ${c.activa ? "text-ink" : "text-ink/30 line-through"}`}>
+                        <IconoLucide nombre={c.icono} size={17} className={c.activa ? "text-copper" : "text-ink/30"} />
+                        {c.nombre}
+                      </span>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => iniciarEdicion(c)}
+                          className="text-sm rounded px-3 py-1 border border-ink/20 text-ink/60 hover:text-ink hover:border-ink/40 transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleCambiarEstado(c)}
+                          className={`text-sm rounded px-3 py-1 border ${
+                            c.activa ? "border-stamp text-stamp" : "border-ink/20 text-ink/50"
+                          }`}
+                        >
+                          {c.activa ? "Desactivar" : "Activar"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               );
             })}

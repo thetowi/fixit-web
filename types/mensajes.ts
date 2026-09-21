@@ -3,7 +3,7 @@ export interface Mensaje {
   conversacionId: string;
   emisorId: string;
   emisorNombre: string;
-  tipo: "Texto" | "Imagen" | "Oferta" | "Audio" | "Video";
+  tipo: "Texto" | "Imagen" | "Oferta" | "Audio" | "Video" | "Turno";
   contenido: string | null;
   archivoUrl: string | null;
   duracionSegundos: number | null;
@@ -12,5 +12,10 @@ export interface Mensaje {
   ofertaVigente: boolean;
   ofertaExpiraEn: string | null;
   ofertaPagada: boolean;
+  // Turno agendado enviado al chat (22/09) — ver AgendaService.ProgramarTurnoAsync en el backend.
+  turnoOrdenId: string | null;
+  turnoFechaHora: string | null;
+  turnoDuracionMinutos: number | null;
+  turnoVigente: boolean;
   enviadoEn: string;
 }

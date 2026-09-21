@@ -170,6 +170,10 @@ export default function LoginPage() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
 
+          <a href="/recuperar-password" className="text-copper text-sm hover:underline -mt-2 self-end">
+            ¿Olvidaste tu contraseña?
+          </a>
+
           {error && (
             <div className="text-red-700 dark:text-red-400 text-sm">
               <p>{error}</p>

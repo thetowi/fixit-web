@@ -10,6 +10,7 @@ import { crearConexionChat } from "@/lib/chatConnection";
 import { Mensaje } from "@/types/mensajes";
 import { Usuario } from "@/types/auth";
 import { Conversacion } from "@/types/conversaciones";
+import { formatoDuracion } from "@/types/agenda";
 import Link from "next/link";
 
 // Tope de duración de un audio grabado en el chat, para que nadie mande sin querer una nota de
@@ -104,9 +105,13 @@ export default function ConversacionPage() {
             if (prev.some((m) => m.id === mensaje.id)) return prev;
 
             // Si llega una oferta nueva, marcamos las anteriores como no vigentes en pantalla también
-            const actualizados = mensaje.tipo === "Oferta"
+            let actualizados = mensaje.tipo === "Oferta"
               ? prev.map((m) => (m.tipo === "Oferta" ? { ...m, ofertaVigente: false } : m))
               : prev;
+            // Mismo criterio para un turno reprogramado (22/09): el mensaje viejo queda tachado
+            if (mensaje.tipo === "Turno") {
+              actualizados = actualizados.map((m) => (m.tipo === "Turno" ? { ...m, turnoVigente: false } : m));
+            }
             return [...actualizados, mensaje];
           });
 
@@ -548,6 +553,56 @@ export default function ConversacionPage() {
                         <p className="text-[11px] text-ink/40 mt-2">{textoVencimiento(m.ofertaExpiraEn)}</p>
                       )}
                     </>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          if (m.tipo === "Turno") {
+            // Turno agendado enviado al chat (22/09) — misma tarjeta visual que la Oferta,
+            // tachada cuando el prestador reprograma y manda una nueva (turnoVigente = false).
+            const fecha = m.turnoFechaHora ? new Date(m.turnoFechaHora) : null;
+            const fechaTexto = fecha
+              ? fecha.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
+              : "";
+            const horaTexto = fecha
+              ? fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+              : "";
+            const colorBorde = m.turnoVigente ? "border-copper" : "border-ink/10 opacity-60";
+            const colorHeader = m.turnoVigente ? "bg-copper text-paper" : "bg-ink/10 text-ink/50";
+
+            return (
+              <div
+                key={m.id}
+                className={`max-w-[90%] w-[280px] shrink-0 rounded-xl overflow-hidden shadow-md border-2 ${colorBorde} ${
+                  esMio ? "self-end" : "self-start"
+                }`}
+              >
+                <div className={`flex items-center gap-2 px-3.5 py-2 ${colorHeader}`}>
+                  <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-display shrink-0">
+                    📅
+                  </span>
+                  <p className="font-mono text-[10px] uppercase tracking-widest truncate">
+                    {esMio ? "Agendaste un turno" : `${m.emisorNombre} agendó un turno`}
+                  </p>
+                  {!m.turnoVigente && (
+                    <span className="ml-auto font-mono text-[9px] uppercase tracking-widest bg-white/20 rounded-full px-2 py-0.5 shrink-0">
+                      Reprogramado
+                    </span>
+                  )}
+                </div>
+
+                <div className="bg-surface px-3.5 py-3">
+                  <p className={`text-base font-semibold text-ink capitalize ${m.turnoVigente ? "" : "line-through"}`}>
+                    {fechaTexto}
+                  </p>
+                  <p className={`text-sm text-ink/60 mt-0.5 ${m.turnoVigente ? "" : "line-through"}`}>
+                    {horaTexto}
+                    {m.turnoDuracionMinutos ? ` · ${formatoDuracion(m.turnoDuracionMinutos)}` : ""}
+                  </p>
+                  {!m.turnoVigente && (
+                    <p className="text-xs text-ink/40 mt-2">Este turno se reprogramó — ver el mensaje más reciente</p>
                   )}
                 </div>
               </div>

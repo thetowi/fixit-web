@@ -1,3 +1,4 @@
+import { iconNames } from "lucide-react/dynamic";
 import {
   Baby,
   BookOpen,
@@ -100,10 +101,43 @@ const MAPA_ICONOS: Record<string, LucideIcon> = Object.fromEntries(
   ICONOS_CATEGORIA.map((o) => [o.clave, o.Icono])
 );
 
+// Export del mapa de arriba para IconoLucide.tsx, que lo usa para renderizar los 36 sugeridos con
+// import estático (instantáneo) y solo recurre a lucide-react/dynamic para el resto.
+export const MAPA_ICONOS_ESTATICOS = MAPA_ICONOS;
+
 // Busca el ícono por clave de forma case-insensitive (hay categorías viejas guardadas con la
 // clave capitalizada) y cae al de la llave inglesa si no hay ninguno cargado o no se reconoce.
 export function iconoCategoria(clave: string | null | undefined): LucideIcon {
   if (!clave) return Wrench;
   const normalizada = clave.toLowerCase();
   return MAPA_ICONOS[ALIAS[normalizada] ?? normalizada] ?? Wrench;
+}
+
+// A partir del 20/09, el selector de ícono del panel de Admin ya no está limitado a estos 36
+// sugeridos: se puede buscar y elegir cualquiera de los ~1500 íconos de Lucide (ver
+// components/SelectorIconoLucide.tsx e IconoLucide.tsx), o pegar directo el código exacto tal como
+// aparece en lucide.dev/icons. Lo de abajo es lo que hace posible esa búsqueda y esa validación,
+// sin tener que importar los ~1500 componentes de forma estática (eso infla mucho el bundle) —
+// `lucide-react/dynamic` los carga de a uno, solo cuando hace falta mostrarlos.
+
+// Catálogo completo de nombres válidos de Lucide (kebab-case, ej. "flask-conical"), para el buscador
+// del selector de Admin y para validar cualquier clave que no esté entre los 36 sugeridos de arriba.
+export const NOMBRES_ICONOS_LUCIDE: readonly string[] = iconNames;
+
+const NOMBRES_VALIDOS_LUCIDE = new Set(NOMBRES_ICONOS_LUCIDE);
+
+// Normaliza una clave de ícono (minúsculas + alias de claves viejas) sin todavía validarla contra
+// ningún catálogo — separado de resolverIconoDinamico para que ambos (el estático de arriba y el
+// dinámico de abajo) usen exactamente la misma normalización.
+export function normalizarClaveIcono(clave: string | null | undefined): string {
+  if (!clave) return "wrench";
+  const normalizada = clave.toLowerCase().trim();
+  return ALIAS[normalizada] ?? normalizada;
+}
+
+// Devuelve la clave normalizada solo si es un ícono real de Lucide (de cualquiera de los ~1500, no
+// solo los 36 sugeridos) — si no matchea nada, "wrench" (mismo fallback de siempre).
+export function resolverClaveIconoValida(clave: string | null | undefined): string {
+  const normalizada = normalizarClaveIcono(clave);
+  return NOMBRES_VALIDOS_LUCIDE.has(normalizada) ? normalizada : "wrench";
 }
