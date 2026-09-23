@@ -14,6 +14,7 @@ import { ConexionMercadoPago, IniciarConexionMercadoPago } from "@/types/mercado
 import { activarPush, desactivarPush, pushSoportado, yaSuscriptoPush } from "@/lib/push";
 import { buscarDirecciones, SugerenciaDireccion } from "@/lib/geocodificacion";
 import InsigniaVerificado from "@/components/InsigniaVerificado";
+import GananciasSeccion from "@/components/GananciasSeccion";
 
 // Leaflet toca "window" en el momento de importarse, así que no puede renderizarse en el
 // servidor: lo cargamos solo del lado del cliente.
@@ -28,7 +29,7 @@ const MapaCobertura = dynamic(() => import("@/components/MapaCobertura"), {
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
-type Seccion = "perfil" | "servicios" | "acerca" | "cobertura" | "horarios" | "verificacion" | "cobros";
+type Seccion = "perfil" | "servicios" | "acerca" | "cobertura" | "horarios" | "verificacion" | "cobros" | "ganancias";
 
 const SECCIONES: { id: Seccion; label: string }[] = [
   { id: "perfil", label: "Perfil" },
@@ -38,6 +39,7 @@ const SECCIONES: { id: Seccion; label: string }[] = [
   { id: "horarios", label: "Horarios" },
   { id: "verificacion", label: "Verificación" },
   { id: "cobros", label: "Cobros" },
+  { id: "ganancias", label: "Ganancias" },
 ];
 
 function CampoDocumento({
@@ -93,7 +95,6 @@ function CuentaContenido() {
   const fileInputRefTrabajo = useRef<HTMLInputElement>(null);
   const fileInputRefDni = useRef<HTMLInputElement>(null);
   const fileInputRefAntecedentes = useRef<HTMLInputElement>(null);
-  const fileInputRefMatricula = useRef<HTMLInputElement>(null);
 
   const [perfil, setPerfil] = useState<PerfilPropio | null>(null);
   const [form, setForm] = useState<ActualizarPerfilRequest>({ nombre: "", apellido: "", telefono: "", direccion: "" });
@@ -228,9 +229,14 @@ function CuentaContenido() {
   const [verifDniNumero, setVerifDniNumero] = useState("");
   const [verifDniFoto, setVerifDniFoto] = useState<File | null>(null);
   const [verifAntecedentes, setVerifAntecedentes] = useState<File | null>(null);
-  const [verifMatricula, setVerifMatricula] = useState<File | null>(null);
   const [errorVerif, setErrorVerif] = useState<string | null>(null);
   const [enviandoVerif, setEnviandoVerif] = useState(false);
+
+  // Matrícula por rubro (22/09) — un archivo elegido y un "enviando" por cada PrestadorCategoria,
+  // indexados por su id, ya que puede haber varias en distinto estado al mismo tiempo.
+  const [archivosMatricula, setArchivosMatricula] = useState<Record<number, File | null>>({});
+  const [enviandoMatricula, setEnviandoMatricula] = useState<number | null>(null);
+  const [errorMatricula, setErrorMatricula] = useState<string | null>(null);
 
   // --- Cobros / Mercado Pago (Prestador) ---
   const [mpEstado, setMpEstado] = useState<ConexionMercadoPago | null>(null);
@@ -415,8 +421,8 @@ function CuentaContenido() {
     e.preventDefault();
     setErrorVerif(null);
 
-    if (!verifDniNumero.trim() || !verifDniFoto || !verifAntecedentes || !verifMatricula) {
-      setErrorVerif("Completá el número de DNI y subí los tres documentos.");
+    if (!verifDniNumero.trim() || !verifDniFoto || !verifAntecedentes) {
+      setErrorVerif("Completá el número de DNI y subí los dos documentos.");
       return;
     }
 
@@ -426,7 +432,6 @@ function CuentaContenido() {
     formData.append("dniNumero", verifDniNumero);
     formData.append("dniFoto", verifDniFoto);
     formData.append("antecedentes", verifAntecedentes);
-    formData.append("matricula", verifMatricula);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -443,12 +448,49 @@ function CuentaContenido() {
 
       setVerifDniFoto(null);
       setVerifAntecedentes(null);
-      setVerifMatricula(null);
       await cargarVerificacion();
     } catch (err) {
       setErrorVerif(err instanceof Error ? err.message : "Error al enviar la verificación");
     } finally {
       setEnviandoVerif(false);
+    }
+  }
+
+  // Matrícula por rubro (22/09) — mismo patrón de fetch+FormData que handleEnviarVerificacion,
+  // pero apunta al endpoint por PrestadorCategoria y no toca la identidad de la cuenta.
+  async function handleEnviarMatricula(prestadorCategoriaId: number) {
+    setErrorMatricula(null);
+    const archivo = archivosMatricula[prestadorCategoriaId];
+    if (!archivo) {
+      setErrorMatricula("Elegí el archivo de la matrícula antes de enviar.");
+      return;
+    }
+
+    setEnviandoMatricula(prestadorCategoriaId);
+    const token = localStorage.getItem("fixit_token");
+    const formData = new FormData();
+    formData.append("matricula", archivo);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/api/verificacion/categoria/${prestadorCategoriaId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error ?? "Error al enviar la matrícula");
+      }
+
+      setArchivosMatricula((prev) => ({ ...prev, [prestadorCategoriaId]: null }));
+      await cargarVerificacion();
+      await cargarServicios();
+    } catch (err) {
+      setErrorMatricula(err instanceof Error ? err.message : "Error al enviar la matrícula");
+    } finally {
+      setEnviandoMatricula(null);
     }
   }
 
@@ -676,6 +718,24 @@ function CuentaContenido() {
               {s.label}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Aviso de verificación pendiente (22/09) — a pedido del usuario, para que el prestador
+          entienda por qué no aparece en las búsquedas mientras no esté verificado (ver el bloqueo
+          real agregado del lado del backend en BusquedaService/CategoriaService). No se muestra si
+          ya está verificado, ni si el usuario ya está parado en la pestaña Verificación. */}
+      {perfil.rol === "Prestador" && !perfil.verificado && seccion !== "verificacion" && (
+        <div className="bg-safety/10 border border-safety/30 rounded-lg p-4 mb-6 flex items-start justify-between gap-3 flex-wrap">
+          <p className="text-sm text-ink/70">
+            <span className="font-semibold text-ink">Todavía no estás verificado.</span> Para aparecer en las búsquedas y que los clientes puedan contratarte, tenés que verificar tu cuenta.
+          </p>
+          <button
+            onClick={() => setSeccion("verificacion")}
+            className="text-sm font-medium text-copper hover:underline whitespace-nowrap"
+          >
+            Verificar ahora →
+          </button>
         </div>
       )}
 
@@ -913,7 +973,29 @@ function CuentaContenido() {
               {misCategorias.map((mc) => (
                 <li key={mc.id} className="flex justify-between items-start bg-paper rounded p-2 text-sm">
                   <div>
-                    <p className="font-medium text-ink">{mc.categoriaNombre}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-ink">{mc.categoriaNombre}</p>
+                      {/* Badge de verificación por rubro (22/09) — mientras no esté Aprobado,
+                          este servicio no aparece en /buscar ni /explorar aunque esté cargado acá. */}
+                      {mc.estadoVerificacion === "Aprobado" && (
+                        <span className="text-[10px] font-mono uppercase rounded-full px-1.5 py-0.5 bg-stamp/15 text-stamp">
+                          ✓ verificado
+                        </span>
+                      )}
+                      {mc.estadoVerificacion === "Pendiente" && (
+                        <span className="text-[10px] font-mono uppercase rounded-full px-1.5 py-0.5 bg-safety/20 text-ink">
+                          matrícula en revisión
+                        </span>
+                      )}
+                      {(mc.estadoVerificacion === "SinEnviar" || mc.estadoVerificacion === "Rechazado") && (
+                        <button
+                          onClick={() => setSeccion("verificacion")}
+                          className="text-[10px] font-mono uppercase rounded-full px-1.5 py-0.5 bg-red-700/10 dark:bg-red-400/10 text-red-700 dark:text-red-400 hover:underline"
+                        >
+                          {mc.estadoVerificacion === "Rechazado" ? "matrícula rechazada" : "falta matrícula"}
+                        </button>
+                      )}
+                    </div>
                     {mc.descripcion && <p className="text-ink/60">{mc.descripcion}</p>}
                     {mc.precioReferencia && (
                       <p className="font-mono text-ink/70 mt-1">
@@ -1131,9 +1213,9 @@ function CuentaContenido() {
         <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-verificacion">
           <p className="font-medium text-ink mb-1">Verificación de identidad</p>
           <p className="text-xs text-ink/50 mb-4">
-            Verificar tu cuenta le muestra a los clientes que presentaste tu DNI, un certificado de antecedentes
-            penales y tu matrícula (o comprobante equivalente del rubro). Un admin revisa los documentos antes
-            de aprobarlos.
+            Verificar tu identidad le muestra a los clientes que presentaste tu DNI y un certificado de
+            antecedentes penales. Un admin revisa los documentos antes de aprobarlos. La matrícula (o
+            comprobante equivalente) se pide por separado, una vez por cada rubro que ofrezcas — ver más abajo.
           </p>
 
           {verifEstado?.estado === "Aprobado" && (
@@ -1191,13 +1273,6 @@ function CuentaContenido() {
                   onChange={setVerifAntecedentes}
                 />
 
-                <CampoDocumento
-                  label="Matrícula del rubro (o comprobante equivalente)"
-                  archivo={verifMatricula}
-                  inputRef={fileInputRefMatricula}
-                  onChange={setVerifMatricula}
-                />
-
                 <p className="text-[11px] text-ink/40">Imagen o PDF, hasta 8 MB cada uno.</p>
 
                 {errorVerif && <p className="text-red-700 dark:text-red-400 text-sm">{errorVerif}</p>}
@@ -1212,6 +1287,93 @@ function CuentaContenido() {
               </form>
             </>
           )}
+
+          {/* Matrícula por rubro (22/09) — un envío independiente por cada PrestadorCategoria, ya
+              que la matrícula de un rubro no certifica a los demás. Solo tiene sentido mostrarla
+              una vez que hay al menos un servicio cargado en "Mis servicios". */}
+          <div className="pt-4 mt-4 border-t border-ink/10">
+            <p className="font-medium text-ink mb-1">Matrícula por rubro</p>
+            <p className="text-xs text-ink/50 mb-4">
+              Cada rubro que ofrecés necesita su propia matrícula (o comprobante equivalente) aprobada para
+              aparecer en las búsquedas de esa categoría.
+            </p>
+
+            {errorMatricula && <p className="text-red-700 dark:text-red-400 text-sm mb-3">{errorMatricula}</p>}
+
+            {(!verifEstado || verifEstado.categorias.length === 0) ? (
+              <p className="text-ink/50 text-sm">
+                Todavía no cargaste ningún servicio — agregá uno en la pestaña &quot;Mis servicios&quot; para
+                poder enviar su matrícula.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {verifEstado.categorias.map((vc) => (
+                  <li key={vc.prestadorCategoriaId} className="bg-paper rounded-lg p-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-sm font-medium text-ink">{vc.categoriaNombre}</p>
+                      <span
+                        className={`text-[10px] font-mono uppercase rounded-full px-2 py-0.5 shrink-0 ${
+                          vc.estado === "Pendiente"
+                            ? "bg-safety/20 text-ink"
+                            : vc.estado === "Aprobado"
+                            ? "bg-stamp/15 text-stamp"
+                            : vc.estado === "Rechazado"
+                            ? "bg-red-700/10 dark:bg-red-400/10 text-red-700 dark:text-red-400"
+                            : "bg-ink/10 text-ink/50"
+                        }`}
+                      >
+                        {vc.estado === "SinEnviar" ? "sin enviar" : vc.estado}
+                      </span>
+                    </div>
+
+                    {vc.estado === "Aprobado" && (
+                      <p className="text-xs text-ink/50">Este rubro ya aparece en las búsquedas.</p>
+                    )}
+
+                    {vc.estado === "Pendiente" && (
+                      <p className="text-xs text-ink/50">Enviaste la matrícula, te avisamos apenas la revisemos.</p>
+                    )}
+
+                    {(vc.estado === "SinEnviar" || vc.estado === "Rechazado") && (
+                      <div className="flex flex-col gap-2 mt-2">
+                        {vc.estado === "Rechazado" && vc.motivoRechazo && (
+                          <p className="text-xs text-red-700/80 dark:text-red-400/80">{vc.motivoRechazo}</p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <label className="text-xs text-copper hover:underline cursor-pointer">
+                            {archivosMatricula[vc.prestadorCategoriaId] ? "Cambiar archivo" : "Elegir archivo"}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,application/pdf"
+                              className="hidden"
+                              onChange={(e) =>
+                                setArchivosMatricula((prev) => ({
+                                  ...prev,
+                                  [vc.prestadorCategoriaId]: e.target.files?.[0] ?? null,
+                                }))
+                              }
+                            />
+                          </label>
+                          {archivosMatricula[vc.prestadorCategoriaId] && (
+                            <span className="text-xs text-ink/60 truncate max-w-[160px]">
+                              {archivosMatricula[vc.prestadorCategoriaId]!.name}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => handleEnviarMatricula(vc.prestadorCategoriaId)}
+                            disabled={enviandoMatricula === vc.prestadorCategoriaId}
+                            className="text-xs bg-copper text-paper rounded px-2 py-1 hover:bg-copper-dark transition-colors disabled:opacity-40 ml-auto"
+                          >
+                            {enviandoMatricula === vc.prestadorCategoriaId ? "Enviando..." : "Enviar"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 
@@ -1262,6 +1424,8 @@ function CuentaContenido() {
           {errorMp && <p className="text-red-700 dark:text-red-400 text-sm mt-3">{errorMp}</p>}
         </div>
       )}
+
+      {perfil.rol === "Prestador" && seccion === "ganancias" && <GananciasSeccion />}
 
       <button onClick={handleLogout} className="text-sm text-ink/40 hover:text-ink/70 transition-colors">
         Cerrar sesión

@@ -12,11 +12,19 @@ import { Usuario } from "@/types/auth";
 import { Conversacion } from "@/types/conversaciones";
 import { formatoDuracion } from "@/types/agenda";
 import Link from "next/link";
+import { colorCategoria } from "@/lib/coloresCategoria";
+import IconoLucide from "@/components/IconoLucide";
 
 // Tope de duración de un audio grabado en el chat, para que nadie mande sin querer una nota de
 // voz de 10 minutos que tarda una eternidad en subir — 2 minutos alcanza de sobra para explicar
 // un problema o coordinar algo.
 const MAX_SEGUNDOS_AUDIO = 120;
+
+// Mismo valor que Comision:PorcentajeDefault en appsettings.json del backend (22/09) — hardcodeado
+// acá porque hoy no hay ningún endpoint que lo exponga al frontend. Si se cambia el valor en el
+// backend, hay que actualizar este número a mano (o, mejor, exponerlo por API antes de sumar la
+// lógica real de los 10 trabajos gratis).
+const PORCENTAJE_COMISION_ESTIMADO = 0.1;
 
 export default function ConversacionPage() {
   const params = useParams();
@@ -434,6 +442,11 @@ export default function ConversacionPage() {
     ? otroNombre.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("")
     : "";
 
+  // Un mismo prestador puede tener una conversación separada por cada rubro que ofrece (22/09) —
+  // la etiqueta con ícono debajo del nombre y el tinte de fondo del chat son lo que deja claro,
+  // sin ambigüedad, de qué rubro es ESTA conversación en particular.
+  const colorRubro = conversacion ? colorCategoria(conversacion.categoriaNombre) : null;
+
   return (
     <div className="max-w-lg mx-auto mt-8 p-6 flex flex-col h-[85vh] w-full">
       <div className="flex items-center gap-3 mb-4">
@@ -448,23 +461,47 @@ export default function ConversacionPage() {
           )
         )}
         <div className="min-w-0">
-          <h1 className="font-display text-xl text-ink truncate">Chat</h1>
           {otroNombre && (
             esCliente && conversacion ? (
               <Link
                 href={`/prestador/${conversacion.prestadorId}`}
-                className="text-xs text-copper hover:underline truncate block"
+                className="font-display text-xl text-ink hover:text-copper truncate block"
               >
-                {otroNombre} · ver perfil
+                {otroNombre}
               </Link>
             ) : (
-              <p className="text-xs text-ink/50 truncate">{otroNombre}</p>
+              <p className="font-display text-xl text-ink truncate">{otroNombre}</p>
             )
+          )}
+          {conversacion && colorRubro && (
+            <div
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 mt-0.5 w-fit"
+              style={{ background: `${colorRubro}1F` }}
+            >
+              <span style={{ color: colorRubro }}>
+                <IconoLucide nombre={conversacion.categoriaIcono} size={11} strokeWidth={2.5} />
+              </span>
+              <span className="text-[11px] font-semibold" style={{ color: colorRubro }}>
+                {conversacion.categoriaNombre}
+              </span>
+            </div>
           )}
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto bg-surface border border-ink/10 rounded-lg p-3 flex flex-col gap-2 mb-3">
+      <div
+        className="relative flex-1 min-h-0 overflow-hidden border border-ink/10 rounded-lg mb-3"
+        style={{ background: colorRubro ? `${colorRubro}0D` : undefined }}
+      >
+        {colorRubro && conversacion?.categoriaIcono && (
+          <div
+            className="absolute top-1/2 left-1/2 pointer-events-none"
+            style={{ transform: "translate(-50%, -50%)", opacity: 0.07, color: colorRubro }}
+          >
+            <IconoLucide nombre={conversacion.categoriaIcono} size={190} strokeWidth={1} />
+          </div>
+        )}
+        <div className="relative h-full overflow-y-auto p-3 flex flex-col gap-2">
         {mensajes.map((m) => {
           const esMio = m.emisorId === usuario?.id;
 
@@ -697,6 +734,7 @@ export default function ConversacionPage() {
           );
         })}
         <div ref={finalMensajesRef} />
+        </div>
       </div>
 
       {error && !mostrandoOferta && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{error}</p>}
@@ -851,6 +889,20 @@ export default function ConversacionPage() {
                 />
               </div>
             </label>
+
+            {/* Vista previa de cuánto cobraría el prestador (22/09, a pedido del usuario) — por ahora
+                es SOLO visual, siempre resta el % de comisión configurado en el backend
+                (Comision:PorcentajeDefault, hoy 10%), sin todavía chequear si el prestador ya superó
+                los primeros 10 trabajos gratis (ReglasNegocio.TrabajosGratisPorPrestador) — eso queda
+                para una vuelta futura, una vez validada la parte visual. */}
+            {Number(montoOferta) > 0 && (
+              <p className="text-sm text-ink/60">
+                Vos cobrarías del trabajo:{" "}
+                <span className="text-ink font-semibold">
+                  ${Math.round(Number(montoOferta) * (1 - PORCENTAJE_COMISION_ESTIMADO)).toLocaleString("es-AR")}
+                </span>
+              </p>
+            )}
 
             {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
 

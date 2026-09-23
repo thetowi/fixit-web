@@ -58,6 +58,10 @@ export default function AgendaPage() {
   const [fechaTurno, setFechaTurno] = useState("");
   const [horaTurno, setHoraTurno] = useState("09:00");
   const [duracionTurno, setDuracionTurno] = useState(60);
+  const [esReprogramacion, setEsReprogramacion] = useState(false);
+  // Turno agendado que se quiere reprogramar, esperando la confirmación del usuario antes de
+  // abrir el formulario (22/09, a pedido explícito del usuario: "que consulte si está seguro").
+  const [turnoAConfirmarReprogramacion, setTurnoAConfirmarReprogramacion] = useState<OrdenAgenda | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -145,10 +149,38 @@ export default function AgendaPage() {
   }
 
   function abrirProgramar(orden: OrdenAgenda, fechaPre?: string, horaPre?: string) {
+    setEsReprogramacion(false);
     setOrdenAProgramar(orden);
     setFechaTurno(fechaPre ?? "");
     setHoraTurno(horaPre ?? "09:00");
     setDuracionTurno(60);
+    setError(null);
+  }
+
+  // Paso 1: el usuario tocó "Reprogramar" en el detalle de un turno ya agendado — pedimos
+  // confirmación antes de abrir el formulario (22/09, a pedido explícito del usuario).
+  function pedirConfirmacionReprogramar(orden: OrdenAgenda) {
+    setTurnoAConfirmarReprogramacion(orden);
+  }
+
+  // Paso 2: confirmado — abrimos el mismo formulario de "Programar", pre-cargado con la
+  // fecha/hora/duración actuales del turno, para que solo haga falta cambiar lo que corresponda.
+  function confirmarReprogramar() {
+    const orden = turnoAConfirmarReprogramacion;
+    setTurnoAConfirmarReprogramacion(null);
+    if (!orden) return;
+
+    setEsReprogramacion(true);
+    setOrdenAProgramar(orden);
+    if (orden.fechaHoraProgramada) {
+      const fecha = new Date(orden.fechaHoraProgramada);
+      setFechaTurno(fechaAInputDate(fecha));
+      setHoraTurno(`${String(fecha.getHours()).padStart(2, "0")}:${String(fecha.getMinutes()).padStart(2, "0")}`);
+    } else {
+      setFechaTurno("");
+      setHoraTurno("09:00");
+    }
+    setDuracionTurno(orden.duracionMinutos ?? 60);
     setError(null);
   }
 
@@ -342,9 +374,15 @@ export default function AgendaPage() {
             bloques={bloques}
             ordenes={programadas}
             onCeldaDisponibleClick={handleCeldaDisponibleClick}
+            onReprogramar={pedirConfirmacionReprogramar}
           />
         ) : (
-          <CalendarioMensual mesBase={mesBase} ordenes={programadas} onSeleccionarDia={handleSeleccionarDiaMes} />
+          <CalendarioMensual
+            mesBase={mesBase}
+            ordenes={programadas}
+            onSeleccionarDia={handleSeleccionarDiaMes}
+            onReprogramar={pedirConfirmacionReprogramar}
+          />
         )}
       </div>
 
@@ -355,7 +393,7 @@ export default function AgendaPage() {
         >
           <div onClick={(e) => e.stopPropagation()} className="bg-surface rounded-xl shadow-xl p-6 max-w-sm w-full border border-ink/10">
             <h3 className="font-display text-lg text-ink mb-1">
-              Programar: {ordenAProgramar.descripcion || ordenAProgramar.categoriaNombre}
+              {esReprogramacion ? "Reprogramar" : "Programar"}: {ordenAProgramar.descripcion || ordenAProgramar.categoriaNombre}
             </h3>
             <p className={`text-xs text-ink/50 ${ordenAProgramar.clienteDistanciaKm != null ? "mb-1" : "mb-4"}`}>
               {ordenAProgramar.clienteNombreCompleto}
@@ -413,6 +451,12 @@ export default function AgendaPage() {
                 </select>
               </label>
 
+              {esReprogramacion && (
+                <p className="text-xs text-ink/45">
+                  Se va a avisar del nuevo horario en el chat, tanto a vos como al cliente.
+                </p>
+              )}
+
               {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
 
               <div className="flex gap-2 mt-2">
@@ -420,10 +464,45 @@ export default function AgendaPage() {
                   Cancelar
                 </button>
                 <button type="submit" className="bg-copper text-paper rounded-lg p-2.5 flex-1 font-semibold hover:bg-copper-dark transition-colors">
-                  Confirmar
+                  {esReprogramacion ? "Confirmar reprogramación" : "Confirmar"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {turnoAConfirmarReprogramacion && (
+        <div
+          className="fixed inset-0 bg-ink/50 backdrop-blur-sm flex items-center justify-center p-6 z-50"
+          onClick={() => setTurnoAConfirmarReprogramacion(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="bg-surface rounded-xl shadow-xl p-6 max-w-sm w-full border border-ink/10">
+            <h3 className="font-display text-lg text-ink mb-2">¿Reprogramar este turno?</h3>
+            <p className="text-sm text-ink/60 mb-5">
+              Vas a poder elegir una nueva fecha y hora para{" "}
+              <span className="font-medium text-ink">
+                {turnoAConfirmarReprogramacion.descripcion || turnoAConfirmarReprogramacion.categoriaNombre}
+              </span>{" "}
+              con {turnoAConfirmarReprogramacion.clienteNombreCompleto}. El turno anterior va a quedar marcado como
+              reprogramado en el chat y se le va a avisar el nuevo horario.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTurnoAConfirmarReprogramacion(null)}
+                className="border border-ink/20 rounded-lg p-2.5 flex-1 text-ink hover:border-ink/40 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarReprogramar}
+                className="bg-copper text-paper rounded-lg p-2.5 flex-1 font-semibold hover:bg-copper-dark transition-colors"
+              >
+                Sí, reprogramar
+              </button>
+            </div>
           </div>
         </div>
       )}

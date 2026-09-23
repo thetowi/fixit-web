@@ -6,7 +6,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { CategoriaAdmin, CrearCategoriaRequest, EditarCategoriaRequest, UsuarioAdmin } from "@/types/admin";
 import { Orden } from "@/types/ordenes";
-import { VerificacionAdmin } from "@/types/verificacion";
+import { VerificacionAdmin, VerificacionCategoriaAdmin } from "@/types/verificacion";
 import IconoLucide from "@/components/IconoLucide";
 import SelectorIconoLucide from "@/components/SelectorIconoLucide";
 
@@ -24,9 +24,16 @@ export default function AdminPage() {
   const [categorias, setCategorias] = useState<CategoriaAdmin[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [ordenes, setOrdenes] = useState<Orden[]>([]);
+  const [procesandoOrdenId, setProcesandoOrdenId] = useState<string | null>(null);
   const [verificaciones, setVerificaciones] = useState<VerificacionAdmin[]>([]);
   const [motivos, setMotivos] = useState<Record<string, string>>({});
   const [procesandoVerif, setProcesandoVerif] = useState<string | null>(null);
+
+  // Matrícula por rubro (22/09) — cola separada de la de identidad de arriba, indexada por
+  // PrestadorCategoriaId (número) en vez de UsuarioId.
+  const [matriculas, setMatriculas] = useState<VerificacionCategoriaAdmin[]>([]);
+  const [motivosMatricula, setMotivosMatricula] = useState<Record<number, string>>({});
+  const [procesandoMatricula, setProcesandoMatricula] = useState<number | null>(null);
   const [nombreNueva, setNombreNueva] = useState("");
   const [iconoNuevo, setIconoNuevo] = useState("wrench");
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -35,7 +42,7 @@ export default function AdminPage() {
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [seccion, setSeccion] = useState<"categorias" | "usuarios" | "ordenes" | "verificaciones">("categorias");
+  const [seccion, setSeccion] = useState<"categorias" | "usuarios" | "ordenes" | "verificaciones" | "matriculas">("categorias");
 
   useEffect(() => {
     const usuario = obtenerUsuario();
@@ -52,16 +59,18 @@ export default function AdminPage() {
 
   async function cargarDatos() {
     try {
-      const [cats, users, ords, verifs] = await Promise.all([
+      const [cats, users, ords, verifs, matrs] = await Promise.all([
         apiFetch<CategoriaAdmin[]>("/api/admin/categorias"),
         apiFetch<UsuarioAdmin[]>("/api/admin/usuarios"),
         apiFetch<Orden[]>("/api/admin/ordenes"),
         apiFetch<VerificacionAdmin[]>("/api/admin/verificaciones"),
+        apiFetch<VerificacionCategoriaAdmin[]>("/api/admin/matriculas"),
       ]);
       setCategorias(cats);
       setUsuarios(users);
       setOrdenes(ords);
       setVerificaciones(verifs);
+      setMatriculas(matrs);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al cargar los datos");
     } finally {
@@ -143,6 +152,40 @@ export default function AdminPage() {
     }
   }
 
+  // Modelo de retención (23/09) — antes estos dos endpoints ya existían en el backend
+  // (PagoService.ReembolsarAsync / MarcarTransferidoAlPrestadorAsync) pero no tenían ninguna
+  // pantalla desde donde dispararlos a mano; se agregan acá mismo, junto al resto de acciones
+  // de "Órdenes", para poder probar de punta a punta el flujo de reembolso/transferencia.
+  async function handleReembolsarOrden(ordenId: string) {
+    const motivo = window.prompt("Motivo del reembolso (obligatorio):");
+    if (!motivo || !motivo.trim()) return;
+    setProcesandoOrdenId(ordenId);
+    try {
+      await apiFetch(`/api/ordenes/${ordenId}/reembolsar`, {
+        method: "PUT",
+        body: JSON.stringify({ motivo: motivo.trim() }),
+      });
+      await cargarDatos();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al reembolsar la orden");
+    } finally {
+      setProcesandoOrdenId(null);
+    }
+  }
+
+  async function handleMarcarTransferidoPrestador(ordenId: string) {
+    if (!window.confirm("¿Confirmás que ya hiciste la transferencia real (CBU/alias) al prestador?")) return;
+    setProcesandoOrdenId(ordenId);
+    try {
+      await apiFetch(`/api/ordenes/${ordenId}/marcar-transferido-prestador`, { method: "PUT" });
+      await cargarDatos();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al marcar la transferencia");
+    } finally {
+      setProcesandoOrdenId(null);
+    }
+  }
+
   async function handleVerDocumento(usuarioId: string, documento: string) {
     try {
       const data = await apiFetch<{ url: string }>(`/api/admin/verificaciones/${usuarioId}/documento/${documento}`);
@@ -174,15 +217,51 @@ export default function AdminPage() {
     }
   }
 
+  // --- Matrícula por rubro (22/09) — mismo patrón que handleVerDocumento/handleRevisarVerificacion
+  // de arriba, pero apuntando a los endpoints por PrestadorCategoriaId. ---
+
+  async function handleVerDocumentoMatricula(prestadorCategoriaId: number) {
+    try {
+      const data = await apiFetch<{ url: string }>(`/api/admin/matriculas/${prestadorCategoriaId}/documento`);
+      window.open(data.url, "_blank");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al abrir el documento");
+    }
+  }
+
+  async function handleRevisarMatricula(prestadorCategoriaId: number, aprobar: boolean) {
+    const motivoRechazo = motivosMatricula[prestadorCategoriaId]?.trim();
+    if (!aprobar && !motivoRechazo) {
+      setError("Indicá un motivo de rechazo.");
+      return;
+    }
+
+    setProcesandoMatricula(prestadorCategoriaId);
+    try {
+      await apiFetch(`/api/admin/matriculas/${prestadorCategoriaId}`, {
+        method: "PUT",
+        body: JSON.stringify({ aprobar, motivoRechazo: aprobar ? null : motivoRechazo }),
+      });
+      setMotivosMatricula((prev) => ({ ...prev, [prestadorCategoriaId]: "" }));
+      await cargarDatos();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al procesar la matrícula");
+    } finally {
+      setProcesandoMatricula(null);
+    }
+  }
+
   if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
 
   const pendientesVerificacion = verificaciones.filter((v) => v.estado === "Pendiente").length;
+  const pendientesMatricula = matriculas.filter((m) => m.estado === "Pendiente").length;
 
   const tabs: { id: typeof seccion; label: string }[] = [
     { id: "categorias", label: "Categorías" },
     { id: "usuarios", label: "Usuarios" },
     { id: "ordenes", label: "Órdenes" },
-    { id: "verificaciones", label: pendientesVerificacion > 0 ? `Verificaciones (${pendientesVerificacion})` : "Verificaciones" },
+    { id: "verificaciones", label: pendientesVerificacion > 0 ? `Identidad (${pendientesVerificacion})` : "Identidad" },
+    { id: "matriculas", label: pendientesMatricula > 0 ? `Matrículas (${pendientesMatricula})` : "Matrículas" },
   ];
 
   return (
@@ -318,23 +397,68 @@ export default function AdminPage() {
       {seccion === "ordenes" && (
         <ul className="flex flex-col gap-2">
           {ordenes.map((o) => (
-            <li key={o.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex justify-between items-center">
-              <div>
-                <p className="font-medium text-ink">
-                  {o.categoriaNombre} <span className="font-mono text-ink/60">${o.montoTotal.toLocaleString("es-AR")}</span>
-                </p>
-                <p className="text-sm text-ink/50">Con {o.prestadorNombreCompleto}</p>
-                <span className="text-xs font-mono text-ink/40 uppercase">
-                  {ESTADO_LABELS[o.estado] ?? o.estado}
-                </span>
+            <li key={o.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex flex-col gap-2">
+              <div className="flex justify-between items-center gap-2">
+                <div>
+                  <p className="font-medium text-ink">
+                    {o.categoriaNombre} <span className="font-mono text-ink/60">${o.montoTotal.toLocaleString("es-AR")}</span>
+                  </p>
+                  <p className="text-sm text-ink/50">Con {o.prestadorNombreCompleto}</p>
+                  <span className="text-xs font-mono text-ink/40 uppercase">
+                    {ESTADO_LABELS[o.estado] ?? o.estado}
+                  </span>
+                </div>
+                {o.estado === "PendientePago" && (
+                  <button
+                    onClick={() => handleMarcarPagada(o.id)}
+                    className="text-sm bg-ink text-paper rounded px-3 py-1 whitespace-nowrap hover:bg-ink/80 transition-colors"
+                  >
+                    Marcar como pagada
+                  </button>
+                )}
               </div>
-              {o.estado === "PendientePago" && (
-                <button
-                  onClick={() => handleMarcarPagada(o.id)}
-                  className="text-sm bg-ink text-paper rounded px-3 py-1 whitespace-nowrap hover:bg-ink/80 transition-colors"
-                >
-                  Marcar como pagada
-                </button>
+
+              {/* Modelo de retención (23/09): estado del pago retenido/liberado/reembolsado, cuánto
+                  le corresponde al prestador, y las dos acciones manuales de Admin que antes no
+                  tenían pantalla — reembolsar y marcar transferido. */}
+              {o.pagoEstado && (
+                <div className="border-t border-ink/10 pt-2 flex justify-between items-center gap-2 flex-wrap">
+                  <div className="text-xs text-ink/60">
+                    <p>
+                      Pago: <span className="font-mono uppercase">{o.pagoEstado}</span>
+                      {o.pagoEstado !== "Reembolsado" && (
+                        <> · A transferir al prestador: <span className="font-mono">${o.montoATransferirPrestador?.toLocaleString("es-AR")}</span></>
+                      )}
+                    </p>
+                    {o.transferenciaPrestadorConfirmadaEn && (
+                      <p className="text-stamp">
+                        Transferido el {new Date(o.transferenciaPrestadorConfirmadaEn).toLocaleString("es-AR")}
+                      </p>
+                    )}
+                    {o.motivoReembolso && <p>Motivo del reembolso: {o.motivoReembolso}</p>}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {o.pagoEstado === "Retenido" && (
+                      <button
+                        onClick={() => handleReembolsarOrden(o.id)}
+                        disabled={procesandoOrdenId === o.id}
+                        className="text-xs border border-red-700/40 text-red-700 dark:text-red-400 rounded px-2 py-1 hover:bg-red-700/10 transition-colors disabled:opacity-50"
+                      >
+                        Reembolsar
+                      </button>
+                    )}
+                    {o.pagoEstado === "Liberado" && !o.transferenciaPrestadorConfirmadaEn && (
+                      <button
+                        onClick={() => handleMarcarTransferidoPrestador(o.id)}
+                        disabled={procesandoOrdenId === o.id}
+                        className="text-xs bg-stamp text-paper rounded px-2 py-1 hover:opacity-90 transition-colors disabled:opacity-50"
+                      >
+                        Marcar transferido
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
             </li>
           ))}
@@ -382,12 +506,6 @@ export default function AdminPage() {
                 >
                   Ver antecedentes
                 </button>
-                <button
-                  onClick={() => handleVerDocumento(v.usuarioId, "matricula")}
-                  className="text-xs text-copper hover:underline border border-copper/30 rounded px-2 py-1"
-                >
-                  Ver matrícula
-                </button>
               </div>
 
               {v.estado === "Pendiente" && (
@@ -409,6 +527,74 @@ export default function AdminPage() {
                   <button
                     onClick={() => handleRevisarVerificacion(v.usuarioId, false)}
                     disabled={procesandoVerif === v.usuarioId}
+                    className="text-sm border border-red-700/40 dark:border-red-400/40 text-red-700 dark:text-red-400 rounded px-3 py-1.5 hover:bg-red-700/5 dark:hover:bg-red-400/5 transition-colors disabled:opacity-40"
+                  >
+                    Rechazar
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {seccion === "matriculas" && (
+        <ul className="flex flex-col gap-3">
+          {matriculas.length === 0 && (
+            <p className="text-ink/50 text-sm">No hay matrículas enviadas todavía.</p>
+          )}
+          {matriculas.map((m) => (
+            <li key={m.prestadorCategoriaId} className="bg-surface border border-ink/10 rounded-lg p-4">
+              <div className="flex justify-between items-start gap-2 mb-3">
+                <div>
+                  <p className="font-medium text-ink">
+                    {m.nombreCompleto} <span className="text-ink/50 font-normal">· {m.categoriaNombre}</span>
+                  </p>
+                  <p className="text-xs text-ink/50">{m.email}</p>
+                </div>
+                <span
+                  className={`text-xs font-mono uppercase rounded-full px-2 py-0.5 shrink-0 ${
+                    m.estado === "Pendiente"
+                      ? "bg-safety/20 text-ink"
+                      : m.estado === "Aprobado"
+                      ? "bg-stamp/15 text-stamp"
+                      : "bg-red-700/10 dark:bg-red-400/10 text-red-700 dark:text-red-400"
+                  }`}
+                >
+                  {m.estado}
+                </span>
+              </div>
+
+              <div className="flex gap-2 mb-3 flex-wrap">
+                <button
+                  onClick={() => handleVerDocumentoMatricula(m.prestadorCategoriaId)}
+                  className="text-xs text-copper hover:underline border border-copper/30 rounded px-2 py-1"
+                >
+                  Ver matrícula
+                </button>
+              </div>
+
+              {m.estado === "Pendiente" && (
+                <div className="flex gap-2 items-center flex-wrap pt-3 border-t border-ink/10">
+                  <input
+                    type="text"
+                    placeholder="Motivo si vas a rechazar"
+                    className="border border-ink/20 rounded p-1.5 text-sm flex-1 min-w-[180px] bg-paper"
+                    value={motivosMatricula[m.prestadorCategoriaId] ?? ""}
+                    onChange={(e) =>
+                      setMotivosMatricula((prev) => ({ ...prev, [m.prestadorCategoriaId]: e.target.value }))
+                    }
+                  />
+                  <button
+                    onClick={() => handleRevisarMatricula(m.prestadorCategoriaId, true)}
+                    disabled={procesandoMatricula === m.prestadorCategoriaId}
+                    className="text-sm bg-stamp text-paper rounded px-3 py-1.5 hover:brightness-95 transition-all disabled:opacity-40"
+                  >
+                    Aprobar
+                  </button>
+                  <button
+                    onClick={() => handleRevisarMatricula(m.prestadorCategoriaId, false)}
+                    disabled={procesandoMatricula === m.prestadorCategoriaId}
                     className="text-sm border border-red-700/40 dark:border-red-400/40 text-red-700 dark:text-red-400 rounded px-3 py-1.5 hover:bg-red-700/5 dark:hover:bg-red-400/5 transition-colors disabled:opacity-40"
                   >
                     Rechazar

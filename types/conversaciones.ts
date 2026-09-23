@@ -8,6 +8,7 @@ export interface Conversacion {
   clienteFotoUrl: string | null;
   categoriaId: number;
   categoriaNombre: string;
+  categoriaIcono: string | null;
   ultimoMensaje: string | null;
   ultimoMensajeEn: string | null;
   mensajesNoLeidos: number;

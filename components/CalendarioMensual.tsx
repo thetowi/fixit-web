@@ -33,10 +33,14 @@ export default function CalendarioMensual({
   mesBase,
   ordenes,
   onSeleccionarDia,
+  onReprogramar,
 }: {
   mesBase: Date;
   ordenes: OrdenAgenda[];
   onSeleccionarDia?: (dia: Date) => void;
+  // Reprogramar un turno ya agendado (22/09, a pedido del usuario) — mismo callback que
+  // CalendarioSemanal, el padre se encarga de pedir confirmación antes de abrir el formulario.
+  onReprogramar?: (orden: OrdenAgenda) => void;
 }) {
   const hoy = new Date();
   const anio = mesBase.getFullYear();
@@ -198,6 +202,17 @@ export default function CalendarioMensual({
                       </p>
                     )}
                     {orden.clienteTelefono && <p className="text-xs text-ink/40 mt-0.5">{orden.clienteTelefono}</p>}
+                    {onReprogramar && (
+                      <button
+                        onClick={() => {
+                          setDiaDetalle(null);
+                          onReprogramar(orden);
+                        }}
+                        className="mt-1.5 text-xs text-copper hover:underline"
+                      >
+                        Reprogramar
+                      </button>
+                    )}
                   </div>
                 );
               })}

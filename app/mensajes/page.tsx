@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { Conversacion } from "@/types/conversaciones";
+import { colorCategoria } from "@/lib/coloresCategoria";
+import IconoLucide from "@/components/IconoLucide";
 
 function iniciales(nombre: string): string {
   return nombre
@@ -79,6 +81,10 @@ export default function MensajesPage() {
             const otroNombre = esCliente ? c.prestadorNombreCompleto : c.clienteNombreCompleto;
             const otroFoto = esCliente ? c.prestadorFotoUrl : c.clienteFotoUrl;
             const tieneNoLeidos = c.mensajesNoLeidos > 0;
+            // Un mismo prestador puede tener una conversación separada por cada rubro (22/09) —
+            // el badge sobre la foto + la etiqueta de color debajo del nombre son lo que permite
+            // distinguir de un vistazo cuál es cuál en la lista.
+            const colorRubro = colorCategoria(c.categoriaNombre);
 
             return (
               <li key={c.id}>
@@ -86,14 +92,23 @@ export default function MensajesPage() {
                   onClick={() => router.push(`/conversaciones/${c.id}`)}
                   className="w-full flex items-center gap-3 bg-surface border border-ink/10 rounded-lg p-3 text-left hover:border-ink/25 transition-colors"
                 >
-                  {otroFoto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={otroFoto} alt="" className="w-11 h-11 rounded-full object-cover shrink-0" />
-                  ) : (
-                    <div className="w-11 h-11 rounded-full bg-ink/10 flex items-center justify-center font-display text-sm text-ink shrink-0">
-                      {iniciales(otroNombre)}
+                  <div className="relative w-11 h-11 shrink-0">
+                    {otroFoto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={otroFoto} alt="" className="w-11 h-11 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-11 h-11 rounded-full bg-ink/10 flex items-center justify-center font-display text-sm text-ink">
+                        {iniciales(otroNombre)}
+                      </div>
+                    )}
+                    <div
+                      className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center border-2 border-surface"
+                      style={{ background: colorRubro }}
+                      title={c.categoriaNombre}
+                    >
+                      <IconoLucide nombre={c.categoriaIcono} size={11} strokeWidth={2.5} className="text-paper" />
                     </div>
-                  )}
+                  </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
@@ -106,6 +121,9 @@ export default function MensajesPage() {
                         </span>
                       )}
                     </div>
+                    <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: colorRubro }}>
+                      {c.categoriaNombre}
+                    </p>
                     <div className="flex items-center justify-between gap-2 mt-0.5">
                       <p className={`text-xs truncate ${tieneNoLeidos ? "text-ink/80" : "text-ink/50"}`}>
                         {c.ultimoMensaje ?? `${c.categoriaNombre} · sin mensajes todavía`}

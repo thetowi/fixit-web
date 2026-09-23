@@ -36,11 +36,15 @@ export default function CalendarioSemanal({
   bloques,
   ordenes,
   onCeldaDisponibleClick,
+  onReprogramar,
 }: {
   inicioSemana: Date;
   bloques: BloqueDisponibilidad[];
   ordenes: OrdenAgenda[];
   onCeldaDisponibleClick?: (dia: Date, horaHHMM: string) => void;
+  // Reprogramar un turno ya agendado (22/09, a pedido del usuario) — el padre es quien pide
+  // confirmación antes de abrir el formulario de "Programar" pre-cargado con la fecha/hora actual.
+  onReprogramar?: (orden: OrdenAgenda) => void;
 }) {
   const hoy = new Date();
   // Turno tocado para ver el detalle completo (nombre, dirección, teléfono, rubro, título del
@@ -477,6 +481,19 @@ export default function CalendarioSemanal({
                 </div>
               )}
             </dl>
+
+            {onReprogramar && (
+              <button
+                onClick={() => {
+                  const orden = ordenSeleccionada;
+                  setOrdenSeleccionada(null);
+                  onReprogramar(orden);
+                }}
+                className="mt-4 w-full text-center text-sm text-copper hover:underline"
+              >
+                Reprogramar este turno
+              </button>
+            )}
           </div>
         </div>
       )}

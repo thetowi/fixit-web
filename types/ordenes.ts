@@ -18,4 +18,11 @@ export interface Orden {
   creadoEn: string;
   yaCalificada: boolean;
   conversacionId: string;
+
+  // Modelo de retención (23/09, ver backend OrdenResponse.cs) — el backend ya los mandaba,
+  // faltaba que el frontend los tipara para poder mostrarlos/usarlos en el panel de Admin.
+  pagoEstado?: string | null;
+  montoATransferirPrestador?: number;
+  transferenciaPrestadorConfirmadaEn?: string | null;
+  motivoReembolso?: string | null;
 }
