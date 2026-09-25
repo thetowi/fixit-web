@@ -2,277 +2,445 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiFetch, ApiError } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import {
+  Search,
+  MessageCircle,
+  ShieldCheck,
+  Wrench,
+  BadgeCheck,
+  CircleDollarSign,
+  HardHat,
+  Trophy,
+  Eye,
+} from "lucide-react";
+import { apiFetch } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
-import { obtenerUbicacionActual } from "@/lib/geolocation";
-import { Usuario } from "@/types/auth";
-import { PrestadorDestacado } from "@/types/destacados";
-import { OrdenAgenda, formatoDuracion } from "@/types/agenda";
-import { ESTADO_LABELS } from "@/components/OrdenTicket";
+import { Categoria } from "@/types/categorias";
+import { TrabajoDestacado, EstadisticasPublicas } from "@/types/publico";
+import IconoLucide from "@/components/IconoLucide";
 import Estrellas from "@/components/Estrellas";
-import InsigniaVerificado from "@/components/InsigniaVerificado";
+import LandingFooter from "@/components/LandingFooter";
+import FaqAcordeon, { PreguntaFrecuente } from "@/components/FaqAcordeon";
+import TrabajoEnCursoPreview from "@/components/TrabajoEnCursoPreview";
+import ContadorAnimado from "@/components/ContadorAnimado";
+import ChatEnVivoPreview from "@/components/ChatEnVivoPreview";
 
-function fechaHoyEsIgual(a: Date, b: Date): boolean {
-  return a.toDateString() === b.toDateString();
-}
+const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
+  {
+    pregunta: "¿Cómo funciona el pago? ¿Es seguro?",
+    respuesta:
+      "Vos pagás desde la app con Mercado Pago y esa plata queda retenida en Oficy, no en la cuenta del prestador. Recién se libera cuando marcás el trabajo como completado, así que nunca pagás por un trabajo que no se hizo.",
+  },
+  {
+    pregunta: "¿Qué pasa si el prestador no se presenta?",
+    respuesta:
+      "Si programaste un turno y el prestador no lo inicia dentro de la hora, te reembolsamos el 100% de forma automática, sin que tengas que reclamar nada.",
+  },
+  {
+    pregunta: "¿Cómo verifican a los prestadores?",
+    respuesta:
+      "Cada prestador tiene que subir su DNI y sus antecedentes penales, revisados por un administrador antes de poder ofrecer servicios. Los que tienen la insignia de verificado ya pasaron ese control.",
+  },
+  {
+    pregunta: "¿Cuánto cuesta usar Oficy como cliente?",
+    respuesta:
+      "Nada. Buscar, chatear y coordinar con un prestador es gratis. Solo pagás el trabajo que contratás, al precio que acuerdes con el profesional.",
+  },
+  {
+    pregunta: "¿Y si soy prestador, cuánto me cobran de comisión?",
+    respuesta:
+      "Tus primeros 10 trabajos cobrados no tienen ninguna comisión de Oficy. Después de eso, se descuenta una comisión chica sobre cada trabajo, siempre transparente antes de aceptar.",
+  },
+  {
+    pregunta: "¿Puedo coordinar todo por chat antes de contratar?",
+    respuesta:
+      "Sí. Podés escribirle directo al prestador, mandar fotos del problema y acordar precio y horario antes de pagar nada.",
+  },
+];
 
-export default function Home() {
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [destacados, setDestacados] = useState<PrestadorDestacado[]>([]);
-  const [cargandoDestacados, setCargandoDestacados] = useState(true);
+// Landing publicitaria (24/09, ampliada 25/09 con estadísticas reales, FAQ, footer propio e
+// insignias de confianza — a pedido del usuario: "que se vea más lindo... más como tegu.ar").
+// Esto es "/" — 100% vidriera pública, sin datos de sesión de nadie. El dashboard operativo de
+// antes se movió a "/app" (ver ese archivo) y acá abajo, si alguien YA tiene sesión iniciada, lo
+// mandamos directo para allá.
+export default function LandingPage() {
+  const router = useRouter();
+  const [listo, setListo] = useState(false);
 
-  const [trabajosHoy, setTrabajosHoy] = useState<OrdenAgenda[]>([]);
-  const [trabajosSemana, setTrabajosSemana] = useState<OrdenAgenda[]>([]);
-  const [cargandoTrabajos, setCargandoTrabajos] = useState(true);
-  const [errorTrabajos, setErrorTrabajos] = useState<string | null>(null);
-  const [iniciandoId, setIniciandoId] = useState<string | null>(null);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [trabajos, setTrabajos] = useState<TrabajoDestacado[]>([]);
+  const [estadisticas, setEstadisticas] = useState<EstadisticasPublicas | null>(null);
 
   useEffect(() => {
-    setUsuario(obtenerUsuario());
+    if (obtenerUsuario()) {
+      router.replace("/app");
+      return;
+    }
+    setListo(true);
+  }, [router]);
+
+  useEffect(() => {
+    apiFetch<Categoria[]>("/api/Categorias").then(setCategorias).catch(() => {});
+    apiFetch<TrabajoDestacado[]>("/api/publico/trabajos-destacados").then(setTrabajos).catch(() => {});
+    apiFetch<EstadisticasPublicas>("/api/publico/estadisticas").then(setEstadisticas).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (usuario?.rol !== "Prestador") return;
-    cargarTrabajos();
-  }, [usuario]);
-
-  async function cargarTrabajos() {
-    setCargandoTrabajos(true);
-    try {
-      const hoy = new Date();
-      const inicioHoy = new Date(hoy);
-      inicioHoy.setHours(0, 0, 0, 0);
-
-      // Fin de la semana actual (domingo a sábado, mismo criterio que /prestador/agenda)
-      const finSemana = new Date(inicioHoy);
-      finSemana.setDate(finSemana.getDate() + (6 - hoy.getDay()));
-      finSemana.setHours(23, 59, 59, 999);
-
-      const data = await apiFetch<OrdenAgenda[]>(
-        `/api/prestador/agenda?desde=${inicioHoy.toISOString()}&hasta=${finSemana.toISOString()}`
-      );
-
-      const deHoy = data.filter((o) => o.fechaHoraProgramada && fechaHoyEsIgual(new Date(o.fechaHoraProgramada), hoy));
-      const deLaSemana = data.filter(
-        (o) => o.fechaHoraProgramada && !fechaHoyEsIgual(new Date(o.fechaHoraProgramada), hoy)
-      );
-
-      setTrabajosHoy(deHoy);
-      setTrabajosSemana(deLaSemana);
-    } catch (err) {
-      setErrorTrabajos(err instanceof ApiError ? err.message : "No pudimos cargar tus trabajos programados.");
-    } finally {
-      setCargandoTrabajos(false);
-    }
-  }
-
-  async function iniciarTrabajo(id: string) {
-    setIniciandoId(id);
-    setErrorTrabajos(null);
-    try {
-      await apiFetch(`/api/ordenes/${id}/iniciar`, { method: "PUT" });
-      await cargarTrabajos();
-    } catch (err) {
-      setErrorTrabajos(err instanceof ApiError ? err.message : "No pudimos iniciar el trabajo.");
-    } finally {
-      setIniciandoId(null);
-    }
-  }
-
-  useEffect(() => {
-    async function cargarDestacados() {
-      let params = "";
-      try {
-        const coords = await obtenerUbicacionActual();
-        params = `?latitud=${coords.latitud}&longitud=${coords.longitud}`;
-      } catch {
-        // Sin ubicación no pasa nada: el backend devuelve destacados sin filtrar por distancia
-      }
-
-      try {
-        const data = await apiFetch<PrestadorDestacado[]>(`/api/prestadores/destacados${params}`);
-        setDestacados(data);
-      } catch {
-        // Si falla, simplemente no mostramos la sección de destacados
-      } finally {
-        setCargandoDestacados(false);
-      }
-    }
-
-    cargarDestacados();
-  }, []);
+  // Mientras se confirma que no hay sesión, no mostramos nada (evita el parpadeo de ver la landing
+  // medio segundo antes de saltar a /app si la persona ya estaba logueada).
+  if (!listo) return null;
 
   return (
-    <div className="flex-1 flex flex-col items-center px-6">
-      <div className="flex flex-col items-center text-center pt-20 pb-14">
-        <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">
-          Plomería · Electricidad · Gas · Jardinería
-        </p>
-        <h1 className="font-display text-4xl sm:text-5xl text-ink tracking-tight mb-4 max-w-xl">
-          El oficio que necesitás, a la vuelta de la esquina
-        </h1>
-        <p className="text-ink/70 mb-10 max-w-md">
-          Buscá por categoría y ubicación, chateá con el prestador y pagá con confianza.
-        </p>
+    <div className="flex-1 flex flex-col items-center">
+      {/* Hero */}
+      <div className="w-full px-6 pt-20 pb-16">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
+            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">
+              Plomería · Electricidad · Gas · Jardinería · y más
+            </p>
+            <h1 className="font-display text-4xl sm:text-5xl text-ink tracking-tight mb-4 max-w-xl">
+              El oficio que necesitás, a la vuelta de la esquina
+            </h1>
+            <p className="text-ink/70 mb-8 max-w-lg">
+              Contanos qué necesitás arreglar, elegí un profesional verificado cerca tuyo y pagá con
+              confianza desde la app. Sin llamadas eternas ni presupuestos a ciegas.
+            </p>
 
-        {!usuario && (
-          <div className="flex gap-3">
-            <Link href="/registro" className="bg-copper text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors">
-              Crear cuenta
-            </Link>
-            <Link href="/login" className="border border-ink/20 text-ink rounded px-5 py-2.5 font-medium hover:border-ink/40 transition-colors">
-              Iniciar sesión
-            </Link>
-          </div>
-        )}
-
-        {usuario?.rol === "Cliente" && (
-          <Link href="/buscar" className="bg-copper text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors">
-            Buscar un servicio
-          </Link>
-        )}
-
-        {usuario?.rol === "Prestador" && (
-          <Link href="/prestador/servicios" className="bg-copper text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors">
-            Gestionar mis servicios
-          </Link>
-        )}
-      </div>
-
-      {usuario?.rol === "Prestador" && (
-        <div className="w-full max-w-2xl pb-14 flex flex-col gap-6">
-          {errorTrabajos && <p className="text-red-700 dark:text-red-400 text-sm text-center">{errorTrabajos}</p>}
-
-          <div className="bg-surface border border-ink/10 rounded-lg p-5">
-            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Hoy</p>
-            {cargandoTrabajos ? (
-              <p className="text-sm text-ink/40">Cargando...</p>
-            ) : trabajosHoy.length === 0 ? (
-              <p className="text-sm text-ink/50">No tenés trabajos programados para hoy.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {trabajosHoy.map((o) => (
-                  <li
-                    key={o.id}
-                    className="flex items-center justify-between gap-3 bg-paper rounded p-3 flex-wrap"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-mono text-xs text-ink/45">
-                        {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
-                      </p>
-                      <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
-                      <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
-                    </div>
-                    {o.estado === "Pagado" ? (
-                      <button
-                        onClick={() => iniciarTrabajo(o.id)}
-                        disabled={iniciandoId === o.id}
-                        className="bg-safety text-ink rounded px-3 py-1.5 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 whitespace-nowrap"
-                      >
-                        {iniciandoId === o.id ? "Iniciando..." : "Iniciar trabajo"}
-                      </button>
-                    ) : (
-                      <span className="text-xs font-mono uppercase text-stamp border border-stamp rounded px-2 py-1 whitespace-nowrap">
-                        {ESTADO_LABELS[o.estado] ?? o.estado}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="bg-surface border border-ink/10 rounded-lg p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-mono text-xs tracking-widest text-copper uppercase">Esta semana</p>
-              <Link href="/prestador/agenda" className="text-xs text-copper hover:underline whitespace-nowrap">
-                Ver agenda completa →
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
+              <Link
+                href="/registro"
+                className="bg-copper text-paper rounded px-6 py-3 font-medium hover:bg-copper-dark transition-colors"
+              >
+                Crear cuenta gratis
+              </Link>
+              <Link
+                href="/explorar"
+                className="border border-ink/20 text-ink rounded px-6 py-3 font-medium hover:border-ink/40 transition-colors"
+              >
+                Ver rubros disponibles
               </Link>
             </div>
-            {cargandoTrabajos ? (
-              <p className="text-sm text-ink/40">Cargando...</p>
-            ) : trabajosSemana.length === 0 ? (
-              <p className="text-sm text-ink/50">No tenés más trabajos programados esta semana.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {trabajosSemana.map((o) => (
-                  <li key={o.id} className="flex items-center justify-between gap-3 bg-paper rounded p-3">
-                    <div className="min-w-0">
-                      <p className="font-mono text-xs text-ink/45">
-                        {new Date(o.fechaHoraProgramada!).toLocaleDateString("es-AR", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                        })}{" "}
-                        ·{" "}
-                        {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
-                      </p>
-                      <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
-                      <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <p className="text-xs text-ink/45 mt-4">
+              ¿Ya tenés cuenta? <Link href="/login" className="text-copper hover:underline">Iniciá sesión</Link>
+            </p>
+
+            {/* Insignias de confianza (25/09) */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 mt-9 pt-6 border-t border-ink/10 w-full">
+              {[
+                { Icono: ShieldCheck, texto: "Pago protegido" },
+                { Icono: BadgeCheck, texto: "Prestadores verificados" },
+                { Icono: MessageCircle, texto: "Chat directo" },
+                { Icono: CircleDollarSign, texto: "Buscar es gratis" },
+              ].map(({ Icono, texto }) => (
+                <div key={texto} className="flex items-center gap-2 text-ink/55">
+                  <Icono size={16} strokeWidth={1.9} className="text-copper shrink-0" />
+                  <span className="text-xs font-medium">{texto}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mockup visual del hero (25/09, animado 25/09 a pedido del usuario: "que se vayan
+              mandando mensajes... como medio en vivo" — ver ChatEnVivoPreview.tsx). En vez de
+              dejar el hero solo con texto, una tarjeta tipo "chat" que muestra en concreto cómo
+              se ve pedir un servicio — no tenemos fotos reales de trabajos para mostrar, así que
+              optamos por algo fiel a la app en vez de una imagen de stock genérica. */}
+          <div className="w-full max-w-sm mx-auto lg:mx-0">
+            <ChatEnVivoPreview />
+          </div>
+        </div>
+
+        {/* Tagline de origen (25/09, a pedido del usuario: destacar que Oficy es de Paraná) —
+            grande, debajo del grid del hero (texto + mockup), pero todavía dentro de la sección
+            del hero, antes de la barra de estadísticas. "Paraná" resaltado en cobre a propósito. */}
+        <p className="text-center font-display text-2xl sm:text-3xl text-ink tracking-tight mt-14">
+          Desde <span className="text-copper">Paraná</span>, hacia toda Argentina
+        </p>
+      </div>
+
+      {/* Barra de estadísticas reales (25/09, animada 25/09 a pedido del usuario: "que vaya de 0
+          hasta donde llegue el numero" apenas la sección entra en pantalla — ver ContadorAnimado). */}
+      {estadisticas && (
+        <div className="w-full bg-ink px-6 py-8">
+          <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4 text-center">
+            <div>
+              <ContadorAnimado
+                valor={estadisticas.trabajosCompletados}
+                className="font-display text-3xl sm:text-4xl text-safety"
+              />
+              <p className="text-xs sm:text-sm text-paper/60 mt-1">Trabajos completados</p>
+            </div>
+            <div>
+              <ContadorAnimado
+                valor={estadisticas.prestadoresVerificados}
+                className="font-display text-3xl sm:text-4xl text-safety"
+              />
+              <p className="text-xs sm:text-sm text-paper/60 mt-1">Prestadores verificados</p>
+            </div>
+            <div>
+              <ContadorAnimado
+                valor={estadisticas.rubrosDisponibles}
+                className="font-display text-3xl sm:text-4xl text-safety"
+              />
+              <p className="text-xs sm:text-sm text-paper/60 mt-1">Rubros disponibles</p>
+            </div>
           </div>
         </div>
       )}
 
-      {usuario?.rol !== "Prestador" && !cargandoDestacados && destacados.length > 0 && (
-        <div className="w-full max-w-4xl pb-20">
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-4 text-center">
-            Los mejor calificados
+      {/* Cómo funciona */}
+      <div className="w-full bg-surface border-b border-ink/10 py-16 px-6">
+        <div className="max-w-4xl mx-auto">
+          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
+            Cómo funciona
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {destacados.map((p) => (
-              <Link
-                key={p.id}
-                href={`/prestador/${p.id}`}
-                className="bg-surface border border-ink/10 rounded-lg p-4 hover:border-copper transition-colors"
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center text-copper">
+                <Search size={22} strokeWidth={1.8} />
+              </div>
+              <p className="font-medium text-ink">1. Contanos qué necesitás</p>
+              <p className="text-sm text-ink/60">
+                Elegí el rubro y buscá prestadores verificados cerca de tu domicilio.
+              </p>
+            </div>
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center text-copper">
+                <MessageCircle size={22} strokeWidth={1.8} />
+              </div>
+              <p className="font-medium text-ink">2. Chateá y coordiná</p>
+              <p className="text-sm text-ink/60">
+                Hablá directo con el profesional, acordá el trabajo y agendá un turno.
+              </p>
+            </div>
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center text-copper">
+                <ShieldCheck size={22} strokeWidth={1.8} />
+              </div>
+              <p className="font-medium text-ink">3. Pagá con confianza</p>
+              <p className="text-sm text-ink/60">
+                El pago queda retenido hasta que confirmás que el trabajo se completó.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Trabajo en curso en vivo (25/09, a pedido del usuario: "que se vea como lo visualizaría
+          un usuario") — muestra la pantalla real que ve el cliente mientras el prestador está
+          trabajando en su domicilio, para que alguien nuevo entienda de entrada qué se siente
+          usar Oficy, no solo que lo lea en texto. */}
+      <div className="w-full px-6 py-16">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+          <div className="flex flex-col items-center md:items-start text-center md:text-left order-2 md:order-1">
+            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">
+              Mientras el trabajo pasa
+            </p>
+            <h2 className="font-display text-2xl sm:text-3xl text-ink tracking-tight mb-4 max-w-sm">
+              Mirá en vivo cómo avanza el trabajo en tu domicilio
+            </h2>
+            <p className="text-ink/70 max-w-sm">
+              Apenas el prestador llega y arranca, la app te muestra un timer en vivo con el
+              tiempo transcurrido — así sabés que está trabajando, sin tener que llamarlo ni
+              preguntarle cómo va.
+            </p>
+          </div>
+          <div className="order-1 md:order-2">
+            <TrabajoEnCursoPreview />
+          </div>
+        </div>
+      </div>
+
+      {/* Rubros disponibles (25/09: son solo de referencia visual, a pedido del usuario — no
+          navegan a /explorar/{id} como antes, porque desde la landing pública no queremos mandar
+          directo a buscar prestadores de ese rubro puntual). Animación "wipe" cobre elegida entre
+          varias opciones de mockup: en reposo la tarjeta está tranquila, y al pasar el mouse el
+          cobre entra como una cortina desde la izquierda (por eso el overflow-hidden + el div
+          absoluto escalado en X), mientras ícono y texto quedan por encima con z-10. */}
+      {categorias.length > 0 && (
+        <div className="w-full max-w-4xl px-6 py-16">
+          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
+            Rubros disponibles
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {categorias.map((c) => (
+              <div
+                key={c.id}
+                className="group relative overflow-hidden bg-surface border border-ink/10 rounded-lg p-5 flex flex-col items-center gap-2 cursor-default transition-colors hover:border-copper"
               >
-                <div className="flex items-center gap-3 mb-2">
-                  {p.fotoPerfilUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.fotoPerfilUrl} alt={p.nombre} className="w-11 h-11 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-11 h-11 rounded-full bg-ink/10 flex items-center justify-center font-display text-xs text-ink shrink-0">
-                      {p.nombre[0]}{p.apellido[0]}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="font-medium text-ink truncate">
-                      {p.nombre} {p.apellido}
-                      {p.verificado && <InsigniaVerificado size={14} className="ml-1" />}
-                    </p>
-                    <p className="text-xs text-ink/50 truncate">{p.categorias.join(" · ")}</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  {p.cantidadCalificaciones > 0 ? (
-                    <div className="flex items-center gap-1">
-                      <Estrellas valor={p.promedioCalificacion!} tamaño="text-xs" />
-                      <span className="text-xs text-ink/50">({p.cantidadCalificaciones})</span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-ink/40">Sin reseñas todavía</span>
-                  )}
-                  {p.distanciaKm != null && (
-                    <span className="font-mono text-xs text-copper">{p.distanciaKm.toFixed(1)} km</span>
-                  )}
-                </div>
-              </Link>
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-copper origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-[cubic-bezier(.65,0,.35,1)]"
+                />
+                <IconoLucide
+                  nombre={c.icono}
+                  size={26}
+                  strokeWidth={1.75}
+                  className="relative z-10 text-copper transition-transform duration-300 group-hover:scale-110 group-hover:text-paper"
+                />
+                <span className="relative z-10 font-medium text-ink text-sm text-center transition-colors duration-300 group-hover:text-paper">
+                  {c.nombre}
+                </span>
+              </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Trabajos reales (24/09, al estilo "Trabajos hechos en Tegu") */}
+      {trabajos.length > 0 && (
+        <div className="w-full bg-surface border-y border-ink/10 px-6 py-16">
+          <div className="max-w-5xl mx-auto">
+            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
+              Trabajos hechos en Oficy
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {trabajos.map((t, i) => (
+                <div key={i} className="bg-paper border border-ink/10 rounded-lg p-5 flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-9 h-9 rounded-lg bg-copper/10 flex items-center justify-center text-copper shrink-0">
+                      <IconoLucide nombre={t.categoriaIcono} size={18} strokeWidth={1.8} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink text-sm truncate">{t.categoriaNombre}</p>
+                      <p className="text-xs text-ink/50 truncate">{t.descripcion}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-ink/75 leading-snug">&ldquo;{t.comentario}&rdquo;</p>
+                  <div className="flex items-center justify-between mt-auto pt-1">
+                    <span className="text-xs text-ink/50">{t.prestadorNombre}</span>
+                    <Estrellas valor={t.promedio} tamaño="text-xs" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sección prestadores */}
+      <div className="w-full px-6 py-16">
+        <div className="max-w-3xl mx-auto bg-ink text-paper rounded-2xl p-10 flex flex-col items-center text-center gap-4">
+          <span className="w-12 h-12 rounded-full bg-paper/10 flex items-center justify-center">
+            <Wrench size={22} strokeWidth={1.8} />
+          </span>
+          <h2 className="font-display text-2xl">¿Sos un profesional del oficio?</h2>
+          <p className="text-paper/70 max-w-md">
+            Sumate como prestador, recibí pedidos de clientes cerca tuyo y cobrá tus primeros 10
+            trabajos sin comisión de Oficy.
+          </p>
+          <Link
+            href="/registro?rol=prestador"
+            className="bg-safety text-ink rounded px-6 py-3 font-medium hover:brightness-95 transition mt-2"
+          >
+            Quiero ofrecer mis servicios
+          </Link>
+        </div>
+      </div>
+
+      {/* Visión de Oficy (25/09, a pedido del usuario: mostrar hacia dónde va la plataforma —
+          seguros, garantías, premios y transparencia. Ojo: todo en tiempo futuro ("va a", "vas a")
+          a propósito, porque son mejoras en camino, no algo activo hoy — no queremos que se lea
+          como una promesa vigente que todavía no podemos cumplir. */}
+      <div className="w-full bg-ink text-paper px-6 py-16">
+        <div className="max-w-4xl mx-auto">
+          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3 text-center">
+            Hacia dónde vamos
+          </p>
+          <h2 className="font-display text-2xl sm:text-3xl tracking-tight mb-4 text-center">
+            La visión de Oficy
+          </h2>
+          <p className="text-paper/70 max-w-lg mx-auto text-center mb-10">
+            Esto recién empieza. Así seguimos construyendo una plataforma en la que prestadores y
+            clientes puedan confiar de verdad:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <div className="flex gap-4">
+              <span className="w-11 h-11 rounded-full bg-paper/10 flex items-center justify-center shrink-0">
+                <HardHat size={20} strokeWidth={1.8} className="text-safety" />
+              </span>
+              <div>
+                <p className="font-medium mb-1">Seguros</p>
+                <p className="text-sm text-paper/65">
+                  Todos los prestadores van a estar cubiertos por un seguro de trabajo estilo ART
+                  mientras estén haciendo un servicio, para que trabajen tranquilos y vos también.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <span className="w-11 h-11 rounded-full bg-paper/10 flex items-center justify-center shrink-0">
+                <ShieldCheck size={20} strokeWidth={1.8} className="text-safety" />
+              </span>
+              <div>
+                <p className="font-medium mb-1">Garantías</p>
+                <p className="text-sm text-paper/65">
+                  Si el arreglo no resolvió tu problema como esperabas, vas a contar con una
+                  garantía sobre el trabajo realizado, sin vueltas.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <span className="w-11 h-11 rounded-full bg-paper/10 flex items-center justify-center shrink-0">
+                <Trophy size={20} strokeWidth={1.8} className="text-safety" />
+              </span>
+              <div>
+                <p className="font-medium mb-1">Premios y objetivos</p>
+                <p className="text-sm text-paper/65">
+                  Al llegar a 50 trabajos completados en tu rubro vas a recibir un kit de
+                  indumentaria de trabajo (borceguíes, pantalón y camisa) — el primero de varios
+                  premios por cumplir objetivos.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <span className="w-11 h-11 rounded-full bg-paper/10 flex items-center justify-center shrink-0">
+                <Eye size={20} strokeWidth={1.8} className="text-safety" />
+              </span>
+              <div>
+                <p className="font-medium mb-1">Transparencia</p>
+                <p className="text-sm text-paper/65">
+                  Clientes y prestadores van a poder ver todo el proceso en todo momento: Oficy
+                  funciona como mediador de confianza entre las partes, para que el prestador
+                  trabaje seguro y con la indumentaria correcta, y vos valores su trabajo sabiendo
+                  que estás cubierto ante cualquier imprevisto.
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-paper/40 text-center mt-10">
+            Estas mejoras están en camino y se van a ir sumando a la plataforma.
+          </p>
+        </div>
+      </div>
+
+      {/* Preguntas frecuentes (25/09) */}
+      <div className="w-full bg-surface border-y border-ink/10 px-6 py-16">
+        <div className="max-w-2xl mx-auto">
+          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
+            Preguntas frecuentes
+          </p>
+          <FaqAcordeon preguntas={PREGUNTAS_FRECUENTES} />
+        </div>
+      </div>
+
+      {/* CTA final */}
+      <div className="w-full px-6 py-20">
+        <div className="max-w-2xl mx-auto flex flex-col items-center text-center gap-4">
+          <h2 className="font-display text-2xl text-ink">Publicá lo que necesitás</h2>
+          <p className="text-ink/70">Recibí atención de profesionales verificados. Gratis y sin compromiso.</p>
+          <Link
+            href="/registro"
+            className="bg-copper text-paper rounded px-6 py-3 font-medium hover:bg-copper-dark transition-colors"
+          >
+            Crear cuenta gratis
+          </Link>
+        </div>
+      </div>
+
+      {/* Footer publicitario propio de la landing (25/09) — el Footer.tsx global (chico, legal +
+          toggle de tema) se sigue renderizando después de esto vía app/layout.tsx, ese no cambia. */}
+      <LandingFooter categorias={categorias} />
     </div>
   );
 }

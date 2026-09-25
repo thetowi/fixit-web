@@ -547,9 +547,18 @@ export default function ConversacionPage() {
                   </p>
 
                   {m.ofertaPagada ? (
-                    <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-3 flex items-center gap-1.5 font-medium">
-                      <span className="text-emerald-600">✓</span> Esta oferta ya fue pagada
-                    </p>
+                    <>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-3 flex items-center gap-1.5 font-medium">
+                        <span className="text-emerald-600">✓</span> Esta oferta ya fue pagada
+                      </p>
+                      {m.ofertaAgendadaEn && (
+                        <p className="text-xs text-ink/50 mt-1">
+                          Agendada el{" "}
+                          {new Date(m.ofertaAgendadaEn).toLocaleDateString("es-AR", { day: "numeric", month: "short" })} a las{" "}
+                          {new Date(m.ofertaAgendadaEn).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <>
                       {!m.ofertaVigente && (

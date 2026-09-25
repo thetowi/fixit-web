@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Política de Privacidad | FixIt",
+  title: "Política de Privacidad | Oficy",
 };
 
 export default function PrivacidadPage() {
@@ -14,14 +14,14 @@ export default function PrivacidadPage() {
         <section>
           <h2>1. Responsable del tratamiento</h2>
           <p>
-            Esta Política de Privacidad describe cómo FixIt (&quot;FixIt&quot;, &quot;la Plataforma&quot;,
+            Esta Política de Privacidad describe cómo Oficy (&quot;Oficy&quot;, &quot;la Plataforma&quot;,
             &quot;nosotros&quot;), operada por [Razón social / nombre completo del titular], CUIT [completar], con
             domicilio en [completar domicilio legal], República Argentina, recopila, usa, comparte y protege los
-            datos personales de quienes usan la aplicación y el sitio web de FixIt como Cliente o Prestador
+            datos personales de quienes usan la aplicación y el sitio web de Oficy como Cliente o Prestador
             (&quot;Usuarios&quot;).
           </p>
           <p>
-            Al crear una cuenta o usar FixIt de cualquier forma, aceptás esta Política y nuestros{" "}
+            Al crear una cuenta o usar Oficy de cualquier forma, aceptás esta Política y nuestros{" "}
             <a href="/terminos" className="text-copper hover:underline">Términos y Condiciones</a>.
           </p>
         </section>
@@ -33,7 +33,7 @@ export default function PrivacidadPage() {
             <li><strong className="text-ink">Datos de ubicación:</strong> dirección o zona de cobertura que cargás, y tu ubicación aproximada si nos das permiso para usarla al buscar prestadores cerca tuyo.</li>
             <li><strong className="text-ink">Contenido que subís:</strong> foto de perfil, fotos de trabajos, reseñas y calificaciones.</li>
             <li><strong className="text-ink">Mensajes:</strong> el contenido de las conversaciones del chat entre Cliente y Prestador dentro de la Plataforma.</li>
-            <li><strong className="text-ink">Datos de pago:</strong> FixIt no almacena números de tarjeta ni datos financieros sensibles. Los pagos se procesan a través de Mercado Pago, que maneja esos datos bajo su propia política de privacidad. FixIt sí recibe y guarda información sobre las transacciones (montos, fechas, estado del pago) para llevar el registro de tus órdenes.</li>
+            <li><strong className="text-ink">Datos de pago:</strong> Oficy no almacena números de tarjeta ni datos financieros sensibles. Los pagos se procesan a través de Mercado Pago, que maneja esos datos bajo su propia política de privacidad. Oficy sí recibe y guarda información sobre las transacciones (montos, fechas, estado del pago) para llevar el registro de tus órdenes.</li>
             <li><strong className="text-ink">Datos técnicos y de uso:</strong> información del dispositivo, dirección IP, y datos guardados localmente en tu navegador o app (ver sección 8, Cookies y almacenamiento local).</li>
           </ul>
         </section>
@@ -43,7 +43,7 @@ export default function PrivacidadPage() {
           <ul>
             <li>Crear y administrar tu cuenta, y verificar tu identidad cuando corresponda.</li>
             <li>Conectar Clientes y Prestadores, mostrar resultados de búsqueda relevantes y facilitar la comunicación entre ambos.</li>
-            <li>Procesar pagos, retener y liberar fondos según el estado de cada trabajo, y calcular la comisión de FixIt.</li>
+            <li>Procesar pagos, retener y liberar fondos según el estado de cada trabajo, y calcular la comisión de Oficy.</li>
             <li>Enviarte notificaciones sobre tus órdenes, mensajes y turnos agendados.</li>
             <li>Mejorar la Plataforma, prevenir fraude y hacer cumplir nuestros Términos y Condiciones.</li>
             <li>Cumplir con obligaciones legales o requerimientos de autoridades competentes.</li>
@@ -53,7 +53,7 @@ export default function PrivacidadPage() {
         <section>
           <h2>4. Con quién compartimos tus datos</h2>
           <p>
-            <strong className="text-ink">FixIt no vende tus datos personales a terceros.</strong> Compartimos datos
+            <strong className="text-ink">Oficy no vende tus datos personales a terceros.</strong> Compartimos datos
             únicamente en la medida necesaria para que la Plataforma funcione:
           </p>
           <ul>
@@ -97,7 +97,7 @@ export default function PrivacidadPage() {
         <section>
           <h2>8. Cookies y almacenamiento local</h2>
           <p>
-            FixIt usa almacenamiento local del navegador (por ejemplo, <code>localStorage</code>) para mantener tu
+            Oficy usa almacenamiento local del navegador (por ejemplo, <code>localStorage</code>) para mantener tu
             sesión iniciada, recordar tu preferencia de tema (claro/oscuro) y saber si ya viste el tutorial de
             bienvenida. No usamos estas tecnologías para rastrearte en otros sitios ni para publicidad de terceros.
           </p>
@@ -106,7 +106,7 @@ export default function PrivacidadPage() {
         <section>
           <h2>9. Menores de edad</h2>
           <p>
-            FixIt no está dirigido a menores de 18 años y no recopilamos intencionalmente datos de menores. Si
+            Oficy no está dirigido a menores de 18 años y no recopilamos intencionalmente datos de menores. Si
             creemos que una cuenta pertenece a un menor, podemos suspenderla.
           </p>
         </section>
@@ -115,7 +115,7 @@ export default function PrivacidadPage() {
           <h2>10. Cambios a esta Política</h2>
           <p>
             Podemos actualizar esta Política en cualquier momento. Los cambios importantes se van a avisar dentro de
-            la Plataforma. El uso continuado de FixIt después de una actualización implica la aceptación de la nueva
+            la Plataforma. El uso continuado de Oficy después de una actualización implica la aceptación de la nueva
             versión.
           </p>
         </section>
@@ -129,7 +129,7 @@ export default function PrivacidadPage() {
         </section>
 
         <p className="text-xs text-ink/40 mt-4 border-t border-ink/10 pt-4">
-          Este documento es un borrador inicial pensado para reflejar cómo funciona FixIt hoy. Antes de publicarlo o
+          Este documento es un borrador inicial pensado para reflejar cómo funciona Oficy hoy. Antes de publicarlo o
           de lanzar la aplicación al público, revisalo con un abogado para adaptarlo a tu estructura legal real y
           confirmar que cumple con la Ley de Protección de Datos Personales (Ley 25.326) y cualquier otra normativa
           aplicable.

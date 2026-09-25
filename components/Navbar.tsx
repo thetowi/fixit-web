@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { obtenerUsuario, cerrarSesion } from "@/lib/auth";
@@ -11,6 +10,7 @@ import { crearConexionChat } from "@/lib/chatConnection";
 import { TITULO_BASE, mostrarNotificacionNavegador, pedirPermisoNotificaciones } from "@/lib/notificacionesNavegador";
 import { suscribirseAMenuMovilTour } from "@/lib/menuMovilTour";
 import { ThemeToggleMenuMovil } from "@/components/ThemeToggle";
+import LogoOficy from "@/components/LogoOficy";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -80,6 +80,17 @@ export default function Navbar() {
               tag: data.conversacionId,
             });
           }
+        });
+        // Refresco en tiempo real de Inicio/Agenda/Órdenes (23/09, ver backlog ítem 13 de la
+        // Tanda 2) — mismo patrón que "fixit:no-leidos-actualizado": el Navbar ya mantiene una
+        // conexión de SignalR viva unida al grupo "usuario-{id}" (ver más abajo), así que en vez
+        // de que cada pantalla abra su propia conexión solo para esto, el Navbar retransmite el
+        // evento nuevo del backend ("ActualizacionOrdenes", ver
+        // FixIt.Api/Hubs/ActividadOrdenesNotifier.cs) como un evento de `window` — cada pantalla
+        // que le importa (/, /prestador/agenda, /ordenes) se suscribe con un simple
+        // addEventListener, sin tocar SignalR directamente.
+        conexion.on("ActualizacionOrdenes", () => {
+          window.dispatchEvent(new Event("fixit:ordenes-actualizadas"));
         });
         conexion.onreconnected(() => {
           console.info("[FixIt] SignalR reconectado, volviendo a unirse a notificaciones.");
@@ -155,18 +166,11 @@ export default function Navbar() {
     <nav className="bg-nav relative">
       <div className="px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image
-              src="/logo-icon.png"
-              alt=""
-              width={28}
-              height={28}
-              className="w-7 h-7 object-contain"
-              priority
-            />
-            <span className="font-display text-lg text-on-nav tracking-tight">
-              FixIt
-            </span>
+          {/* 24/09: con la landing publicitaria separada en "/", el logo tiene que llevar a
+              cada quien a SU home — un usuario logueado espera volver a su dashboard operativo
+              (/app), no a la vidriera pública que ya no le sirve de nada. */}
+          <Link href={usuario ? "/app" : "/"} className="flex items-center shrink-0" aria-label="Oficy">
+            <LogoOficy />
           </Link>
           {usuario?.rol !== "Prestador" && (
             <Link

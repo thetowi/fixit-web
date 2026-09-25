@@ -55,7 +55,7 @@ function pasoCentrado(contenido: Pick<Step, "title" | "content">): Step {
 
 const PASOS_CLIENTE: Step[] = [
   pasoCentrado({
-    title: "¡Bienvenido a FixIt!",
+    title: "¡Bienvenido a Oficy!",
     content: "Te mostramos rápido cómo encontrar el servicio que necesitás y cómo funciona el pago.",
   }),
   pasoDeNav("nav-buscar", {
@@ -69,7 +69,7 @@ const PASOS_CLIENTE: Step[] = [
   pasoCentrado({
     title: "Tu pago, protegido",
     content:
-      "Cuando contratás un trabajo, el pago queda retenido por FixIt. El prestador lo recibe recién cuando vos confirmás que el trabajo está terminado.",
+      "Cuando contratás un trabajo, el pago queda retenido por Oficy. El prestador lo recibe recién cuando vos confirmás que el trabajo está terminado.",
   }),
   pasoDeNav("nav-mensajes", {
     title: "Mensajes",
@@ -87,7 +87,7 @@ const PASOS_CLIENTE: Step[] = [
 
 const PASOS_PRESTADOR: Step[] = [
   pasoCentrado({
-    title: "¡Bienvenido a FixIt!",
+    title: "¡Bienvenido a Oficy!",
     content: "Te mostramos rápido cómo empezar a recibir trabajos y cobrarlos.",
   }),
   pasoDeNav("nav-cuenta", {
@@ -97,7 +97,7 @@ const PASOS_PRESTADOR: Step[] = [
   pasoDeNav("nav-cuenta", {
     title: "Cobrar tus trabajos",
     content:
-      "En la pestaña Cobros conectás tu propia cuenta de Mercado Pago. FixIt deposita ahí tu parte y descuenta su comisión automáticamente — tus primeros 10 trabajos son sin comisión.",
+      "En la pestaña Cobros conectás tu propia cuenta de Mercado Pago. Oficy deposita ahí tu parte y descuenta su comisión automáticamente — tus primeros 10 trabajos son sin comisión.",
   }),
   pasoDeNav("nav-agenda", {
     title: "Agenda",

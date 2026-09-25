@@ -94,6 +94,18 @@ export default function AgendaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vista, offsetSemana, offsetMes]);
 
+  // Refresco en tiempo real (23/09, ver backlog ítem 13 de la Tanda 2): antes esta pantalla solo
+  // se cargaba al entrar o al cambiar de vista/rango — si llegaba una orden nueva para programar,
+  // o se reprogramaba/cancelaba un turno mientras el prestador estaba parado acá, no se enteraba
+  // sin recargar. El Navbar retransmite el evento de SignalR como un evento de `window` (ver
+  // Navbar.tsx). Recargamos "base" completo (disponibilidad + sin programar + el rango actual)
+  // porque cualquiera de esos tres puede haber cambiado.
+  useEffect(() => {
+    window.addEventListener("fixit:ordenes-actualizadas", cargarBase);
+    return () => window.removeEventListener("fixit:ordenes-actualizadas", cargarBase);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function cargarBase() {
     try {
       const [bloquesData, sinProgramarData] = await Promise.all([

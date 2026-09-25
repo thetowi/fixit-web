@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Quiénes somos | FixIt",
+  title: "Quiénes somos | Oficy",
 };
 
 export default function QuienesSomosPage() {
@@ -10,7 +10,7 @@ export default function QuienesSomosPage() {
 
       <div className="flex flex-col gap-5 text-sm text-ink/80 leading-relaxed">
         <p>
-          FixIt nació en 2026 en Paraná, Entre Ríos, de la mano de dos hermanos: Tobias Triano y
+          Oficy nació en 2026 en Paraná, Entre Ríos, de la mano de dos hermanos: Tobias Triano y
           Misael Triano.
         </p>
 
@@ -31,7 +31,7 @@ export default function QuienesSomosPage() {
         </p>
 
         <p>
-          De ahí nació FixIt: una herramienta digital pensada para beneficiar tanto al Cliente como
+          De ahí nació Oficy: una herramienta digital pensada para beneficiar tanto al Cliente como
           al Prestador, dándole a la relación algo que hoy no existe en este rubro — transparencia,
           seguridad y una valoración pública real. Que un prestador tenga un perfil visible, con sus
           trabajos y sus calificaciones a la vista de cualquiera, y no dependa solamente de que
@@ -41,7 +41,7 @@ export default function QuienesSomosPage() {
         </p>
 
         <p>
-          Eso es FixIt hoy: un intento honesto de resolver, con tecnología, un problema que vivimos
+          Eso es Oficy hoy: un intento honesto de resolver, con tecnología, un problema que vivimos
           en carne propia.
         </p>
       </div>

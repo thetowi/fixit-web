@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 import TourOnboarding from "@/components/TourOnboarding";
 import Footer from "@/components/Footer";
+import TrabajoEnCursoOverlay from "@/components/TrabajoEnCursoOverlay";
 
 const archivoBlack = Archivo_Black({
   weight: "400",
@@ -24,7 +25,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FixIt",
+  title: "Oficy",
   description: "Encontrá servicios de oficios cerca tuyo",
 };
 
@@ -47,6 +48,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <GoogleAuthProvider>
+          {/* Va ANTES del Navbar a propósito (24/09, fix reportado por el usuario): el banner
+              minimizado de "Trabajo en curso" es "sticky", no "fixed" — necesita estar primero en
+              el flujo normal del documento para empujar el Navbar hacia abajo en vez de taparle
+              los botones y links de arriba. La pantalla completa (fixed inset-0) no depende del
+              orden, así que este mismo componente sirve para las dos vistas sin duplicar nada. */}
+          <TrabajoEnCursoOverlay />
           <Navbar />
           <TourOnboarding />
           {children}

@@ -67,7 +67,7 @@ export default function RecuperarPasswordPage() {
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">¿Olvidaste tu contraseña?</p>
       <h1 className="font-display text-2xl text-ink mb-2">Recuperá tu cuenta</h1>
       <p className="text-ink/60 mb-6">
-        Ingresá el email con el que te registraste en FixIt y te mandamos un código para elegir una contraseña nueva.
+        Ingresá el email con el que te registraste en Oficy y te mandamos un código para elegir una contraseña nueva.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-surface border border-ink/10 rounded-lg p-5">

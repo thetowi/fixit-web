@@ -92,6 +92,17 @@ function OrdenesContenido() {
     return () => document.removeEventListener("mousedown", handleClickFuera);
   }, [criterioExpandido]);
 
+  // Refresco en tiempo real (23/09, ver backlog ítem 13 de la Tanda 2): antes esta pantalla solo
+  // se cargaba una vez al entrar (+ un reintento puntual tras volver de Mercado Pago, ver el
+  // efecto de arriba) — si una orden cambiaba de estado mientras el usuario se quedaba parado acá
+  // (ej. un Admin la marcaba como pagada, o se completaba/reembolsaba), no se enteraba sin
+  // recargar la página a mano. El Navbar retransmite el evento de SignalR como un evento de
+  // `window` (ver Navbar.tsx) para no tener que abrir una conexión propia acá.
+  useEffect(() => {
+    window.addEventListener("fixit:ordenes-actualizadas", cargarOrdenes);
+    return () => window.removeEventListener("fixit:ordenes-actualizadas", cargarOrdenes);
+  }, []);
+
   async function cargarOrdenes() {
     try {
       const data = await apiFetch<Orden[]>("/api/ordenes/mias");

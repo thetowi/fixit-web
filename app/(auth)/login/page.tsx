@@ -36,7 +36,7 @@ export default function LoginPage() {
         body: JSON.stringify(form),
       });
       guardarSesion(resultado.token, resultado.usuario);
-      router.push("/");
+      router.push("/app");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error inesperado");
     } finally {
@@ -68,7 +68,7 @@ export default function LoginPage() {
       }
 
       guardarSesion(resultado.token!, resultado.usuario!);
-      router.push("/");
+      router.push("/app");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al iniciar sesión con Google");
     }
@@ -92,7 +92,7 @@ export default function LoginPage() {
         body: JSON.stringify(body),
       });
       guardarSesion(resultado.token, resultado.usuario);
-      router.push("/");
+      router.push("/app");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al completar el registro");
     } finally {
@@ -105,7 +105,7 @@ export default function LoginPage() {
       <div className="max-w-md mx-auto mt-16 p-6 w-full">
         <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Un paso más</p>
         <h1 className="font-display text-2xl text-ink mb-2">Hola, {pendienteDeRol.nombre}</h1>
-        <p className="text-ink/60 mb-6">Contanos qué querés hacer en FixIt.</p>
+        <p className="text-ink/60 mb-6">Contanos qué querés hacer en Oficy.</p>
 
         <form onSubmit={handleCompletarRegistro} className="flex flex-col gap-4 bg-surface border border-ink/10 rounded-lg p-5">
           <select

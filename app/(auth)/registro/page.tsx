@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { RegistroRequest, Usuario } from "@/types/auth";
@@ -18,6 +18,18 @@ export default function RegistroPage() {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
+
+  // La landing publicitaria (24/09) tiene un CTA aparte para prestadores ("Quiero ofrecer mis
+  // servicios") que linkea acá con ?rol=prestador, para no hacerlos elegir dos veces lo mismo.
+  // Leído directo de window.location (en vez de useSearchParams) para no obligar a esta página —
+  // que ya es 100% client-rendered — a envolverse en un <Suspense>, que es lo que Next.js exige
+  // cuando se usa el hook de navegación para esto mismo.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("rol") === "prestador") {
+      setForm((f) => ({ ...f, rol: "prestador" }));
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +55,7 @@ export default function RegistroPage() {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Unite a FixIt</p>
+      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Unite a Oficy</p>
       <h1 className="font-display text-2xl text-ink mb-6">Crear cuenta</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-surface border border-ink/10 rounded-lg p-5">
@@ -110,7 +122,7 @@ export default function RegistroPage() {
             <a href="/terminos" target="_blank" className="text-copper hover:underline">Términos y Condiciones</a>
             {" "}y la{" "}
             <a href="/privacidad" target="_blank" className="text-copper hover:underline">Política de Privacidad</a>
-            {" "}de FixIt.
+            {" "}de Oficy.
           </span>
         </label>
 
