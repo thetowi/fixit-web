@@ -25,6 +25,12 @@ import FaqAcordeon, { PreguntaFrecuente } from "@/components/FaqAcordeon";
 import TrabajoEnCursoPreview from "@/components/TrabajoEnCursoPreview";
 import ContadorAnimado from "@/components/ContadorAnimado";
 import ChatEnVivoPreview from "@/components/ChatEnVivoPreview";
+import GrillaRubros from "@/components/GrillaRubros";
+import TypewriterRubros from "@/components/TypewriterRubros";
+
+// Palabras del eyebrow del hero mientras todavía no llegaron las categorías reales del backend
+// (o si esa llamada falla) — mismo texto que estaba antes hardcodeado ahí.
+const RUBROS_EYEBROW_POR_DEFECTO = ["Plomería", "Electricidad", "Gas", "Jardinería", "y más"];
 
 const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
   {
@@ -96,9 +102,12 @@ export default function LandingPage() {
       <div className="w-full px-6 pt-20 pb-16">
         <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
           <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">
-              Plomería · Electricidad · Gas · Jardinería · y más
-            </p>
+            <TypewriterRubros
+              palabras={
+                categorias.length > 0 ? categorias.map((c) => c.nombre) : RUBROS_EYEBROW_POR_DEFECTO
+              }
+              className="font-mono text-xs tracking-widest text-copper uppercase mb-3 min-h-[1.2em] inline-block"
+            />
             <h1 className="font-display text-4xl sm:text-5xl text-ink tracking-tight mb-4 max-w-xl">
               El oficio que necesitás, a la vuelta de la esquina
             </h1>
@@ -254,37 +263,14 @@ export default function LandingPage() {
 
       {/* Rubros disponibles (25/09: son solo de referencia visual, a pedido del usuario — no
           navegan a /explorar/{id} como antes, porque desde la landing pública no queremos mandar
-          directo a buscar prestadores de ese rubro puntual). Animación "wipe" cobre elegida entre
-          varias opciones de mockup: en reposo la tarjeta está tranquila, y al pasar el mouse el
-          cobre entra como una cortina desde la izquierda (por eso el overflow-hidden + el div
-          absoluto escalado en X), mientras ícono y texto quedan por encima con z-10. */}
+          directo a buscar prestadores de ese rubro puntual). La animación "wipe" cobre al hover
+          y la de entrada en cascada (para mobile, donde no hay hover) viven en GrillaRubros.tsx. */}
       {categorias.length > 0 && (
         <div className="w-full max-w-4xl px-6 py-16">
           <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
             Rubros disponibles
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {categorias.map((c) => (
-              <div
-                key={c.id}
-                className="group relative overflow-hidden bg-surface border border-ink/10 rounded-lg p-5 flex flex-col items-center gap-2 cursor-default transition-colors hover:border-copper"
-              >
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 bg-copper origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-[cubic-bezier(.65,0,.35,1)]"
-                />
-                <IconoLucide
-                  nombre={c.icono}
-                  size={26}
-                  strokeWidth={1.75}
-                  className="relative z-10 text-copper transition-transform duration-300 group-hover:scale-110 group-hover:text-paper"
-                />
-                <span className="relative z-10 font-medium text-ink text-sm text-center transition-colors duration-300 group-hover:text-paper">
-                  {c.nombre}
-                </span>
-              </div>
-            ))}
-          </div>
+          <GrillaRubros categorias={categorias} />
         </div>
       )}
 
