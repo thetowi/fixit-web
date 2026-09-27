@@ -81,3 +81,4 @@ export const config = {
   // Todo menos archivos estáticos/internos de Next — el patrón recomendado por Next.js.
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp|js|css|map)$).*)"],
 };
+
