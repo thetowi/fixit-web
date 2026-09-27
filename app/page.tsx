@@ -281,24 +281,56 @@ export default function LandingPage() {
             <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
               Trabajos hechos en Oficy
             </p>
+            {/* Desde el 27/09 cada tarjeta muestra la identidad completa del prestador (foto,
+                nombre, promedio general) y linkea a su perfil — antes lo mostraba anonimizado. */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {trabajos.map((t, i) => (
-                <div key={i} className="bg-paper border border-ink/10 rounded-lg p-5 flex flex-col gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-9 h-9 rounded-lg bg-copper/10 flex items-center justify-center text-copper shrink-0">
-                      <IconoLucide nombre={t.categoriaIcono} size={18} strokeWidth={1.8} />
-                    </span>
+                <Link
+                  key={i}
+                  href={`/prestador/${t.prestadorId}`}
+                  className="bg-paper border border-ink/10 rounded-lg overflow-hidden flex flex-col hover:border-copper/40 transition-colors"
+                >
+                  {t.fotosResena.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-0.5 h-28 bg-ink/5">
+                      {t.fotosResena.slice(0, 3).map((url, j) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={j} src={url} alt="Foto del trabajo" className="w-full h-full object-cover" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="h-28 bg-copper/10 flex items-center justify-center text-copper">
+                      <IconoLucide nombre={t.categoriaIcono} size={28} strokeWidth={1.5} />
+                    </div>
+                  )}
+
+                  <div className="p-5 flex flex-col gap-3 flex-1">
                     <div className="min-w-0">
                       <p className="font-medium text-ink text-sm truncate">{t.categoriaNombre}</p>
                       <p className="text-xs text-ink/50 truncate">{t.descripcion}</p>
                     </div>
+                    <p className="text-sm text-ink/75 leading-snug">&ldquo;{t.comentario}&rdquo;</p>
+
+                    <div className="flex items-center gap-2 mt-auto pt-3 border-t border-ink/10">
+                      <div className="w-8 h-8 rounded-full bg-ink/10 flex items-center justify-center text-xs font-display text-ink shrink-0 overflow-hidden">
+                        {t.prestadorFotoPerfilUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={t.prestadorFotoPerfilUrl} alt={t.prestadorNombreCompleto} className="w-full h-full object-cover" />
+                        ) : (
+                          t.prestadorNombreCompleto[0]
+                        )}
+                      </div>
+                      <span className="text-xs text-ink/70 truncate flex-1">{t.prestadorNombreCompleto}</span>
+                      {t.prestadorPromedioGeneral != null && (
+                        <span className="flex items-center gap-1 shrink-0">
+                          <Estrellas valor={t.prestadorPromedioGeneral} tamaño="text-xs" />
+                          <span className="text-xs text-ink/50">
+                            {t.prestadorPromedioGeneral.toFixed(1)} ({t.prestadorCantidadCalificaciones})
+                          </span>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm text-ink/75 leading-snug">&ldquo;{t.comentario}&rdquo;</p>
-                  <div className="flex items-center justify-between mt-auto pt-1">
-                    <span className="text-xs text-ink/50">{t.prestadorNombre}</span>
-                    <Estrellas valor={t.promedio} tamaño="text-xs" />
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

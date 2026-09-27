@@ -9,6 +9,10 @@ export interface FotoTrabajo {
   id: string;
   url: string;
   descripcion: string | null;
+  // Repost de foto de reseña (27/09): esta foto no la subió el prestador, viene de una reseña de
+  // un cliente que él pidió permiso para mostrar y el cliente aprobó — ver CalificacionFoto.
+  esDeResenia: boolean;
+  clienteNombre: string | null;
 }
 
 export interface PerfilPrestador {

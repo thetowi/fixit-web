@@ -8,6 +8,7 @@ import { obtenerUsuario, cerrarSesion, guardarSesion } from "@/lib/auth";
 import { PerfilPropio, ActualizarPerfilRequest } from "@/types/perfilPropio";
 import { BloqueDisponibilidad, AgregarBloqueRequest } from "@/types/agenda";
 import { PerfilPrestador, FotoTrabajo } from "@/types/perfil";
+import { RepostoPendiente } from "@/types/repostos";
 import { Categoria, PrestadorCategoria, AgregarCategoriaRequest } from "@/types/categorias";
 import { VerificacionEstado } from "@/types/verificacion";
 import { ConexionMercadoPago, IniciarConexionMercadoPago } from "@/types/mercadoPago";
@@ -97,6 +98,10 @@ function CuentaContenido() {
   const fileInputRefAntecedentes = useRef<HTMLInputElement>(null);
 
   const [perfil, setPerfil] = useState<PerfilPropio | null>(null);
+  // "Repostear" fotos de reseña (27/09): pedidos pendientes de prestadores que quieren mostrar,
+  // como trabajo propio, una foto que ESTE cliente subió en una reseña. Solo aplica a Clientes.
+  const [pendientesRepost, setPendientesRepost] = useState<RepostoPendiente[]>([]);
+  const [respondiendoRepost, setRespondiendoRepost] = useState<string | null>(null);
   const [form, setForm] = useState<ActualizarPerfilRequest>({ nombre: "", apellido: "", telefono: "", direccion: "" });
 
   // --- Autocompletado/verificación de dirección (Nominatim/OpenStreetMap) ---
@@ -297,10 +302,31 @@ function CuentaContenido() {
 
         await Promise.all([cargarBloques(), cargarPerfilPrestador(), cargarServicios(), cargarVerificacion(), cargarEstadoMp()]);
       }
+
+      if (data.rol === "Cliente") {
+        apiFetch<RepostoPendiente[]>("/api/repostos/pendientes")
+          .then(setPendientesRepost)
+          .catch(() => {});
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al cargar tu perfil");
     } finally {
       setCargando(false);
+    }
+  }
+
+  async function handleResponderRepost(calificacionFotoId: string, aprobar: boolean) {
+    setRespondiendoRepost(calificacionFotoId);
+    try {
+      await apiFetch(`/api/repostos/${calificacionFotoId}/responder`, {
+        method: "PUT",
+        body: JSON.stringify({ aprobar }),
+      });
+      setPendientesRepost((prev) => prev.filter((p) => p.calificacionFotoId !== calificacionFotoId));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al responder el pedido");
+    } finally {
+      setRespondiendoRepost(null);
     }
   }
 
@@ -888,6 +914,52 @@ function CuentaContenido() {
           </button>
         </form>
       </div>
+      )}
+
+      {perfil.rol === "Cliente" && pendientesRepost.length > 0 && (
+        <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6">
+          <p className="font-medium text-ink mb-1">Te pidieron mostrar una foto tuya</p>
+          <p className="text-xs text-ink/50 mb-3">
+            Un prestador quiere mostrar, como trabajo propio en su perfil, una foto que subiste en
+            una reseña. Vos decidís si se la das.
+          </p>
+          <ul className="flex flex-col gap-3">
+            {pendientesRepost.map((p) => (
+              <li key={p.calificacionFotoId} className="flex items-center gap-3 border border-ink/10 rounded-lg p-3">
+                <div className="w-14 h-14 rounded overflow-hidden bg-ink/5 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.url} alt="Tu foto" className="w-full h-full object-cover" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-ink truncate">
+                    <span className="font-medium">{p.prestadorNombreCompleto}</span> · {p.categoriaNombre}
+                  </p>
+                  {p.comentarioCalificacion && (
+                    <p className="text-xs text-ink/50 truncate">&ldquo;{p.comentarioCalificacion}&rdquo;</p>
+                  )}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleResponderRepost(p.calificacionFotoId, false)}
+                    disabled={respondiendoRepost === p.calificacionFotoId}
+                    className="text-xs border border-ink/20 rounded px-2 py-1.5 hover:border-ink/40 disabled:opacity-40"
+                  >
+                    No permitir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResponderRepost(p.calificacionFotoId, true)}
+                    disabled={respondiendoRepost === p.calificacionFotoId}
+                    className="text-xs bg-copper text-paper rounded px-2 py-1.5 hover:bg-copper-dark disabled:opacity-40"
+                  >
+                    Permitir
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {(perfil.rol !== "Prestador" || seccion === "perfil") && (

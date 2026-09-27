@@ -54,6 +54,12 @@ function OrdenesContenido() {
   const [calificacionForm, setCalificacionForm] = useState(CALIFICACION_INICIAL);
   const [criterioExpandido, setCriterioExpandido] = useState<string | null>(null);
   const [comentario, setComentario] = useState("");
+  // Fotos de la reseña (27/09): se suben recién después de crear la calificación, porque el
+  // endpoint de fotos necesita que la reseña ya exista (ver OrdenesController.AgregarFotoCalificacion).
+  const [ordenSubiendoFotos, setOrdenSubiendoFotos] = useState<string | null>(null);
+  const [fotosResenia, setFotosResenia] = useState<{ id: string; url: string }[]>([]);
+  const [subiendoFotoResenia, setSubiendoFotoResenia] = useState(false);
+  const fileInputFotoReseniaRef = useRef<HTMLInputElement>(null);
   const [filtroMes, setFiltroMes] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
 
@@ -141,12 +147,50 @@ function OrdenesContenido() {
         method: "POST",
         body: JSON.stringify(body),
       });
+      // En vez de cerrar directo, pasamos al paso de fotos (opcional, hasta 5) — la calificación
+      // ya quedó guardada, esto solo suma fotos a la reseña.
+      setOrdenSubiendoFotos(ordenCalificando);
       setOrdenCalificando(null);
       setCalificacionForm(CALIFICACION_INICIAL);
       setComentario("");
+      setFotosResenia([]);
       await cargarOrdenes();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al enviar la calificación");
+    }
+  }
+
+  async function handleSubirFotoResenia(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0];
+    if (!archivo || !ordenSubiendoFotos) return;
+
+    setError(null);
+    setSubiendoFotoResenia(true);
+
+    const token = localStorage.getItem("fixit_token");
+    const formData = new FormData();
+    formData.append("archivo", archivo);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/api/ordenes/${ordenSubiendoFotos}/calificacion/fotos`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error ?? "Error al subir la foto");
+      }
+
+      const nuevaFoto = await response.json();
+      setFotosResenia((prev) => [...prev, { id: nuevaFoto.id, url: nuevaFoto.url }]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al subir la foto");
+    } finally {
+      setSubiendoFotoResenia(false);
+      if (fileInputFotoReseniaRef.current) fileInputFotoReseniaRef.current.value = "";
     }
   }
 
@@ -342,6 +386,47 @@ function OrdenesContenido() {
                       </button>
                     </div>
                   </form>
+                )}
+
+                {ordenSubiendoFotos === o.id && (
+                  <div className="mt-3 pt-3 border-t border-ink/10 flex flex-col gap-3">
+                    <p className="text-xs text-ink/50">
+                      Fotos del trabajo (opcional, hasta 5). El prestador puede después pedirte permiso
+                      para mostrarlas en su perfil, pero vos decidís si se las das.
+                    </p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {fotosResenia.map((foto) => (
+                        <div key={foto.id} className="aspect-square rounded overflow-hidden bg-ink/5">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={foto.url} alt="Foto de la reseña" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                      {fotosResenia.length < 5 && (
+                        <button
+                          type="button"
+                          onClick={() => fileInputFotoReseniaRef.current?.click()}
+                          disabled={subiendoFotoResenia}
+                          className="aspect-square rounded border border-dashed border-ink/30 flex items-center justify-center text-ink/40 text-xl hover:border-ink/60 hover:text-ink/60 transition-colors disabled:opacity-50"
+                        >
+                          {subiendoFotoResenia ? "..." : "+"}
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputFotoReseniaRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleSubirFotoResenia}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setOrdenSubiendoFotos(null)}
+                      className="bg-copper text-paper rounded p-2 text-sm"
+                    >
+                      Listo
+                    </button>
+                  </div>
                 )}
               </OrdenTicket>
             </li>

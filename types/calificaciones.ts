@@ -1,3 +1,12 @@
+// Fotos cargadas por el cliente en su reseña (27/09), hasta 5 por reseña. "estadoRepost" le sirve
+// al prestador para saber si ya la tiene, si le está pidiendo permiso al cliente, o si el cliente
+// ya le dijo que no — ver EstadoRepost en el backend.
+export interface CalificacionFoto {
+  id: string;
+  url: string;
+  estadoRepost: "SinSolicitar" | "Pendiente" | "Aprobado" | "Rechazado";
+}
+
 export interface Calificacion {
   id: string;
   clienteNombre: string;
@@ -10,6 +19,7 @@ export interface Calificacion {
   promedio: number;
   comentario: string | null;
   creadoEn: string;
+  fotos: CalificacionFoto[];
 }
 
 export interface CrearCalificacionRequest {

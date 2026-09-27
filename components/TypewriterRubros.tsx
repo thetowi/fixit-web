@@ -17,10 +17,10 @@ import { useEffect, useState } from "react";
 // referencia con su @media (prefers-reduced-motion: reduce)).
 const PALABRAS_POR_DEFECTO = ["Plomería", "Electricidad", "Gas", "Jardinería", "y más"];
 
-const VELOCIDAD_ESCRITURA = 75; // ms por letra al escribir
+const VELOCIDAD_ESCRITURA = 180; // ms por letra al escribir
 const VELOCIDAD_BORRADO = 35; // ms por letra al borrar
 const PAUSA_PALABRA_COMPLETA = 1300; // ms que queda la palabra entera antes de empezar a borrar
-const PAUSA_ENTRE_PALABRAS = 350; // ms con el cursor vacío antes de arrancar la siguiente
+const PAUSA_ENTRE_PALABRAS = 550; // ms con el cursor vacío antes de arrancar la siguiente
 const PAUSA_MOVIMIENTO_REDUCIDO = 2200; // ms por palabra cuando prefers-reduced-motion está activo
 
 export default function TypewriterRubros({
