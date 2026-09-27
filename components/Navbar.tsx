@@ -167,9 +167,15 @@ export default function Navbar() {
       <div className="px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* 24/09: con la landing publicitaria separada en "/", el logo tiene que llevar a
-              cada quien a SU home — un usuario logueado espera volver a su dashboard operativo
-              (/app), no a la vidriera pública que ya no le sirve de nada. */}
-          <Link href={usuario ? "/app" : "/"} className="flex items-center shrink-0" aria-label="Oficy">
+              cada quien a SU home — un usuario logueado espera volver a su dashboard operativo,
+              no a la vidriera pública que ya no le sirve de nada.
+              Actualización (28/09, split de dominios): antes esto era `usuario ? "/app" : "/"`.
+              Con el token guardado en el localStorage de app.oficy.ar (ver lib/auth.ts), este
+              Navbar solo puede ver `usuario` truthy estando YA parado en app.oficy.ar — nunca en
+              oficy.ar, donde ese localStorage está vacío. Y adentro de app.oficy.ar, "/" ya
+              muestra el dashboard (rewrite en middleware.ts), así que "/" alcanza para los dos
+              casos sin necesidad de la rama "/app" (que además dejaba la URL con un sufijo feo). */}
+          <Link href="/" className="flex items-center shrink-0" aria-label="Oficy">
             <LogoOficy />
           </Link>
           {usuario?.rol !== "Prestador" && (

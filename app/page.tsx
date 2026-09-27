@@ -27,6 +27,7 @@ import ContadorAnimado from "@/components/ContadorAnimado";
 import ChatEnVivoPreview from "@/components/ChatEnVivoPreview";
 import GrillaRubros from "@/components/GrillaRubros";
 import TypewriterRubros from "@/components/TypewriterRubros";
+import { irAlDashboard } from "@/lib/dominio";
 
 // Palabras del eyebrow del hero mientras todavía no llegaron las categorías reales del backend
 // (o si esa llamada falla) — mismo texto que estaba antes hardcodeado ahí.
@@ -79,8 +80,16 @@ export default function LandingPage() {
   const [estadisticas, setEstadisticas] = useState<EstadisticasPublicas | null>(null);
 
   useEffect(() => {
+    // Nota (28/09, split de dominios): esto solo detecta la sesión cuando "/" se sirve en el
+    // mismo origen que guardó el token — es decir, en desarrollo local o en cualquier host sin
+    // el subdominio de la app. En producción, "/" vive en oficy.ar y el token queda guardado en
+    // el localStorage de app.oficy.ar (otro origen), así que obtenerUsuario() acá siempre da
+    // null — un visitante con sesión iniciada que entra directo a oficy.ar ve la landing en vez
+    // de que lo mandemos al dashboard. Queda como mejora pendiente (necesitaría una cookie
+    // compartida o una consulta al backend en vez de leer localStorage); no es un caso roto, es
+    // una comodidad que se perdió al separar los dominios.
     if (obtenerUsuario()) {
-      router.replace("/app");
+      irAlDashboard(router, "replace");
       return;
     }
     setListo(true);

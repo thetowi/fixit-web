@@ -12,6 +12,7 @@ import {
   CompletarRegistroGoogleRequest,
 } from "@/types/auth";
 import { guardarSesion } from "@/lib/auth";
+import { irAlDashboard } from "@/lib/dominio";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function LoginPage() {
         body: JSON.stringify(form),
       });
       guardarSesion(resultado.token, resultado.usuario);
-      router.push("/app");
+      irAlDashboard(router);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error inesperado");
     } finally {
@@ -68,7 +69,7 @@ export default function LoginPage() {
       }
 
       guardarSesion(resultado.token!, resultado.usuario!);
-      router.push("/app");
+      irAlDashboard(router);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al iniciar sesión con Google");
     }
@@ -92,7 +93,7 @@ export default function LoginPage() {
         body: JSON.stringify(body),
       });
       guardarSesion(resultado.token, resultado.usuario);
-      router.push("/app");
+      irAlDashboard(router);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al completar el registro");
     } finally {
