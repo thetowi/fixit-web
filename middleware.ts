@@ -43,7 +43,14 @@ function esRutaDeApp(pathname: string): boolean {
 }
 
 export function middleware(request: NextRequest) {
-  const host = request.headers.get("host") ?? "";
+  // Bug real #4 (28/09): Vercel resuelve el dominio raíz "oficy.ar" sirviéndolo (o redirigiendo)
+  // como "www.oficy.ar" — el header Host que le llega a este middleware es "www.oficy.ar", no
+  // "oficy.ar". Como DOMINIO_PRINCIPAL nunca incluía el "www.", ese host no matcheaba NINGUNO de
+  // los dos casos de abajo y el middleware devolvía directamente sin hacer nada: por eso entrar a
+  // oficy.ar/login servía el login tal cual en www.oficy.ar en vez de mandarlo a app.oficy.ar (y
+  // cualquier otra ruta de la app tenía el mismo problema). Se normaliza sacando el "www." antes de
+  // comparar, así "oficy.ar" y "www.oficy.ar" cuentan como el mismo dominio principal.
+  const host = (request.headers.get("host") ?? "").replace(/^www\./, "");
 
   if (host !== DOMINIO_PRINCIPAL && host !== SUBDOMINIO_APP) {
     return NextResponse.next();

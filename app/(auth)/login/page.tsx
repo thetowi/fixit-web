@@ -158,14 +158,14 @@ export default function LoginPage() {
 
       <div className="bg-surface border border-ink/10 rounded-lg p-5">
         <div className="mb-4 flex justify-center" ref={contenedorGoogleRef}>
-          {anchoBotonGoogle && (
+          {anchoBotonGoogle ? (
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => setError("No pudimos iniciar sesión con Google.")}
               text="continue_with"
               width={anchoBotonGoogle}
             />
-          )}
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2 text-xs text-ink/40 mb-4">
