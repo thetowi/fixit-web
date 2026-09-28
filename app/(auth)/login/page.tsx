@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -25,6 +25,25 @@ export default function LoginPage() {
     nombre: string;
   } | null>(null);
   const [rolElegido, setRolElegido] = useState<"cliente" | "prestador">("cliente");
+
+  // El botón real de Google (GSI) no soporta un ancho en porcentaje pese a que la prop `width`
+  // acepta un string — sin un valor en píxeles, el widget cae a su ancho mínimo por defecto y
+  // queda pegado a la izquierda dentro de la tarjeta, en vez de ocupar todo el ancho disponible.
+  // Medimos el contenedor y le pasamos el ancho real en píxeles.
+  const contenedorGoogleRef = useRef<HTMLDivElement>(null);
+  const [anchoBotonGoogle, setAnchoBotonGoogle] = useState<number>();
+
+  useEffect(() => {
+    const contenedor = contenedorGoogleRef.current;
+    if (!contenedor) return;
+
+    const actualizarAncho = () => setAnchoBotonGoogle(contenedor.offsetWidth);
+    actualizarAncho();
+
+    const observer = new ResizeObserver(actualizarAncho);
+    observer.observe(contenedor);
+    return () => observer.disconnect();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -138,13 +157,15 @@ export default function LoginPage() {
       <h1 className="font-display text-2xl text-ink mb-6">Iniciar sesión</h1>
 
       <div className="bg-surface border border-ink/10 rounded-lg p-5">
-        <div className="mb-4">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => setError("No pudimos iniciar sesión con Google.")}
-            text="continue_with"
-            width="100%"
-          />
+        <div className="mb-4 flex justify-center" ref={contenedorGoogleRef}>
+          {anchoBotonGoogle && (
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("No pudimos iniciar sesión con Google.")}
+              text="continue_with"
+              width={anchoBotonGoogle}
+            />
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-xs text-ink/40 mb-4">
