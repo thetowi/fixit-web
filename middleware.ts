@@ -19,8 +19,9 @@ const SUBDOMINIO_APP = `app.${DOMINIO_PRINCIPAL}`;
 
 // Todo lo que requiere sesión, más el flujo de login/registro (ver nota de arriba). Las páginas
 // públicas — "/", /buscar, /explorar, /prestador/[id] (el perfil público), /quienes-somos,
-// /contacto, /privacidad, /terminos — se quedan en el dominio principal a propósito, para que
-// sigan siendo indexables/compartibles ahí.
+// /contacto, /privacidad, /terminos — viven "de verdad" en el dominio principal, pero también se
+// SIRVEN (sin redirigir) bajo app.oficy.ar si alguien las pide desde ahí — ver el bug #2 de más
+// abajo, por eso ya no hay un redirect de vuelta al dominio principal para estas rutas.
 const RUTAS_APP = [
   "/app",
   "/ordenes",
@@ -57,12 +58,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL("/app", request.url));
   }
 
-  // Una ruta de marketing/pública pedida por el subdominio de la app: la mandamos al dominio
-  // principal, para no tener el mismo contenido navegable bajo dos hosts distintos.
+  // Bug #2 (28/09): una ruta de marketing/pública pedida por el subdominio de la app NO se
+  // redirige de vuelta al dominio principal — un redirect cross-domain rompe el fetch interno de
+  // Next.js cuando precarga un <Link> (headers no-simples, el navegador bloquea la redirección de
+  // un preflight). En cambio, se sirve tal cual ahí también, marcada "noindex" para que Google no
+  // la indexe duplicada bajo los dos hosts.
   if (enSubdominioApp && pathname !== "/app" && !esRutaDeApp(pathname)) {
-    const destino = new URL(request.url);
-    destino.host = DOMINIO_PRINCIPAL;
-    return NextResponse.redirect(destino);
+    const respuesta = NextResponse.next();
+    respuesta.headers.set("X-Robots-Tag", "noindex");
+    return respuesta;
   }
 
   // Una ruta de la app (o del login) pedida por el dominio principal: la mandamos al subdominio,
