@@ -132,9 +132,16 @@ export default function PerfilPrestadorPage() {
 
   return (
     <div className="w-full">
-      {/* ---- Header oscuro (ver mockup PerfilPrestador.dc.html) ---- */}
+      {/* ---- Header oscuro (ver mockup PerfilPrestador.dc.html) ----
+          Rediseño (28/09, octava pasada) — mismo mockup final que /prestador/clientes/[id]
+          (Artifact https://claude.ai/artifact/1fZhVjLHZ4SFpf9APkNW4B): identidad suelta arriba
+          (Opción C) + tarjeta de contacto angosta y centrada con celdas rotuladas al estilo de la
+          Opción B (etiqueta chica + valor en negrita) en vez de la fila de texto + el bloque de
+          promedio aparte que había antes — el promedio general ahora es una celda más de la misma
+          tarjeta, y los rubros pasan a mostrarse ahí también en vez de como chips sueltos bajo el
+          nombre. Ya no hace falta ningún breakpoint `sm` especial: queda centrado a cualquier ancho. */}
       <div className="w-full bg-ink text-paper">
-        <div className="max-w-3xl mx-auto px-6 py-10 flex flex-col sm:flex-row sm:items-center gap-6">
+        <div className="max-w-3xl mx-auto px-6 py-10 flex flex-col items-center text-center gap-5">
           <button
             type="button"
             onClick={() => perfil.fotoPerfilUrl && setFotoModalAbierta(true)}
@@ -149,35 +156,49 @@ export default function PerfilPrestadorPage() {
             )}
           </button>
 
-          <div className="flex-1 min-w-0">
-            <h1 className="font-display text-2xl flex items-center flex-wrap gap-2">
+          <div className="flex flex-col items-center gap-2">
+            <h1 className="font-display text-2xl">
               {perfil.nombre} {perfil.apellido}
-              {perfil.verificado && <InsigniaVerificado size={18} conTexto />}
             </h1>
-
-            {rubros.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {rubros.map((r) => (
-                  <span key={r} className="text-xs bg-paper/10 rounded-full px-2.5 py-1">
-                    {r}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <p className="text-sm text-paper/60 mt-2">
-              Miembro desde {miembroDesdeTexto}
-              {perfil.radioAlcanceKm != null && ` · ${perfil.radioAlcanceKm} km de alcance`}
-            </p>
+            {perfil.verificado && <InsigniaVerificado size={18} conTexto />}
           </div>
 
-          {perfil.cantidadCalificaciones > 0 && (
-            <div className="text-center sm:text-right shrink-0">
-              <p className="font-display text-3xl leading-none">{perfil.promedioCalificacion!.toFixed(1)}</p>
-              <Estrellas valor={perfil.promedioCalificacion!} />
-              <p className="text-xs text-paper/50 mt-1">Promedio general · {perfil.cantidadCalificaciones} reseñas</p>
+          {/* Tarjeta de contacto: celdas rotuladas (etiqueta chica + valor en negrita), estilo
+              Opción B, dentro de una caja angosta y centrada, estructura Opción C. */}
+          <div className="w-full max-w-[320px] grid grid-cols-2 divide-x divide-y divide-paper/10 border border-paper/10 rounded-2xl overflow-hidden bg-paper/5">
+            <div className="px-4 py-3">
+              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Miembro desde</p>
+              <p className="text-[12.5px] font-bold">{miembroDesdeTexto}</p>
             </div>
-          )}
+            <div className="px-4 py-3">
+              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Alcance</p>
+              <p className="text-[12.5px] font-bold">
+                {perfil.radioAlcanceKm != null ? `${perfil.radioAlcanceKm} km` : "—"}
+              </p>
+            </div>
+            {rubros.length > 0 && (
+              <div className="px-4 py-3 col-span-2">
+                <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1.5">Rubros</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {rubros.map((r) => (
+                    <span key={r} className="text-[10.5px] font-semibold bg-paper/10 rounded-full px-2.5 py-1">
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {perfil.cantidadCalificaciones > 0 && (
+              <div className="px-4 py-3 col-span-2">
+                <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Promedio general</p>
+                <p className="text-[12.5px] font-bold flex items-center gap-1.5">
+                  {perfil.promedioCalificacion!.toFixed(1)}
+                  <Estrellas valor={perfil.promedioCalificacion!} tamaño="text-xs" />· {perfil.cantidadCalificaciones}{" "}
+                  reseña{perfil.cantidadCalificaciones === 1 ? "" : "s"}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

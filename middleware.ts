@@ -19,8 +19,8 @@ const SUBDOMINIO_APP = `app.${DOMINIO_PRINCIPAL}`;
 
 // Todo lo que requiere sesión, más el flujo de login/registro (ver nota de arriba). Las páginas
 // públicas — "/", /buscar, /explorar, /prestador/[id] (el perfil público), /quienes-somos,
-// /privacidad, /terminos — se quedan en el dominio principal a propósito, para que sigan siendo
-// indexables/compartibles ahí.
+// /contacto, /privacidad, /terminos — se quedan en el dominio principal a propósito, para que
+// sigan siendo indexables/compartibles ahí.
 const RUTAS_APP = [
   "/app",
   "/ordenes",
@@ -29,6 +29,7 @@ const RUTAS_APP = [
   "/conversaciones",
   "/admin",
   "/prestador/agenda",
+  "/prestador/clientes",
   "/login",
   "/registro",
   "/recuperar-password",

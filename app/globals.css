@@ -68,12 +68,99 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-/* Brillo animado de la insignia "Verificado" (27/09, a pedido del usuario tras ver el mockup de
-   6 opciones — eligió la Opción 3 "insignia sólida" con este brillo agregado) — una franja de luz
-   que cruza la cápsula cobre en loop. Usado desde InsigniaVerificado.tsx vía la clase arbitraria
-   de Tailwind animate-[insignia-shine_...]. */
-@keyframes insignia-shine {
-  0% { transform: translateX(-160%) skewX(-20deg); }
-  55% { transform: translateX(220%) skewX(-20deg); }
-  100% { transform: translateX(220%) skewX(-20deg); }
+/* Placa de bronce con brillo solar de la insignia "Verificado" (28/09) — reemplaza la franja
+   diagonal blanca de antes (27/09). El usuario pidió varias rondas de ajuste ("que la placa entera
+   cambie de brillo como si le pegara el sol", "sin difuminar, que se note la forma") y terminó
+   pasando él mismo el código de referencia final: un fondo multi-tono de bronce (no el cobre plano
+   de siempre, sino tonos más oscuros/tierra) más 3 capas de luz que ORBITAN alrededor del centro
+   usando la técnica de "contra-rotación" (rotan hacia un lado y a la vez se rotan a sí mismas para
+   el lado contrario, así el óvalo de luz no gira sobre sí mismo — viaja alrededor pero mantiene
+   siempre la misma orientación, por eso no se ve difuso). Los radios de "translateX" y los blur
+   están reescalados: el ejemplo del usuario era una placa de 120px de alto, la cápsula real mide
+   ~32px, factor ~0.27. Usado desde InsigniaVerificado.tsx (clases .insignia-placa-bronce,
+   .insignia-luz, .insignia-halo, .insignia-reflejo). */
+.insignia-placa-bronce {
+  background: linear-gradient(
+    145deg,
+    #5f2a0c 0%,
+    #99491a 14%,
+    #d58a42 30%,
+    #8b3f15 46%,
+    #c87531 61%,
+    #71300d 78%,
+    #b45e22 100%
+  );
+  border: 1px solid #572709;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 249, 221, 0.9),
+    inset 0 -3px 5px rgba(38, 12, 2, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.insignia-luz,
+.insignia-halo,
+.insignia-reflejo {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.insignia-luz {
+  inset: -120%;
+  background: radial-gradient(
+    ellipse 12% 23% at 50% 0%,
+    rgba(255, 255, 245, 1) 0%,
+    rgba(255, 251, 228, 1) 8%,
+    rgba(255, 239, 195, 0.98) 18%,
+    rgba(255, 214, 144, 0.78) 31%,
+    rgba(255, 190, 105, 0.42) 46%,
+    rgba(255, 166, 70, 0.16) 61%,
+    transparent 78%
+  );
+  filter: blur(4px);
+  animation: insignia-solar-orbit 5.5s linear infinite;
+}
+
+.insignia-halo {
+  inset: -100%;
+  background: radial-gradient(
+    ellipse 28% 13% at 50% 0%,
+    rgba(255, 246, 210, 0.5),
+    rgba(255, 211, 137, 0.3) 28%,
+    rgba(255, 179, 77, 0.12) 52%,
+    transparent 73%
+  );
+  filter: blur(7px);
+  animation: insignia-solar-orbit 8s linear infinite reverse;
+}
+
+.insignia-reflejo {
+  inset: -80%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 25deg,
+    rgba(255, 237, 190, 0.12) 38deg,
+    rgba(255, 248, 219, 0.46) 45deg,
+    rgba(255, 220, 155, 0.12) 53deg,
+    transparent 68deg,
+    transparent 360deg
+  );
+  filter: blur(5px);
+  animation: insignia-reflejo-orbit 7s linear infinite;
+}
+
+@keyframes insignia-solar-orbit {
+  from { transform: rotate(0deg) translateX(42px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(42px) rotate(-360deg); }
+}
+
+@keyframes insignia-reflejo-orbit {
+  from { transform: rotate(0deg) translateX(32px) scale(1.2); }
+  to   { transform: rotate(360deg) translateX(32px) scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insignia-luz, .insignia-halo, .insignia-reflejo { animation: none; }
 }

@@ -14,6 +14,7 @@ export interface AgregarBloqueRequest {
 export interface OrdenAgenda {
   id: string;
   categoriaNombre: string;
+  clienteId: string;
   clienteNombreCompleto: string;
   clienteDireccion: string | null;
   clienteDireccionVerificada: boolean;

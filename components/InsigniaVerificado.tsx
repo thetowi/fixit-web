@@ -8,6 +8,10 @@
 // donde se usa nada más el ícono chiquito pegado a un nombre en un listado denso (/buscar,
 // /explorar, "Mi cuenta") se deja el ícono solo, sin cápsula, para no romper esos layouts.
 //
+// (28/09) La cápsula pasó de un degradé plano color cobre + franja diagonal blanca, a una "placa
+// de bronce" multi-tono con 3 capas de luz orbitando (ver globals.css) — a pedido del usuario tras
+// varias rondas de mockups descartados, hasta que pasó su propio código de referencia.
+//
 // Usamos <img> en vez de next/image a propósito: el optimizador de next/image cachea por URL, y
 // cuando este archivo se reemplazó por el logo nuevo (misma URL de siempre) siguió sirviendo los
 // bytes viejos. Agregarle "?v=2" a la URL para forzar el refresco tampoco funciona: Next.js
@@ -41,7 +45,7 @@ export default function InsigniaVerificado({
 
   return (
     <span
-      className={`relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-gradient-to-br from-copper to-copper-dark pl-1 pr-3 py-1 align-middle ${className}`}
+      className={`relative inline-flex items-center gap-2 overflow-hidden rounded-full insignia-placa-bronce pl-1 pr-3 py-1 align-middle ${className}`}
     >
       <span
         className="relative z-10 flex items-center justify-center rounded-full bg-paper shrink-0"
@@ -50,15 +54,22 @@ export default function InsigniaVerificado({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={LOGO_SRC} alt="" width={size} height={size} />
       </span>
-      <span className="relative z-10 font-display font-extrabold text-paper text-sm tracking-tight whitespace-nowrap">
+      <span
+        className="relative z-10 font-display font-extrabold text-sm tracking-tight whitespace-nowrap"
+        style={{ color: "#fff6df", textShadow: "0 1px 2px #2d0d02, 0 0 6px rgba(255,232,176,.3)" }}
+      >
         Verificado
       </span>
 
-      {/* Brillo animado: una franja de luz que cruza la cápsula en loop cada ~2.6s.
-          El @keyframes "insignia-shine" vive en globals.css. */}
-      <span className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-full" aria-hidden="true">
-        <span className="absolute top-0 left-0 h-full w-1/4 bg-gradient-to-r from-transparent via-white/70 to-transparent animate-[insignia-shine_2.6s_ease-in-out_infinite]" />
-      </span>
+      {/* Placa de bronce con brillo solar (28/09): 3 capas de luz orbitando alrededor del centro
+          con contra-rotación (no giran sobre sí mismas, así se ven nítidas y no difusas), mezcladas
+          con mix-blend-mode:screen — reemplaza la franja diagonal blanca de antes. Código de
+          referencia provisto por el usuario, adaptado en tamaño y color a esta cápsula. Los
+          @keyframes y clases viven en globals.css (.insignia-placa-bronce, .insignia-luz,
+          .insignia-halo, .insignia-reflejo). */}
+      <span className="insignia-luz" aria-hidden="true" />
+      <span className="insignia-halo" aria-hidden="true" />
+      <span className="insignia-reflejo" aria-hidden="true" />
     </span>
   );
 }

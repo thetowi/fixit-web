@@ -30,10 +30,14 @@ function formatearFecha(fechaISO: string): string {
 export default function OrdenTicket({
   orden,
   nombreContraparte,
+  linkPerfilClienteId,
   children,
 }: {
   orden: Orden;
   nombreContraparte: string;
+  // Id del cliente (28/09) — solo lo pasa la vista del Prestador, para poder linkear a "Perfil del
+  // cliente" (ver ClientesController). El Cliente nunca ve este link en su propia orden.
+  linkPerfilClienteId?: string;
   children?: React.ReactNode;
 }) {
   const colorClase = ESTADO_COLOR[orden.estado] ?? "border-ink/30 text-ink/50";
@@ -52,6 +56,14 @@ export default function OrdenTicket({
       <p className="font-medium text-ink pr-28">{orden.descripcion || orden.categoriaNombre}</p>
       <p className="text-sm text-ink/60 mb-3">
         {orden.categoriaNombre} · Con {nombreContraparte}
+        {linkPerfilClienteId && (
+          <>
+            {" · "}
+            <Link href={`/prestador/clientes/${linkPerfilClienteId}`} className="text-copper hover:underline">
+              Ver perfil
+            </Link>
+          </>
+        )}
       </p>
 
       <div className="flex justify-between items-end">

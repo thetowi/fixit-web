@@ -426,8 +426,10 @@ export default function ConversacionPage() {
   const esPrestador = usuario?.rol === "Prestador";
   const esCliente = usuario?.rol === "Cliente";
 
-  // El cliente ve la foto/nombre del prestador y viceversa; solo el prestador tiene perfil
-  // público hoy (/prestador/[id]), así que el nombre solo es clickeable en ese sentido
+  // El cliente ve la foto/nombre del prestador y viceversa. El prestador tiene perfil público
+  // (/prestador/[id]); el cliente tiene un perfil propio, visible solo para el prestador con el
+  // que tuvo alguna orden (/prestador/clientes/[id], 28/09 — ver ClientesController), así que
+  // ambos nombres terminan siendo clickeables, cada uno hacia su perfil correspondiente.
   const otroNombre = conversacion
     ? esCliente
       ? conversacion.prestadorNombreCompleto
@@ -461,17 +463,13 @@ export default function ConversacionPage() {
           )
         )}
         <div className="min-w-0">
-          {otroNombre && (
-            esCliente && conversacion ? (
-              <Link
-                href={`/prestador/${conversacion.prestadorId}`}
-                className="font-display text-xl text-ink hover:text-copper truncate block"
-              >
-                {otroNombre}
-              </Link>
-            ) : (
-              <p className="font-display text-xl text-ink truncate">{otroNombre}</p>
-            )
+          {otroNombre && conversacion && (
+            <Link
+              href={esCliente ? `/prestador/${conversacion.prestadorId}` : `/prestador/clientes/${conversacion.clienteId}`}
+              className="font-display text-xl text-ink hover:text-copper truncate block"
+            >
+              {otroNombre}
+            </Link>
           )}
           {conversacion && colorRubro && (
             <div

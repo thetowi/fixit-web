@@ -186,6 +186,33 @@ export default function AdminPage() {
     }
   }
 
+  // Inasistencia del cliente (28/09): resolver a favor del prestador libera el pago retenido sin
+  // que el trabajo haya sucedido — no hay forma de verificar desde el sistema si el prestador
+  // realmente fue o no al domicilio (ver claude/backlog.md), así que este es un juicio del Admin
+  // caso por caso, no una decisión automática. El otro desenlace (a favor del cliente) es el
+  // mismo botón "Reembolsar" de siempre, que ya funciona para una orden EnDisputa.
+  async function handleResolverInasistenciaPrestador(ordenId: string) {
+    if (
+      !window.confirm(
+        "¿Confirmás que le das la razón al prestador y liberás el pago retenido, sin poder verificar si realmente se presentó en el domicilio?"
+      )
+    )
+      return;
+    const notaAdmin = window.prompt("Nota interna sobre la resolución (opcional):") ?? undefined;
+    setProcesandoOrdenId(ordenId);
+    try {
+      await apiFetch(`/api/ordenes/${ordenId}/resolver-inasistencia-pagar-prestador`, {
+        method: "PUT",
+        body: JSON.stringify({ notaAdmin: notaAdmin?.trim() || undefined }),
+      });
+      await cargarDatos();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al resolver la disputa");
+    } finally {
+      setProcesandoOrdenId(null);
+    }
+  }
+
   async function handleVerDocumento(usuarioId: string, documento: string) {
     try {
       const data = await apiFetch<{ url: string }>(`/api/admin/verificaciones/${usuarioId}/documento/${documento}`);
@@ -417,6 +444,42 @@ export default function AdminPage() {
                   </button>
                 )}
               </div>
+
+              {/* Inasistencia del cliente (28/09): el prestador reportó que llegó al domicilio y el
+                  cliente no estaba. No se le pagó ni se le reembolsó nada automáticamente — el Admin
+                  tiene que elegir a mano a quién le da la razón (ver comentario en
+                  handleResolverInasistenciaPrestador sobre por qué no se puede verificar esto). */}
+              {o.estado === "EnDisputa" && o.inasistenciaClienteReportadaEn && !o.inasistenciaResueltaEn && (
+                <div className="border-t border-safety/30 bg-safety/5 -mx-3 -mb-3 px-3 py-2 rounded-b-lg flex flex-col gap-2">
+                  <p className="text-xs text-ink/70">
+                    <span className="font-medium text-safety">Disputa por inasistencia del cliente</span> — reportada el{" "}
+                    {new Date(o.inasistenciaClienteReportadaEn).toLocaleString("es-AR")}.
+                    {o.inasistenciaClienteComentario && <> Comentario del prestador: “{o.inasistenciaClienteComentario}”.</>}
+                  </p>
+                  <p className="text-xs text-ink/50">
+                    No hay forma de verificar desde el sistema si el prestador realmente se presentó o no — elegí a quién
+                    le das la razón según lo que puedas averiguar por fuera (chat, llamada, etc.).
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleResolverInasistenciaPrestador(o.id)}
+                      disabled={procesandoOrdenId === o.id}
+                      className="text-xs bg-stamp text-paper rounded px-2 py-1 hover:opacity-90 transition-colors disabled:opacity-50"
+                    >
+                      Dar la razón al prestador (pagarle)
+                    </button>
+                    {o.pagoEstado === "Retenido" && (
+                      <button
+                        onClick={() => handleReembolsarOrden(o.id)}
+                        disabled={procesandoOrdenId === o.id}
+                        className="text-xs border border-red-700/40 text-red-700 dark:text-red-400 rounded px-2 py-1 hover:bg-red-700/10 transition-colors disabled:opacity-50"
+                      >
+                        Dar la razón al cliente (reembolsar)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Modelo de retención (23/09): estado del pago retenido/liberado/reembolsado, cuánto
                   le corresponde al prestador, y las dos acciones manuales de Admin que antes no

@@ -22,6 +22,16 @@ const CALIFICACION_INICIAL: Omit<CrearCalificacionRequest, "comentario"> = {
   garantia: 0,
 };
 
+// Calificación del cliente por parte del prestador (28/09) — 3 criterios simples, a diferencia de
+// los 6 de arriba, siguiendo el mockup aprobado ("Calificar al cliente": puntualidad/comunicación/trato).
+type CalificacionClienteForm = { puntualidad: number; comunicacion: number; trato: number };
+const CALIFICACION_CLIENTE_INICIAL: CalificacionClienteForm = { puntualidad: 0, comunicacion: 0, trato: 0 };
+const CRITERIOS_CALIFICACION_CLIENTE: { key: keyof CalificacionClienteForm; label: string }[] = [
+  { key: "puntualidad", label: "Puntualidad" },
+  { key: "comunicacion", label: "Comunicación" },
+  { key: "trato", label: "Trato" },
+];
+
 function claveMes(fechaISO: string): string {
   const fecha = new Date(fechaISO);
   return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
@@ -54,12 +64,9 @@ function OrdenesContenido() {
   const [calificacionForm, setCalificacionForm] = useState(CALIFICACION_INICIAL);
   const [criterioExpandido, setCriterioExpandido] = useState<string | null>(null);
   const [comentario, setComentario] = useState("");
-  // Fotos de la reseña (27/09): se suben recién después de crear la calificación, porque el
-  // endpoint de fotos necesita que la reseña ya exista (ver OrdenesController.AgregarFotoCalificacion).
-  const [ordenSubiendoFotos, setOrdenSubiendoFotos] = useState<string | null>(null);
-  const [fotosResenia, setFotosResenia] = useState<{ id: string; url: string }[]>([]);
-  const [subiendoFotoResenia, setSubiendoFotoResenia] = useState(false);
-  const fileInputFotoReseniaRef = useRef<HTMLInputElement>(null);
+  const [ordenCalificandoCliente, setOrdenCalificandoCliente] = useState<string | null>(null);
+  const [calificacionClienteForm, setCalificacionClienteForm] = useState<CalificacionClienteForm>(CALIFICACION_CLIENTE_INICIAL);
+  const [comentarioCliente, setComentarioCliente] = useState("");
   const [filtroMes, setFiltroMes] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
 
@@ -130,6 +137,28 @@ function OrdenesContenido() {
     }
   }
 
+  // Inasistencia del cliente (28/09): el prestador se presentó en el domicilio a la hora
+  // agendada y el cliente no estaba/no atendió. El backend valida el margen de tolerancia
+  // (ReglasNegocio.MargenReporteInasistenciaClienteMinutos) y devuelve un error claro si todavía
+  // no pasó ese tiempo — por eso mostramos el error tal cual viene en vez de calcularlo acá.
+  async function handleReportarInasistencia(ordenId: string) {
+    setError(null);
+    const comentario = window.prompt(
+      "Contanos brevemente qué pasó cuando llegaste (opcional). Esto pasa la orden a revisión de un Admin: no se libera ni se reembolsa el pago automáticamente."
+    );
+    if (comentario === null) return; // el prestador canceló el prompt
+
+    try {
+      await apiFetch(`/api/ordenes/${ordenId}/reportar-inasistencia-cliente`, {
+        method: "PUT",
+        body: JSON.stringify({ comentario: comentario.trim() || undefined }),
+      });
+      await cargarOrdenes();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al reportar la inasistencia");
+    }
+  }
+
   async function handleEnviarCalificacion(e: React.FormEvent) {
     e.preventDefault();
     if (!ordenCalificando) return;
@@ -147,50 +176,39 @@ function OrdenesContenido() {
         method: "POST",
         body: JSON.stringify(body),
       });
-      // En vez de cerrar directo, pasamos al paso de fotos (opcional, hasta 5) — la calificación
-      // ya quedó guardada, esto solo suma fotos a la reseña.
-      setOrdenSubiendoFotos(ordenCalificando);
       setOrdenCalificando(null);
       setCalificacionForm(CALIFICACION_INICIAL);
       setComentario("");
-      setFotosResenia([]);
       await cargarOrdenes();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al enviar la calificación");
     }
   }
 
-  async function handleSubirFotoResenia(e: React.ChangeEvent<HTMLInputElement>) {
-    const archivo = e.target.files?.[0];
-    if (!archivo || !ordenSubiendoFotos) return;
+  // Calificación del cliente por parte del prestador (28/09) — ver comentario junto al estado de
+  // arriba. Reutiliza el mismo patrón de validación/envío que handleEnviarCalificacion, con 3
+  // criterios en vez de 6.
+  async function handleEnviarCalificacionCliente(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ordenCalificandoCliente) return;
 
-    setError(null);
-    setSubiendoFotoResenia(true);
-
-    const token = localStorage.getItem("fixit_token");
-    const formData = new FormData();
-    formData.append("archivo", archivo);
+    const faltantes = CRITERIOS_CALIFICACION_CLIENTE.filter((c) => calificacionClienteForm[c.key] === 0);
+    if (faltantes.length > 0) {
+      setError(`Te falta calificar: ${faltantes.map((c) => c.label).join(", ")}.`);
+      return;
+    }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/api/ordenes/${ordenSubiendoFotos}/calificacion/fotos`, {
+      await apiFetch(`/api/ordenes/${ordenCalificandoCliente}/calificacion-cliente`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+        body: JSON.stringify({ ...calificacionClienteForm, comentario: comentarioCliente || undefined }),
       });
-
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.error ?? "Error al subir la foto");
-      }
-
-      const nuevaFoto = await response.json();
-      setFotosResenia((prev) => [...prev, { id: nuevaFoto.id, url: nuevaFoto.url }]);
+      setOrdenCalificandoCliente(null);
+      setCalificacionClienteForm(CALIFICACION_CLIENTE_INICIAL);
+      setComentarioCliente("");
+      await cargarOrdenes();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al subir la foto");
-    } finally {
-      setSubiendoFotoResenia(false);
-      if (fileInputFotoReseniaRef.current) fileInputFotoReseniaRef.current.value = "";
+      setError(err instanceof ApiError ? err.message : "Error al calificar al cliente");
     }
   }
 
@@ -286,7 +304,11 @@ function OrdenesContenido() {
 
           return (
             <li key={o.id}>
-              <OrdenTicket orden={o} nombreContraparte={nombreContraparte}>
+              <OrdenTicket
+                orden={o}
+                nombreContraparte={nombreContraparte}
+                linkPerfilClienteId={esPrestador ? o.clienteId : undefined}
+              >
                 <div className="flex items-center gap-3 flex-wrap">
                   {esPrestador && o.estado === "Pagado" && (
                     <button
@@ -306,6 +328,27 @@ function OrdenesContenido() {
                     </button>
                   )}
 
+                  {esPrestador && o.estado === "Pagado" && o.fechaHoraProgramada && (
+                    <button
+                      onClick={() => handleReportarInasistencia(o.id)}
+                      className="text-sm border border-red-700/40 text-red-700 dark:text-red-400 rounded px-3 py-1 hover:border-red-700 transition-colors"
+                    >
+                      El cliente no estaba
+                    </button>
+                  )}
+
+                  {o.estado === "EnDisputa" && o.inasistenciaClienteReportadaEn && !o.inasistenciaResueltaEn && (
+                    <span className="text-sm text-safety">
+                      En revisión por un Admin: se reportó que el cliente no estaba en el domicilio.
+                    </span>
+                  )}
+
+                  {o.estado !== "EnDisputa" && o.inasistenciaResueltaEn && (
+                    <span className="text-sm text-ink/40">
+                      Disputa por inasistencia resuelta{o.inasistenciaResolucion === "PagoPrestador" ? " a favor del prestador" : ""}.
+                    </span>
+                  )}
+
                   {esCliente && o.estado === "Completado" && !o.yaCalificada && (
                     <button
                       onClick={() => {
@@ -320,6 +363,22 @@ function OrdenesContenido() {
 
                   {o.yaCalificada && (
                     <span className="text-sm text-ink/40">Ya calificaste este trabajo</span>
+                  )}
+
+                  {esPrestador && o.estado === "Completado" && !o.yaCalificadaComoCliente && (
+                    <button
+                      onClick={() => {
+                        setError(null);
+                        setOrdenCalificandoCliente(o.id);
+                      }}
+                      className="text-sm border border-ink/30 text-ink rounded px-3 py-1 hover:border-ink transition-colors"
+                    >
+                      Calificar cliente
+                    </button>
+                  )}
+
+                  {o.yaCalificadaComoCliente && (
+                    <span className="text-sm text-ink/40">Ya calificaste a este cliente</span>
                   )}
                 </div>
 
@@ -388,45 +447,46 @@ function OrdenesContenido() {
                   </form>
                 )}
 
-                {ordenSubiendoFotos === o.id && (
-                  <div className="mt-3 pt-3 border-t border-ink/10 flex flex-col gap-3">
-                    <p className="text-xs text-ink/50">
-                      Fotos del trabajo (opcional, hasta 5). El prestador puede después pedirte permiso
-                      para mostrarlas en su perfil, pero vos decidís si se las das.
-                    </p>
-                    <div className="grid grid-cols-5 gap-2">
-                      {fotosResenia.map((foto) => (
-                        <div key={foto.id} className="aspect-square rounded overflow-hidden bg-ink/5">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={foto.url} alt="Foto de la reseña" className="w-full h-full object-cover" />
-                        </div>
-                      ))}
-                      {fotosResenia.length < 5 && (
-                        <button
-                          type="button"
-                          onClick={() => fileInputFotoReseniaRef.current?.click()}
-                          disabled={subiendoFotoResenia}
-                          className="aspect-square rounded border border-dashed border-ink/30 flex items-center justify-center text-ink/40 text-xl hover:border-ink/60 hover:text-ink/60 transition-colors disabled:opacity-50"
-                        >
-                          {subiendoFotoResenia ? "..." : "+"}
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      ref={fileInputFotoReseniaRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={handleSubirFotoResenia}
+                {ordenCalificandoCliente === o.id && (
+                  <form onSubmit={handleEnviarCalificacionCliente} className="mt-3 pt-3 border-t border-ink/10 flex flex-col gap-3">
+                    <p className="text-xs text-ink/50">Calificá cómo fue trabajar con este cliente.</p>
+
+                    {CRITERIOS_CALIFICACION_CLIENTE.map((criterio) => (
+                      <div key={criterio.key} className="flex items-center justify-between gap-2">
+                        <label className="text-sm text-ink/70">{criterio.label}</label>
+                        <SelectorEstrellas
+                          valor={calificacionClienteForm[criterio.key]}
+                          onChange={(valor) =>
+                            setCalificacionClienteForm((prev) => ({ ...prev, [criterio.key]: valor }))
+                          }
+                          tamaño="text-base"
+                        />
+                      </div>
+                    ))}
+
+                    <textarea
+                      placeholder="Comentario (opcional)"
+                      className="border border-ink/20 rounded p-2 bg-paper"
+                      value={comentarioCliente}
+                      onChange={(e) => setComentarioCliente(e.target.value)}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setOrdenSubiendoFotos(null)}
-                      className="bg-copper text-paper rounded p-2 text-sm"
-                    >
-                      Listo
-                    </button>
-                  </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null);
+                          setOrdenCalificandoCliente(null);
+                          setCalificacionClienteForm(CALIFICACION_CLIENTE_INICIAL);
+                        }}
+                        className="border border-ink/20 rounded p-2 flex-1 text-sm"
+                      >
+                        Cancelar
+                      </button>
+                      <button type="submit" className="bg-copper text-paper rounded p-2 flex-1 text-sm">
+                        Enviar calificación
+                      </button>
+                    </div>
+                  </form>
                 )}
               </OrdenTicket>
             </li>

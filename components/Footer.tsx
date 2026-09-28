@@ -8,8 +8,8 @@ import { ThemeToggleFooter } from "@/components/ThemeToggle";
 export default function Footer() {
   return (
     <footer className="mt-auto border-t border-ink/10 py-4 px-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-ink/40">
-      <span>© {new Date().getFullYear()} Oficy</span>
       <a href="/quienes-somos" className="hover:text-copper hover:underline">Quiénes somos</a>
+      <a href="/contacto" className="hover:text-copper hover:underline">Contacto</a>
       <a href="/terminos" className="hover:text-copper hover:underline">Términos y Condiciones</a>
       <a href="/privacidad" className="hover:text-copper hover:underline">Política de Privacidad</a>
       <ThemeToggleFooter />

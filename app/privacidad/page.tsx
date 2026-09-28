@@ -79,7 +79,8 @@ export default function PrivacidadPage() {
           <p>
             De acuerdo con la Ley de Protección de Datos Personales (Ley 25.326), tenés derecho a acceder, rectificar,
             actualizar o suprimir tus datos personales, así como a revocar el consentimiento que hayas dado para su
-            tratamiento. Para ejercer estos derechos, escribinos a [completar email de contacto]. También podés
+            tratamiento. Para ejercer estos derechos, escribinos a{" "}
+            <a href="mailto:legal@oficy.ar" className="text-copper hover:underline">legal@oficy.ar</a>. También podés
             presentar un reclamo ante la Agencia de Acceso a la Información Pública, el organismo de control de esta
             ley, si considerás que tus derechos no fueron respetados.
           </p>
@@ -123,8 +124,8 @@ export default function PrivacidadPage() {
         <section>
           <h2>11. Contacto</h2>
           <p>
-            Ante cualquier consulta sobre esta Política o sobre tus datos personales, podés escribirnos a [completar
-            email de contacto].
+            Ante cualquier consulta sobre esta Política o sobre tus datos personales, podés escribirnos a{" "}
+            <a href="mailto:legal@oficy.ar" className="text-copper hover:underline">legal@oficy.ar</a>.
           </p>
         </section>
 

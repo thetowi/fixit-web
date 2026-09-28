@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { BloqueDisponibilidad, formatoDistancia, formatoDuracion, OrdenAgenda } from "@/types/agenda";
 import { linkGoogleMaps } from "@/lib/mapas";
-import { colorCategoria } from "@/lib/coloresCategoria";
+import { colorCategoria, estiloEtiquetaCategoria } from "@/lib/coloresCategoria";
 
 const DURACION_POR_DEFECTO = 60; // para turnos viejos que quedaron sin duracionMinutos cargado
 
 const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const PASO_MINUTOS = 30;
 const RANGO_POR_DEFECTO = { desde: 8 * 60, hasta: 20 * 60 }; // 8:00 a 20:00, si no hay disponibilidad cargada
-const PX_HORA = 56; // alto de una hora en la grilla semanal (desktop)
+const HORA_POR_DEFECTO_AL_AGENDAR = "09:00"; // si el día no tiene ningún horario libre calculable
 
 function minutosDelString(hora: string): number {
   const [h, m] = hora.split(":").map(Number);
@@ -62,25 +63,20 @@ export default function CalendarioSemanal({
     return d;
   });
 
-  // Rango de horas: si hay disponibilidad cargada, mostramos desde la más temprana hasta la más
-  // tardía (redondeando a la hora); si no, usamos el rango por defecto para no mostrar una grilla vacía.
+  // Rango de horas de la disponibilidad cargada (28/09: ya no se dibuja una grilla por hora en el
+  // desktop, pero se sigue usando este rango para calcular qué franjas están libres — tanto para
+  // la vista mobile como para elegir un horario por defecto razonable al tocar "Agregar turno").
   const { desde: inicioRango, hasta: finRango } = (() => {
     if (bloques.length === 0) return RANGO_POR_DEFECTO;
     const inicios = bloques.map((b) => minutosDelString(b.horaInicio));
     const fines = bloques.map((b) => minutosDelString(b.horaFin));
     const desde = Math.floor(Math.min(...inicios) / 60) * 60;
     const hasta = Math.ceil(Math.max(...fines) / 60) * 60;
-    // Siempre cubrimos al menos el rango por defecto, y lo extendemos si la disponibilidad
-    // real del prestador cae fuera de esa franja (por ejemplo, si trabaja de noche).
     return {
       desde: Math.min(desde, RANGO_POR_DEFECTO.desde),
       hasta: Math.max(hasta, RANGO_POR_DEFECTO.hasta),
     };
   })();
-
-  const horas: number[] = [];
-  for (let m = inicioRango; m < finRango; m += 60) horas.push(m);
-  const altoTotal = ((finRango - inicioRango) / 60) * PX_HORA;
 
   function estaDisponible(dia: Date, slotInicio: number): boolean {
     return bloques.some(
@@ -116,31 +112,9 @@ export default function CalendarioSemanal({
       .sort((a, b) => new Date(a.fechaHoraProgramada!).getTime() - new Date(b.fechaHoraProgramada!).getTime());
   }
 
-  // Franjas de disponibilidad declarada del día (independiente de si ya tienen un turno encima:
-  // el turno se dibuja arriba, con su propia tarjeta), fusionando slots de 30 min consecutivos
-  // para pintar un solo rectángulo de fondo por franja en vez de una rayita por casillero.
-  function franjasDisponiblesDia(dia: Date): { inicio: number; fin: number }[] {
-    const franjas: { inicio: number; fin: number }[] = [];
-    let actual: { inicio: number; fin: number } | null = null;
-    for (let slot = inicioRango; slot < finRango; slot += PASO_MINUTOS) {
-      if (estaDisponible(dia, slot)) {
-        if (actual && actual.fin === slot) {
-          actual.fin = slot + PASO_MINUTOS;
-        } else {
-          if (actual) franjas.push(actual);
-          actual = { inicio: slot, fin: slot + PASO_MINUTOS };
-        }
-      } else if (actual) {
-        franjas.push(actual);
-        actual = null;
-      }
-    }
-    if (actual) franjas.push(actual);
-    return franjas;
-  }
-
   // Igual que arriba, pero restando lo ya ocupado por un turno — es lo que se ofrece como chip
-  // tocable en la vista mobile.
+  // tocable en la vista mobile, y de dónde sale el horario por defecto al tocar "Agregar turno"
+  // en el desktop.
   function franjasLibresDelDia(dia: Date): { inicio: number; fin: number }[] {
     const libres: { inicio: number; fin: number }[] = [];
     let actual: { inicio: number; fin: number } | null = null;
@@ -162,116 +136,92 @@ export default function CalendarioSemanal({
     return libres;
   }
 
-  const minutosAhora = minutosDelDia(hoy);
-
-  // Tocar un tramo vacío de la columna agenda un turno ahí: convertimos la posición Y del click
-  // dentro de la columna a minutos del día, redondeando al escalón de 30 min más cercano.
-  function handleClickColumna(e: React.MouseEvent<HTMLDivElement>, dia: Date) {
+  // Al tocar "+ Agregar turno" en una columna del desktop (28/09: reemplaza el click directo
+  // sobre un horario de la grilla, que dejó de existir con el rediseño sin franja horaria):
+  // proponemos el primer horario libre del día si hay disponibilidad cargada, o un horario por
+  // defecto razonable si no — el prestador igual puede cambiar la hora a mano en el formulario.
+  function agregarTurno(dia: Date) {
     if (!onCeldaDisponibleClick) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const offsetY = e.clientY - rect.top;
-    let minuto = inicioRango + Math.round((offsetY / PX_HORA) * 60 / PASO_MINUTOS) * PASO_MINUTOS;
-    minuto = Math.max(inicioRango, Math.min(finRango - PASO_MINUTOS, minuto));
-    if (!estaDisponible(dia, minuto) || ordenEnMinuto(dia, minuto)) return;
-    onCeldaDisponibleClick(dia, formatoHora(minuto));
+    const libres = franjasLibresDelDia(dia);
+    const horaSugerida = libres.length > 0 ? formatoHora(libres[0].inicio) : HORA_POR_DEFECTO_AL_AGENDAR;
+    onCeldaDisponibleClick(dia, horaSugerida);
   }
 
-  function TarjetaTurno({ orden, dia }: { orden: OrdenAgenda; dia: Date }) {
-    const { inicio, fin } = rangoDeOrden(orden);
-    const top = ((Math.max(inicio, inicioRango) - inicioRango) / 60) * PX_HORA;
-    const alto = Math.max(((Math.min(fin, finRango) - Math.max(inicio, inicioRango)) / 60) * PX_HORA, 30);
-    const color = colorCategoria(orden.categoriaNombre);
-    void dia;
-
+  function TarjetaTurno({ orden }: { orden: OrdenAgenda }) {
+    const etiqueta = estiloEtiquetaCategoria(orden.categoriaNombre);
     return (
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          setOrdenSeleccionada(orden);
-        }}
-        title={`${orden.clienteNombreCompleto} · ${orden.descripcion || orden.categoriaNombre}`}
-        style={{ top, height: alto, borderLeftColor: color }}
-        className="absolute left-1 right-1 bg-surface rounded-lg border-l-[3px] shadow-sm px-2 py-1 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+      <button
+        onClick={() => setOrdenSeleccionada(orden)}
+        className="text-left w-full bg-paper hover:bg-white border border-transparent hover:border-ink/8 hover:shadow-sm rounded-2xl px-3 py-2.5 transition-all"
       >
-        <p className="font-mono text-[9px] text-ink/40 leading-none">
-          {formatoHora(inicio)}
+        <p className="font-mono text-[10px] text-ink/40 leading-none">
+          {formatoHora(minutosDelDia(new Date(orden.fechaHoraProgramada!)))}
           {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
         </p>
-        <p className="text-[11px] font-semibold text-ink leading-tight truncate mt-0.5">{orden.clienteNombreCompleto}</p>
+        <p className="text-[13px] font-bold text-ink leading-tight truncate mt-1">{orden.clienteNombreCompleto}</p>
         {orden.descripcion && (
-          <p className="text-[10px] text-ink/55 leading-tight truncate">{orden.descripcion}</p>
+          <p className="text-[11.5px] text-ink/55 leading-snug truncate mt-0.5">{orden.descripcion}</p>
         )}
-      </div>
+        <span
+          style={etiqueta}
+          className="inline-block mt-2 text-[9.5px] font-semibold px-2 py-0.5 rounded-full"
+        >
+          {orden.categoriaNombre}
+        </span>
+      </button>
     );
   }
 
   return (
     <div>
-      {/* --- Vista semanal (md en adelante) --- */}
-      <div className="hidden md:block overflow-x-auto">
-        <div className="grid grid-cols-[52px_repeat(7,minmax(96px,1fr))] w-full min-w-[700px]">
-          <div />
-          {dias.map((d, i) => {
-            const esHoy = fechaHoyEsIgual(d, hoy);
-            return (
-              <div key={i} className="text-center pb-2.5 border-b border-ink/8">
-                <p className={`font-mono text-[10px] uppercase tracking-wide ${esHoy ? "text-copper" : "text-ink/40"}`}>
-                  {DIAS_CORTOS[d.getDay()]}
-                </p>
-                <span
-                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full mt-1 text-[13px] font-semibold ${
-                    esHoy ? "bg-copper text-paper" : "text-ink"
-                  }`}
+      {/* --- Vista semanal (md en adelante): grilla de 7 columnas, sin franja horaria (28/09) --- */}
+      <div className="hidden md:block">
+        <div className="bg-surface border border-ink/8 rounded-[18px] p-5 shadow-sm">
+          <div className="grid grid-cols-7 gap-2.5">
+            {dias.map((dia, i) => {
+              const esHoy = fechaHoyEsIgual(dia, hoy);
+              const turnosDia = turnosDelDia(dia);
+              return (
+                <div
+                  key={i}
+                  className={`flex flex-col gap-2 rounded-2xl ${esHoy ? "bg-copper/[0.055] p-2" : "p-0"}`}
                 >
-                  {d.getDate()}
-                </span>
-              </div>
-            );
-          })}
-
-          {/* Columna de horas */}
-          <div>
-            {horas.map((m) => (
-              <div key={m} className="font-mono text-[10px] text-ink/35 text-right pr-2" style={{ height: PX_HORA }}>
-                <span className="relative -top-1.5">{formatoHora(m)}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Columnas de días */}
-          {dias.map((dia, i) => {
-            const esHoy = fechaHoyEsIgual(dia, hoy);
-            const clickeable = !!onCeldaDisponibleClick;
-            return (
-              <div
-                key={i}
-                onClick={clickeable ? (e) => handleClickColumna(e, dia) : undefined}
-                style={{ height: altoTotal }}
-                className={`relative border-l border-ink/6 ${esHoy ? "bg-copper/[0.03]" : ""} ${
-                  clickeable ? "cursor-pointer" : ""
-                }`}
-              >
-                {franjasDisponiblesDia(dia).map((f, fi) => (
-                  <div
-                    key={fi}
-                    style={{ top: ((f.inicio - inicioRango) / 60) * PX_HORA, height: ((f.fin - f.inicio) / 60) * PX_HORA }}
-                    className="absolute left-0 right-0 bg-stamp/[0.09] pointer-events-none"
-                  />
-                ))}
-                {esHoy && minutosAhora >= inicioRango && minutosAhora < finRango && (
-                  <div
-                    style={{ top: ((minutosAhora - inicioRango) / 60) * PX_HORA }}
-                    className="absolute left-0 right-0 border-t-2 border-copper pointer-events-none z-10"
-                  >
-                    <span className="absolute -left-[3px] -top-[4px] w-2 h-2 rounded-full bg-copper" />
+                  <div className="text-center pb-1">
+                    <p className={`font-mono text-[10px] uppercase tracking-wide font-semibold ${esHoy ? "text-copper" : "text-ink/40"}`}>
+                      {DIAS_CORTOS[dia.getDay()]}
+                    </p>
+                    {esHoy ? (
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full mt-1 text-sm font-bold bg-copper text-paper">
+                        {dia.getDate()}
+                      </span>
+                    ) : (
+                      <span className="block mt-1 text-base font-bold text-ink">{dia.getDate()}</span>
+                    )}
                   </div>
-                )}
-                {turnosDelDia(dia).map((orden) => (
-                  <TarjetaTurno key={orden.id} orden={orden} dia={dia} />
-                ))}
-              </div>
-            );
-          })}
+
+                  <div className="flex flex-col gap-2 flex-1">
+                    {turnosDia.length > 0 ? (
+                      turnosDia.map((orden) => <TarjetaTurno key={orden.id} orden={orden} />)
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
+                        <span className="w-7 h-7 rounded-full border-[1.5px] border-dashed border-ink/20 mb-2" />
+                        <span className="text-[10px] text-ink/35">Día libre</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {onCeldaDisponibleClick && (
+                    <button
+                      onClick={() => agregarTurno(dia)}
+                      className="text-[11px] font-medium text-ink/35 hover:text-copper py-1.5 rounded-lg hover:bg-copper/[0.06] transition-colors"
+                    >
+                      + Agregar turno
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -391,18 +341,6 @@ export default function CalendarioSemanal({
         })()}
       </div>
 
-      <div className="hidden md:flex items-center gap-5 mt-4 pt-3 border-t border-ink/8 text-xs text-ink/50">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-stamp/20 inline-block" /> Disponible
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm border border-ink/15 bg-surface inline-block" /> Turno agendado
-        </span>
-        {onCeldaDisponibleClick && (
-          <span className="text-ink/40">Tocá un horario disponible para agendar un turno pendiente ahí</span>
-        )}
-      </div>
-
       {ordenSeleccionada && (
         <div
           onClick={() => setOrdenSeleccionada(null)}
@@ -428,7 +366,15 @@ export default function CalendarioSemanal({
             <dl className="text-sm space-y-2">
               <div>
                 <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Cliente</dt>
-                <dd className="text-ink">{ordenSeleccionada.clienteNombreCompleto}</dd>
+                <dd className="text-ink flex items-center gap-2 flex-wrap">
+                  <span>{ordenSeleccionada.clienteNombreCompleto}</span>
+                  <Link
+                    href={`/prestador/clientes/${ordenSeleccionada.clienteId}`}
+                    className="text-xs text-copper hover:underline"
+                  >
+                    Ver perfil
+                  </Link>
+                </dd>
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Rubro</dt>

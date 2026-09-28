@@ -169,7 +169,8 @@ export default function TerminosPage() {
         <section>
           <h2>15. Contacto</h2>
           <p>
-            Ante cualquier consulta sobre estos Términos, podés escribirnos a [completar email de contacto].
+            Ante cualquier consulta sobre estos Términos, podés escribirnos a{" "}
+            <a href="mailto:legal@oficy.ar" className="text-copper hover:underline">legal@oficy.ar</a>.
           </p>
         </section>
 

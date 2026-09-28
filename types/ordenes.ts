@@ -20,6 +20,7 @@ export interface Orden {
   fechaHoraProgramada?: string | null;
   duracionMinutos?: number | null;
   yaCalificada: boolean;
+  yaCalificadaComoCliente: boolean; // 28/09 — el prestador ya calificó al cliente de esta orden
   conversacionId: string;
 
   // Modelo de retención (23/09, ver backend OrdenResponse.cs) — el backend ya los mandaba,
@@ -28,6 +29,12 @@ export interface Orden {
   montoATransferirPrestador?: number;
   transferenciaPrestadorConfirmadaEn?: string | null;
   motivoReembolso?: string | null;
+
+  // Inasistencia del cliente reportada por el prestador (28/09, ver backend OrdenResponse.cs).
+  inasistenciaClienteReportadaEn?: string | null;
+  inasistenciaClienteComentario?: string | null;
+  inasistenciaResueltaEn?: string | null;
+  inasistenciaResolucion?: string | null;
 }
 
 // "Trabajo en curso" (24/09): espejo de FixIt.Application.DTOs.Ordenes.OrdenEnCursoResponse.
