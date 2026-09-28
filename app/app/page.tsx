@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
+import { irALandingPublica } from "@/lib/dominio";
 import { obtenerUbicacionActual } from "@/lib/geolocation";
 import { Usuario } from "@/types/auth";
 import { PrestadorDestacado } from "@/types/destacados";
@@ -124,8 +125,11 @@ export default function AppHome() {
   useEffect(() => {
     const u = obtenerUsuario();
     if (!u) {
-      // Sin sesión, este dashboard no tiene nada que mostrar — a la landing pública.
-      router.replace("/");
+      // Sin sesión, este dashboard no tiene nada que mostrar — a la landing pública. En
+      // app.oficy.ar esto tiene que cruzar de verdad a oficy.ar (ver irALandingPublica en
+      // lib/dominio.ts) — un router.replace("/") liso se queda dando vueltas en el mismo
+      // subdominio, porque el middleware reescribe esa "/" de nuevo a este mismo /app vacío.
+      irALandingPublica(router);
       return;
     }
     setUsuario(u);

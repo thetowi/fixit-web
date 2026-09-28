@@ -35,3 +35,22 @@ export function irAlDashboard(router: RouterMinimo, modo: "push" | "replace" = "
 
   router[modo]("/app");
 }
+
+// La dirección inversa: mandar a la landing pública a alguien que no tiene sesión iniciada (ej.
+// "/app" cuando detecta que no hay usuario logueado — ver app/app/page.tsx). Antes de este helper
+// (28/09) ese caso hacía un router.replace("/") liso, que en app.oficy.ar es una navegación DENTRO
+// del mismo origen — el middleware reescribe esa "/" de vuelta a "/app" (ver middleware.ts), así
+// que la persona se quedaba mirando el mismo /app vacío en vez de la landing real. Mismo criterio
+// que irAlDashboard: cruzar de app.oficy.ar a oficy.ar necesita una navegación de página completa
+// (window.location), no una del router de Next.
+export function irALandingPublica(router: RouterMinimo, modo: "push" | "replace" = "replace") {
+  if (typeof window === "undefined") return;
+  const host = window.location.hostname;
+
+  if (host === SUBDOMINIO_APP) {
+    window.location.href = `https://${DOMINIO_PRINCIPAL}/`;
+    return;
+  }
+
+  router[modo]("/");
+}
