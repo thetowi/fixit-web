@@ -69,6 +69,11 @@ export default function ConversacionPage() {
   // burbuja del chat — así se puede ver la causa exacta desde el celular mismo, sin necesitar
   // conectar el teléfono a una compu para abrir la consola del navegador.
   const [erroresAudio, setErroresAudio] = useState<Record<string, string>>({});
+  // Indicador de "está escribiendo..." (29/09). Nada de esto se persiste: es un aviso efímero por
+  // SignalR (ver NotificarEscribiendo/UsuarioEscribiendo en ChatHub.cs). No hay un evento explícito
+  // de "dejó de escribir" — en vez de eso, cada aviso que llega reinicia un timeout propio que
+  // apaga el indicador si pasan 3s sin que llegue uno nuevo (typeof abajo).
+  const [otroEscribiendo, setOtroEscribiendo] = useState(false);
 
   const conexionRef = useRef<signalR.HubConnection | null>(null);
   const finalMensajesRef = useRef<HTMLDivElement>(null);
@@ -83,6 +88,11 @@ export default function ConversacionPage() {
   // si leyera el estado de React ahí adentro vería siempre el valor de ese momento (0), no el
   // último.
   const segundosGrabadosRef = useRef(0);
+  // Timeout que apaga "está escribiendo..." si no llega un nuevo aviso (ver más arriba), y el
+  // control de cuándo mandamos NOSOTROS ese aviso al escribir (throttle: como mucho uno cada
+  // INTERVALO_AVISO_ESCRIBIENDO ms mientras la persona sigue tipeando, no en cada tecla).
+  const timeoutEscribiendoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ultimoAvisoEscribiendoRef = useRef(0);
   // obtenerUsuario() lee localStorage, que no existe en el server: si lo leyéramos ya en el
   // useState inicial, el primer render del cliente (hidratación) no coincidiría con el HTML
   // que mandó el server (que siempre lo ve como null) y React tira "Hydration failed". Por eso
@@ -158,6 +168,14 @@ export default function ConversacionPage() {
           setMensajes((prev) => prev.map((m) => (m.id === mensaje.id ? mensaje : m)));
         });
 
+        // Ver el comentario de NotificarEscribiendo en ChatHub.cs: no hay evento de "dejó de
+        // escribir", así que cada aviso reinicia este timeout de 3s que apaga el indicador solo.
+        conexion.on("UsuarioEscribiendo", () => {
+          setOtroEscribiendo(true);
+          if (timeoutEscribiendoRef.current) clearTimeout(timeoutEscribiendoRef.current);
+          timeoutEscribiendoRef.current = setTimeout(() => setOtroEscribiendo(false), 3000);
+        });
+
         conexion.onreconnected(() => {
           // SignalR no restaura solo la membresía a grupos tras reconectar: hay que volver a unirse
           conexion.invoke("UnirseAConversacion", conversacionId).catch(() => {
@@ -183,8 +201,20 @@ export default function ConversacionPage() {
     return () => {
       activo = false;
       conexionRef.current?.stop();
+      if (timeoutEscribiendoRef.current) clearTimeout(timeoutEscribiendoRef.current);
     };
   }, [conversacionId, router]);
+
+  // Se llama en cada tecla del input (onChange, más abajo), pero solo le pega al hub como mucho
+  // una vez cada 1.5s mientras la persona sigue tipeando — evitar mandar un mensaje de SignalR por
+  // cada letra.
+  const INTERVALO_AVISO_ESCRIBIENDO = 1500;
+  function avisarQueEstoyEscribiendo() {
+    const ahora = Date.now();
+    if (ahora - ultimoAvisoEscribiendoRef.current < INTERVALO_AVISO_ESCRIBIENDO) return;
+    ultimoAvisoEscribiendoRef.current = ahora;
+    conexionRef.current?.invoke("NotificarEscribiendo", conversacionId).catch(() => {});
+  }
 
   // Con ofertas que vencen en 30 minutos, refrescamos el contador cada 30s aunque no llegue
   // ningún mensaje nuevo, para que no se quede mostrando un tiempo viejo mientras el chat está abierto
@@ -796,6 +826,9 @@ export default function ConversacionPage() {
 
       {error && !mostrandoOferta && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{error}</p>}
       {subiendoArchivo && <p className="text-ink/40 text-xs mb-2">Enviando...</p>}
+      {!subiendoArchivo && otroEscribiendo && (
+        <p className="text-ink/40 text-xs mb-2 italic">Escribiendo...</p>
+      )}
 
       <input
         ref={inputArchivoRef}
@@ -843,7 +876,10 @@ export default function ConversacionPage() {
             disabled={!conectado}
             className="border border-ink/20 rounded p-2 flex-1 min-w-0 bg-surface disabled:opacity-50"
             value={nuevoMensaje}
-            onChange={(e) => setNuevoMensaje(e.target.value)}
+            onChange={(e) => {
+              setNuevoMensaje(e.target.value);
+              if (e.target.value.trim()) avisarQueEstoyEscribiendo();
+            }}
           />
           {!nuevoMensaje.trim() && (
             <button
