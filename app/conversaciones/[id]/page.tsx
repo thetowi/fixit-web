@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
-import { Paperclip, Mic, Check, X, Send, BanknoteArrowUp } from "lucide-react";
+import { Paperclip, Mic, Check, X, Send, BanknoteArrowUp, ShieldCheck } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { crearConexionChat } from "@/lib/chatConnection";
@@ -25,6 +25,25 @@ const MAX_SEGUNDOS_AUDIO = 120;
 // backend, hay que actualizar este número a mano (o, mejor, exponerlo por API antes de sumar la
 // lógica real de los 10 trabajos gratis).
 const PORCENTAJE_COMISION_ESTIMADO = 0.1;
+
+// Aviso de "no pagues/cobres por fuera de la app" (28/09, a pedido del usuario) — combina las dos
+// opciones del mockup (Artifact 8dV5p5kqPaK1zATarpm2bV): la Opción A (modal que bloquea el paso)
+// se muestra solo la primera vez que cada parte entra a ESTA conversación puntual, y la Opción B
+// (tarjeta fija arriba del todo) queda de recordatorio permanente después de eso — y también para
+// quien ya lo confirmó, aunque no se le vuelva a mostrar el modal. Textos aprobados por el usuario
+// en el mockup; el texto de la tarjeta fija es una versión corta del mismo mensaje.
+const AVISO_PAGO_TEXTO = {
+  cliente: {
+    modal:
+      "Coordiná y pagá todo dentro de Oficy. Si acordás el pago por fuera de la app, la garantía de Oficy no va a estar vigente para este trabajo, y no vamos a poder ayudarte si algo sale mal.",
+    banner: "Pagá siempre dentro de Oficy — fuera de la app perdés la garantía de este trabajo.",
+  },
+  prestador: {
+    modal:
+      "Coordiná y cobrá todo dentro de Oficy. Si arreglás el cobro por fuera de la app, no vas a estar cubierto por el seguro ni por el soporte de Oficy para este trabajo.",
+    banner: "Cobrá siempre dentro de Oficy — fuera de la app no tenés cobertura de Oficy.",
+  },
+};
 
 export default function ConversacionPage() {
   const params = useParams();
@@ -70,6 +89,8 @@ export default function ConversacionPage() {
   // arrancamos en null y lo cargamos recién en el efecto, ya del lado del cliente.
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [conversacion, setConversacion] = useState<Conversacion | null>(null);
+  const [mostrandoAvisoPago, setMostrandoAvisoPago] = useState(false);
+  const [confirmandoAvisoPago, setConfirmandoAvisoPago] = useState(false);
 
   useEffect(() => {
     const usuarioActual = obtenerUsuario();
@@ -98,6 +119,9 @@ export default function ConversacionPage() {
         if (!activo) return;
         setMensajes(historial);
         setConversacion(datosConversacion);
+        if (!datosConversacion.avisoPagoVisto) {
+          setMostrandoAvisoPago(true);
+        }
 
         marcarLeidoYAvisar();
 
@@ -411,6 +435,21 @@ export default function ConversacionPage() {
     }
   }
 
+  async function handleConfirmarAvisoPago() {
+    setConfirmandoAvisoPago(true);
+    try {
+      await apiFetch(`/api/conversaciones/${conversacionId}/aviso-pago-visto`, { method: "PUT" });
+      setConversacion((prev) => (prev ? { ...prev, avisoPagoVisto: true } : prev));
+      setMostrandoAvisoPago(false);
+    } catch {
+      // Si falla la confirmación, dejamos el modal abierto para reintentar — no tiene sentido
+      // dejar pasar al chat sin que haya quedado registrado que lo vio, y reintentar es gratis.
+      setError("No pudimos confirmar el aviso. Probá de nuevo.");
+    } finally {
+      setConfirmandoAvisoPago(false);
+    }
+  }
+
   function textoVencimiento(ofertaExpiraEn: string | null): string | null {
     if (!ofertaExpiraEn) return null;
     const minutosRestantes = (new Date(ofertaExpiraEn).getTime() - Date.now()) / (1000 * 60);
@@ -500,6 +539,17 @@ export default function ConversacionPage() {
           </div>
         )}
         <div className="relative h-full overflow-y-auto p-3 flex flex-col gap-2">
+        {conversacion && (esCliente || esPrestador) && (
+          // Tarjeta fija de recordatorio (Opción B del mockup) — no es un mensaje real entre las
+          // partes, es del sistema, por eso no tiene emisor ni entra al array de `mensajes`. Se ve
+          // siempre, tanto antes como después de confirmar el modal de la primera vez.
+          <div className="sticky top-0 z-10 -mx-3 -mt-3 mb-1 px-3 py-2 bg-copper/10 border-b border-copper/20 flex items-center gap-2 backdrop-blur-sm">
+            <ShieldCheck size={15} className="text-copper shrink-0" />
+            <p className="text-xs text-ink/70 leading-snug">
+              {esCliente ? AVISO_PAGO_TEXTO.cliente.banner : AVISO_PAGO_TEXTO.prestador.banner}
+            </p>
+          </div>
+        )}
         {mensajes.map((m) => {
           const esMio = m.emisorId === usuario?.id;
 
@@ -936,6 +986,38 @@ export default function ConversacionPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {mostrandoAvisoPago && (esCliente || esPrestador) && (
+        // Opción A del mockup: modal que bloquea el paso, solo la primera vez que ESTA parte entra
+        // a ESTA conversación puntual. A propósito sin onClick en el fondo ni botón de cerrar —
+        // tiene que confirmarse con el botón para forzar a leerlo antes de escribir nada.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-xl shadow-xl border border-ink/10 w-full max-w-sm p-6 flex flex-col items-center text-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center">
+              <ShieldCheck size={26} className="text-copper" />
+            </div>
+            <div>
+              <h2 className="font-display text-lg text-ink mb-1">
+                {esCliente ? "Coordiná y pagá todo dentro de Oficy" : "Coordiná y cobrá todo dentro de Oficy"}
+              </h2>
+              <p className="text-sm text-ink/60">
+                {esCliente ? AVISO_PAGO_TEXTO.cliente.modal : AVISO_PAGO_TEXTO.prestador.modal}
+              </p>
+            </div>
+            <Link href="/terminos" className="text-xs text-copper hover:underline">
+              Ver cómo funciona la garantía de Oficy
+            </Link>
+            <button
+              type="button"
+              onClick={handleConfirmarAvisoPago}
+              disabled={confirmandoAvisoPago}
+              className="w-full bg-copper text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+            >
+              {confirmandoAvisoPago ? "Confirmando..." : "Entendido, ir al chat"}
+            </button>
+          </div>
         </div>
       )}
     </div>

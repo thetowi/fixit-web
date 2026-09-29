@@ -12,9 +12,12 @@ import { Usuario } from "@/types/auth";
 import { PrestadorDestacado } from "@/types/destacados";
 import { OrdenAgenda, formatoDuracion } from "@/types/agenda";
 import { Orden } from "@/types/ordenes";
+import { GananciasResponse } from "@/types/ganancias";
+import { PerfilPrestador } from "@/types/perfil";
 import { ESTADO_LABELS } from "@/components/OrdenTicket";
 import Estrellas from "@/components/Estrellas";
 import InsigniaVerificado from "@/components/InsigniaVerificado";
+import ObjetivoIngresoCard from "@/components/ObjetivoIngresoCard";
 
 // "/app" (24/09): esto ES el antiguo "/" — el dashboard operativo de Cliente/Prestador logueado.
 // Se movió acá cuando se separó la landing publicitaria (ver claude/backlog-landing-publicitaria-24-09.md)
@@ -101,6 +104,12 @@ export default function AppHome() {
   const [errorTrabajos, setErrorTrabajos] = useState<string | null>(null);
   const [iniciandoId, setIniciandoId] = useState<string | null>(null);
 
+  // Fila de estadísticas rápidas del dashboard del prestador (28/09, rediseño de la landing del
+  // prestador — ver claude/aviso-pago-y-sueldo-pretendido-28-09.md). Reusa endpoints que ya
+  // existían (Ganancias, perfil público del propio prestador) en vez de crear uno nuevo.
+  const [gananciasMes, setGananciasMes] = useState<GananciasResponse | null>(null);
+  const [perfilPropio, setPerfilPropio] = useState<PerfilPrestador | null>(null);
+
   // Aviso de "Hoy" del lado del Cliente (24/09) — /api/ordenes/mias ahora trae
   // fechaHoraProgramada/duracionMinutos (ver OrdenResponse.cs), así que no hace falta un endpoint
   // nuevo para saber si tiene una visita programada para hoy.
@@ -140,6 +149,8 @@ export default function AppHome() {
   useEffect(() => {
     if (usuario?.rol !== "Prestador") return;
     cargarTrabajos();
+    apiFetch<GananciasResponse>("/api/prestador/ganancias?periodo=mes&offset=0").then(setGananciasMes).catch(() => {});
+    apiFetch<PerfilPrestador>(`/api/prestadores/${usuario.id}`).then(setPerfilPropio).catch(() => {});
   }, [usuario]);
 
   // Refresco en tiempo real (23/09, ver backlog ítem 13 de la Tanda 2): antes el dashboard de
@@ -284,7 +295,7 @@ export default function AppHome() {
       </div>
 
       {usuario.rol === "Prestador" && (
-        <div className="w-full max-w-2xl pb-14 flex flex-col gap-6">
+        <div className="w-full max-w-4xl pb-14 flex flex-col gap-6">
           {errorTrabajos && <p className="text-red-700 dark:text-red-400 text-sm text-center">{errorTrabajos}</p>}
 
           {avisoHoyPrestador && (
@@ -299,85 +310,122 @@ export default function AppHome() {
             />
           )}
 
-          <div className="bg-surface border border-ink/10 rounded-lg p-5">
-            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Hoy</p>
-            {cargandoTrabajos ? (
-              <p className="text-sm text-ink/40">Cargando...</p>
-            ) : trabajosHoy.length === 0 ? (
-              <p className="text-sm text-ink/50">No tenés trabajos programados para hoy.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {trabajosHoy.map((o) => (
-                  <li
-                    key={o.id}
-                    className="flex items-center justify-between gap-3 bg-paper rounded p-3 flex-wrap"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-mono text-xs text-ink/45">
-                        {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
-                      </p>
-                      <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
-                      <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
-                    </div>
-                    {o.estado === "Pagado" ? (
-                      <button
-                        onClick={() => iniciarTrabajo(o.id)}
-                        disabled={iniciandoId === o.id}
-                        className="bg-safety text-ink rounded px-3 py-1.5 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 whitespace-nowrap"
-                      >
-                        {iniciandoId === o.id ? "Iniciando..." : "Iniciar trabajo"}
-                      </button>
-                    ) : (
-                      <span className="text-xs font-mono uppercase text-stamp border border-stamp rounded px-2 py-1 whitespace-nowrap">
-                        {ESTADO_LABELS[o.estado] ?? o.estado}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+          {/* Estadísticas rápidas (28/09) — para que el prestador vea de un vistazo cómo le va
+              sin tener que entrar a Ganancias. gananciasMes/perfilPropio pueden tardar un
+              instante más que trabajosHoy en cargar; cada tarjeta muestra "..." mientras tanto
+              en vez de esperar a los tres a la vez. */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-surface border border-ink/10 rounded-lg p-4">
+              <p className="font-mono text-xs tracking-wider uppercase text-ink/45">Trabajos este mes</p>
+              <p className="text-2xl font-display text-ink mt-1">
+                {gananciasMes ? gananciasMes.trabajosCompletados : "..."}
+              </p>
+            </div>
+            <div className="bg-surface border border-ink/10 rounded-lg p-4">
+              <p className="font-mono text-xs tracking-wider uppercase text-ink/45">Ganancias del mes</p>
+              <p className="text-2xl font-display text-ink mt-1">
+                {gananciasMes ? `$${Math.round(gananciasMes.totalGanado).toLocaleString("es-AR")}` : "..."}
+              </p>
+            </div>
+            <div className="bg-surface border border-ink/10 rounded-lg p-4">
+              <p className="font-mono text-xs tracking-wider uppercase text-ink/45">Calificación</p>
+              {perfilPropio && perfilPropio.cantidadCalificaciones > 0 ? (
+                <div className="flex items-baseline gap-1.5 mt-1">
+                  <span className="text-2xl font-display text-ink">{perfilPropio.promedioCalificacion!.toFixed(1)}</span>
+                  <span className="text-xs text-ink/45">★ ({perfilPropio.cantidadCalificaciones})</span>
+                </div>
+              ) : (
+                <p className="text-sm text-ink/40 mt-2">
+                  {perfilPropio ? "Sin reseñas todavía" : "..."}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="bg-surface border border-ink/10 rounded-lg p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-mono text-xs tracking-widest text-copper uppercase">Esta semana</p>
-              <Link href="/prestador/agenda" className="text-xs text-copper hover:underline whitespace-nowrap">
-                Ver agenda completa →
-              </Link>
+          {/* "Sueldo pretendido" (28/09) — ver claude/aviso-pago-y-sueldo-pretendido-28-09.md */}
+          <ObjetivoIngresoCard />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-surface border border-ink/10 rounded-lg p-5">
+              <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Hoy</p>
+              {cargandoTrabajos ? (
+                <p className="text-sm text-ink/40">Cargando...</p>
+              ) : trabajosHoy.length === 0 ? (
+                <p className="text-sm text-ink/50">No tenés trabajos programados para hoy.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {trabajosHoy.map((o) => (
+                    <li
+                      key={o.id}
+                      className="flex items-center justify-between gap-3 bg-paper rounded p-3 flex-wrap"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-mono text-xs text-ink/45">
+                          {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
+                        </p>
+                        <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
+                        <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
+                      </div>
+                      {o.estado === "Pagado" ? (
+                        <button
+                          onClick={() => iniciarTrabajo(o.id)}
+                          disabled={iniciandoId === o.id}
+                          className="bg-safety text-ink rounded px-3 py-1.5 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {iniciandoId === o.id ? "Iniciando..." : "Iniciar trabajo"}
+                        </button>
+                      ) : (
+                        <span className="text-xs font-mono uppercase text-stamp border border-stamp rounded px-2 py-1 whitespace-nowrap">
+                          {ESTADO_LABELS[o.estado] ?? o.estado}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {cargandoTrabajos ? (
-              <p className="text-sm text-ink/40">Cargando...</p>
-            ) : trabajosSemana.length === 0 ? (
-              <p className="text-sm text-ink/50">No tenés más trabajos programados esta semana.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {trabajosSemana.map((o) => (
-                  <li key={o.id} className="flex items-center justify-between gap-3 bg-paper rounded p-3">
-                    <div className="min-w-0">
-                      <p className="font-mono text-xs text-ink/45">
-                        {new Date(o.fechaHoraProgramada!).toLocaleDateString("es-AR", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                        })}{" "}
-                        ·{" "}
-                        {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                        {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
-                      </p>
-                      <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
-                      <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+
+            <div className="bg-surface border border-ink/10 rounded-lg p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-mono text-xs tracking-widest text-copper uppercase">Esta semana</p>
+                <Link href="/prestador/agenda" className="text-xs text-copper hover:underline whitespace-nowrap">
+                  Ver agenda completa →
+                </Link>
+              </div>
+              {cargandoTrabajos ? (
+                <p className="text-sm text-ink/40">Cargando...</p>
+              ) : trabajosSemana.length === 0 ? (
+                <p className="text-sm text-ink/50">No tenés más trabajos programados esta semana.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {trabajosSemana.map((o) => (
+                    <li key={o.id} className="flex items-center justify-between gap-3 bg-paper rounded p-3">
+                      <div className="min-w-0">
+                        <p className="font-mono text-xs text-ink/45">
+                          {new Date(o.fechaHoraProgramada!).toLocaleDateString("es-AR", {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                          })}{" "}
+                          ·{" "}
+                          {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                          {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
+                        </p>
+                        <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
+                        <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       )}
