@@ -66,11 +66,6 @@ const PASOS_CLIENTE: Step[] = [
     title: "Explorar",
     content: "O navegá por categoría sin compartir tu ubicación.",
   }),
-  pasoCentrado({
-    title: "Tu pago, protegido",
-    content:
-      "Cuando contratás un trabajo, el pago queda retenido por Oficy. El prestador lo recibe recién cuando vos confirmás que el trabajo está terminado.",
-  }),
   pasoDeNav("nav-mensajes", {
     title: "Mensajes",
     content: "Todas tus conversaciones con prestadores en un solo lugar, con aviso cuando te llega algo nuevo.",
@@ -82,6 +77,14 @@ const PASOS_CLIENTE: Step[] = [
   pasoDeNav("nav-cuenta", {
     title: "Mi cuenta",
     content: "Completá tus datos y foto de perfil cuando quieras.",
+  }),
+  // Este paso va al final a propósito (pedido del usuario, 30/09): antes estaba en el medio del
+  // tour (entre "Explorar" y "Mensajes"), y quedaba mejor como cierre — la última cosa que el
+  // cliente se lleva del tutorial es la garantía de que su pago está protegido.
+  pasoCentrado({
+    title: "Tu pago, protegido",
+    content:
+      "Cuando contratás un trabajo, el pago queda retenido por Oficy. El prestador lo recibe recién cuando vos confirmás que el trabajo está terminado.",
   }),
 ];
 
