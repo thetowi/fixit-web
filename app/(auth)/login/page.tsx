@@ -19,6 +19,18 @@ export default function LoginPage() {
   const [form, setForm] = useState<LoginRequest>({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+
+  // Leído de window.location (no useSearchParams) por el mismo motivo que en registro/page.tsx:
+  // esta página no necesita envolverse en <Suspense> para esto. confirmar-email/page.tsx redirige
+  // acá con ?confirmado=true al activar la cuenta — antes esto se perdía en silencio, sin ningún
+  // aviso de que la cuenta ya quedó creada y confirmada (30/09).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("confirmado") === "true") {
+      setMensajeExito("¡Tu cuenta fue creada y confirmada con éxito! Ya podés iniciar sesión.");
+    }
+  }, []);
 
   const [pendienteDeRol, setPendienteDeRol] = useState<{
     idToken: string;
@@ -155,6 +167,12 @@ export default function LoginPage() {
     <div className="max-w-md mx-auto mt-16 p-6 w-full">
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Bienvenido de vuelta</p>
       <h1 className="font-display text-2xl text-ink mb-6">Iniciar sesión</h1>
+
+      {mensajeExito && (
+        <div className="mb-4 rounded-lg border border-green-600/30 bg-green-50 dark:bg-green-950/30 p-3 text-sm text-green-700 dark:text-green-400">
+          {mensajeExito}
+        </div>
+      )}
 
       <div className="bg-surface border border-ink/10 rounded-lg p-5">
         <div className="mb-4 flex justify-center" ref={contenedorGoogleRef}>

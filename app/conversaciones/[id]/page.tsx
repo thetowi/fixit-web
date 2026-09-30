@@ -74,6 +74,10 @@ export default function ConversacionPage() {
   // de "dejó de escribir" — en vez de eso, cada aviso que llega reinicia un timeout propio que
   // apaga el indicador si pasan 3s sin que llegue uno nuevo (typeof abajo).
   const [otroEscribiendo, setOtroEscribiendo] = useState(false);
+  // Mismo mecanismo que "está escribiendo...", pero para cuando el otro está grabando una nota de
+  // voz (NotificarGrabandoAudio/UsuarioGrabandoAudio en ChatHub.cs) — se muestra en vez del de
+  // texto, con un ícono de micrófono en lugar de los puntitos.
+  const [otroGrabandoAudio, setOtroGrabandoAudio] = useState(false);
 
   const conexionRef = useRef<signalR.HubConnection | null>(null);
   const finalMensajesRef = useRef<HTMLDivElement>(null);
@@ -93,6 +97,7 @@ export default function ConversacionPage() {
   // INTERVALO_AVISO_ESCRIBIENDO ms mientras la persona sigue tipeando, no en cada tecla).
   const timeoutEscribiendoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ultimoAvisoEscribiendoRef = useRef(0);
+  const timeoutGrabandoAudioRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // obtenerUsuario() lee localStorage, que no existe en el server: si lo leyéramos ya en el
   // useState inicial, el primer render del cliente (hidratación) no coincidiría con el HTML
   // que mandó el server (que siempre lo ve como null) y React tira "Hydration failed". Por eso
@@ -176,6 +181,12 @@ export default function ConversacionPage() {
           timeoutEscribiendoRef.current = setTimeout(() => setOtroEscribiendo(false), 3000);
         });
 
+        conexion.on("UsuarioGrabandoAudio", () => {
+          setOtroGrabandoAudio(true);
+          if (timeoutGrabandoAudioRef.current) clearTimeout(timeoutGrabandoAudioRef.current);
+          timeoutGrabandoAudioRef.current = setTimeout(() => setOtroGrabandoAudio(false), 3000);
+        });
+
         conexion.onreconnected(() => {
           // SignalR no restaura solo la membresía a grupos tras reconectar: hay que volver a unirse
           conexion.invoke("UnirseAConversacion", conversacionId).catch(() => {
@@ -202,6 +213,7 @@ export default function ConversacionPage() {
       activo = false;
       conexionRef.current?.stop();
       if (timeoutEscribiendoRef.current) clearTimeout(timeoutEscribiendoRef.current);
+      if (timeoutGrabandoAudioRef.current) clearTimeout(timeoutGrabandoAudioRef.current);
     };
   }, [conversacionId, router]);
 
@@ -339,10 +351,17 @@ export default function ConversacionPage() {
       setGrabando(true);
       setSegundosGrabados(0);
       segundosGrabadosRef.current = 0;
+      // Aviso inicial al otro participante de que se está grabando una nota de voz, y se repite
+      // cada 2s mientras dura la grabación (el receptor lo apaga solo si pasan 3s sin recibir uno
+      // nuevo — ver UsuarioGrabandoAudio más arriba).
+      conexionRef.current?.invoke("NotificarGrabandoAudio", conversacionId).catch(() => {});
 
       timerGrabacionRef.current = setInterval(() => {
         segundosGrabadosRef.current += 1;
         setSegundosGrabados(segundosGrabadosRef.current);
+        if (segundosGrabadosRef.current % 2 === 0) {
+          conexionRef.current?.invoke("NotificarGrabandoAudio", conversacionId).catch(() => {});
+        }
         if (segundosGrabadosRef.current >= MAX_SEGUNDOS_AUDIO) {
           detenerGrabacion(true);
         }
@@ -820,15 +839,67 @@ export default function ConversacionPage() {
             </div>
           );
         })}
+
+        {/* Burbuja de "está escribiendo" / "está grabando un audio" (29/09, a pedido del usuario,
+            con un estilo de referencia que dio él mismo: 3 puntitos que rebotan dentro de una
+            burbuja tipo mensaje entrante). Se muestra como si fuera el próximo mensaje del otro
+            participante, no como texto suelto arriba del input — por eso va acá adentro de la
+            lista, con la misma pinta que una burbuja "no es mía" (bg-paper + borde). */}
+        {(otroGrabandoAudio || otroEscribiendo) && (
+          <div className="max-w-[75%] shrink-0 self-start">
+            <div className="inline-flex items-center gap-1 bg-paper border border-ink/10 rounded-lg rounded-bl-sm px-3.5 py-2.5">
+              {otroGrabandoAudio ? (
+                <Mic size={15} className="text-copper burbuja-mic-pulso" />
+              ) : (
+                <>
+                  <span className="burbuja-punto-escribiendo bg-copper" style={{ animationDelay: "0ms" }} />
+                  <span className="burbuja-punto-escribiendo bg-copper" style={{ animationDelay: "150ms" }} />
+                  <span className="burbuja-punto-escribiendo bg-copper" style={{ animationDelay: "300ms" }} />
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <div ref={finalMensajesRef} />
         </div>
       </div>
 
       {error && !mostrandoOferta && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{error}</p>}
       {subiendoArchivo && <p className="text-ink/40 text-xs mb-2">Enviando...</p>}
-      {!subiendoArchivo && otroEscribiendo && (
-        <p className="text-ink/40 text-xs mb-2 italic">Escribiendo...</p>
-      )}
+
+      <style jsx>{`
+        .burbuja-punto-escribiendo {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          display: inline-block;
+          animation: burbujaPuntoRebote 1.4s ease-in-out infinite;
+        }
+        @keyframes burbujaPuntoRebote {
+          0%, 60%, 100% {
+            transform: translateY(0);
+            opacity: 0.45;
+          }
+          30% {
+            transform: translateY(-6px);
+            opacity: 1;
+          }
+        }
+        .burbuja-mic-pulso {
+          animation: burbujaMicPulso 1.4s ease-in-out infinite;
+        }
+        @keyframes burbujaMicPulso {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.55;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 1;
+          }
+        }
+      `}</style>
 
       <input
         ref={inputArchivoRef}

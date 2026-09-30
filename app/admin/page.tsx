@@ -19,6 +19,9 @@ const ESTADO_LABELS: Record<string, string> = {
   EnDisputa: "En disputa",
 };
 
+// 0 = Domingo ... 6 = Sábado, mismo orden que devuelve el backend (DayOfWeek de .NET).
+const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
 export default function AdminPage() {
   const router = useRouter();
   const [categorias, setCategorias] = useState<CategoriaAdmin[]>([]);
@@ -422,7 +425,81 @@ export default function AdminPage() {
       )}
 
       {seccion === "ordenes" && (
-        <ul className="flex flex-col gap-2">
+        <>
+          {/* Resumen de transferencias pendientes (29/09) — agrupado por prestador, para no tener
+              que sumar a mano orden por orden. Los que prefieren cobrar hoy quedan destacados
+              arriba de todo; el resto de "Liberado sin transferir" queda debajo, sin importar el
+              día. Ver claude/backlog.md sobre por qué esto sigue siendo manual — Mercado Pago no
+              tiene una API para automatizar la transferencia en sí, solo esto organiza mejor
+              cuándo/a quién transferirle. */}
+          {(() => {
+            const pendientes = ordenes.filter((o) => o.pagoEstado === "Liberado" && !o.transferenciaPrestadorConfirmadaEn);
+            if (pendientes.length === 0) return null;
+
+            const hoy = new Date().getDay();
+            const porPrestador = new Map<string, { nombre: string; cbuOAlias: string | null; titular: string | null; dia: number | null; total: number; cantidad: number }>();
+            for (const o of pendientes) {
+              const existente = porPrestador.get(o.prestadorId);
+              const monto = o.montoATransferirPrestador ?? 0;
+              if (existente) {
+                existente.total += monto;
+                existente.cantidad += 1;
+              } else {
+                porPrestador.set(o.prestadorId, {
+                  nombre: o.prestadorNombreCompleto,
+                  cbuOAlias: o.prestadorCbuOAlias ?? null,
+                  titular: o.prestadorTitularCuentaCobro ?? null,
+                  dia: o.prestadorDiaPreferidoDeCobro ?? null,
+                  total: monto,
+                  cantidad: 1,
+                });
+              }
+            }
+            const grupos = Array.from(porPrestador.values()).sort((a, b) => {
+              const aHoy = a.dia === hoy ? 0 : 1;
+              const bHoy = b.dia === hoy ? 0 : 1;
+              return aHoy - bHoy;
+            });
+
+            return (
+              <div className="bg-surface border border-copper/30 rounded-lg p-4 mb-4">
+                <p className="font-medium text-ink mb-3">
+                  Pagos pendientes de transferir <span className="text-ink/40 font-normal">({pendientes.length})</span>
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {grupos.map((g) => (
+                    <li
+                      key={g.nombre + g.cbuOAlias}
+                      className={`rounded-lg p-3 flex justify-between items-center gap-3 flex-wrap ${
+                        g.dia === hoy ? "bg-copper/10 border border-copper/40" : "bg-paper border border-ink/10"
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm text-ink font-medium">
+                          {g.nombre} {g.dia === hoy && <span className="text-copper text-xs font-semibold ml-1">· Hoy</span>}
+                        </p>
+                        <p className="text-xs text-ink/60">
+                          {g.cbuOAlias ? (
+                            <>
+                              <span className="font-mono">{g.cbuOAlias}</span> ({g.titular})
+                            </>
+                          ) : (
+                            <span className="text-safety">Todavía no cargó su CBU/alias</span>
+                          )}
+                          {g.dia !== null && <> · Prefiere cobrar los {DIAS_SEMANA[g.dia]}</>}
+                        </p>
+                      </div>
+                      <p className="text-sm font-mono text-ink whitespace-nowrap">
+                        ${g.total.toLocaleString("es-AR")} · {g.cantidad} {g.cantidad === 1 ? "trabajo" : "trabajos"}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
+
+          <ul className="flex flex-col gap-2">
           {ordenes.map((o) => (
             <li key={o.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex flex-col gap-2">
               <div className="flex justify-between items-center gap-2">
@@ -499,6 +576,24 @@ export default function AdminPage() {
                       </p>
                     )}
                     {o.motivoReembolso && <p>Motivo del reembolso: {o.motivoReembolso}</p>}
+                    {/* Datos de cobro del prestador (29/09) — para no tener que ir a buscarlos a otro
+                        lado al hacer la transferencia. Un alias de Mercado Pago funciona en el mismo
+                        campo que uno bancario, sin ninguna distinción especial. */}
+                    {o.pagoEstado === "Liberado" && !o.transferenciaPrestadorConfirmadaEn && (
+                      <p className="mt-1">
+                        {o.prestadorCbuOAlias ? (
+                          <>
+                            Transferir a: <span className="font-mono">{o.prestadorCbuOAlias}</span> (
+                            {o.prestadorTitularCuentaCobro})
+                            {o.prestadorDiaPreferidoDeCobro !== null && o.prestadorDiaPreferidoDeCobro !== undefined && (
+                              <> · Prefiere cobrar los {DIAS_SEMANA[o.prestadorDiaPreferidoDeCobro]}</>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-safety">Este prestador todavía no cargó su CBU/alias.</span>
+                        )}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex gap-2">
@@ -525,7 +620,8 @@ export default function AdminPage() {
               )}
             </li>
           ))}
-        </ul>
+          </ul>
+        </>
       )}
 
       {seccion === "verificaciones" && (

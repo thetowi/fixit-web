@@ -35,6 +35,12 @@ export interface Orden {
   inasistenciaClienteComentario?: string | null;
   inasistenciaResueltaEn?: string | null;
   inasistenciaResolucion?: string | null;
+
+  // Datos de cobro del prestador (29/09) — solo vienen completos en el listado de Admin
+  // (GET /api/admin/ordenes), para poder transferirle sin ir a buscarlos a otro lado.
+  prestadorCbuOAlias?: string | null;
+  prestadorTitularCuentaCobro?: string | null;
+  prestadorDiaPreferidoDeCobro?: number | null; // 0 = Domingo ... 6 = Sábado
 }
 
 // "Trabajo en curso" (24/09): espejo de FixIt.Application.DTOs.Ordenes.OrdenEnCursoResponse.

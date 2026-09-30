@@ -2,16 +2,15 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario, cerrarSesion, guardarSesion } from "@/lib/auth";
-import { PerfilPropio, ActualizarPerfilRequest } from "@/types/perfilPropio";
+import { PerfilPropio, ActualizarPerfilRequest, ActualizarDatosCobroRequest } from "@/types/perfilPropio";
 import { BloqueDisponibilidad, AgregarBloqueRequest } from "@/types/agenda";
 import { PerfilPrestador, FotoTrabajo } from "@/types/perfil";
 import { RepostoPendiente } from "@/types/repostos";
 import { Categoria, PrestadorCategoria, AgregarCategoriaRequest } from "@/types/categorias";
 import { VerificacionEstado } from "@/types/verificacion";
-import { ConexionMercadoPago, IniciarConexionMercadoPago } from "@/types/mercadoPago";
 import { activarPush, desactivarPush, pushSoportado, yaSuscriptoPush } from "@/lib/push";
 import { buscarDirecciones, SugerenciaDireccion } from "@/lib/geocodificacion";
 import InsigniaVerificado from "@/components/InsigniaVerificado";
@@ -90,7 +89,6 @@ export default function CuentaPage() {
 
 function CuentaContenido() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [seccion, setSeccion] = useState<Seccion>("perfil");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRefTrabajo = useRef<HTMLInputElement>(null);
@@ -243,11 +241,19 @@ function CuentaContenido() {
   const [enviandoMatricula, setEnviandoMatricula] = useState<number | null>(null);
   const [errorMatricula, setErrorMatricula] = useState<string | null>(null);
 
-  // --- Cobros / Mercado Pago (Prestador) ---
-  const [mpEstado, setMpEstado] = useState<ConexionMercadoPago | null>(null);
-  const [errorMp, setErrorMp] = useState<string | null>(null);
-  const [conectandoMp, setConectandoMp] = useState(false);
-  const [mensajeMp, setMensajeMp] = useState<string | null>(null);
+  // --- Cobros (Prestador) — CBU/alias + día preferido de cobro (29/09) ---
+  // Reemplaza la vieja UI de "Conectar con Mercado Pago" (código muerto desde que el flujo de
+  // pago pasó al modelo de retención): ahora es el mismo formulario simple que ya tenía
+  // fixit-mobile (CobrosSeccion.tsx), con el agregado del día preferido. Un alias de Mercado Pago
+  // funciona en el campo "CBU o alias" exactamente igual que uno bancario, no hace falta ninguna
+  // integración nueva — ver el hallazgo documentado en el backlog sobre por qué Mercado Pago no
+  // tiene una API para retener y transferir después a una cuenta conectada.
+  const [cbuOAlias, setCbuOAlias] = useState("");
+  const [titularCuentaCobro, setTitularCuentaCobro] = useState("");
+  const [diaPreferidoDeCobro, setDiaPreferidoDeCobro] = useState<number | "">("");
+  const [guardandoCobros, setGuardandoCobros] = useState(false);
+  const [errorCobros, setErrorCobros] = useState<string | null>(null);
+  const [guardadoCobros, setGuardadoCobros] = useState(false);
 
   useEffect(() => {
     if (!obtenerUsuario()) {
@@ -257,23 +263,35 @@ function CuentaContenido() {
     cargarPerfil();
   }, [router]);
 
-  // Mercado Pago nos redirige de vuelta acá con ?mp=conectado o ?mp=error tras el flujo de OAuth
-  useEffect(() => {
-    const resultadoMp = searchParams.get("mp");
-    if (!resultadoMp) return;
+  async function handleGuardarCobros(e: React.FormEvent) {
+    e.preventDefault();
+    setErrorCobros(null);
+    setGuardadoCobros(false);
 
-    if (resultadoMp === "conectado") {
-      setMensajeMp("¡Listo! Tu cuenta de Mercado Pago quedó conectada.");
-      setSeccion("cobros");
-      cargarEstadoMp();
-    } else if (resultadoMp === "error") {
-      setMensajeMp("No pudimos conectar tu cuenta de Mercado Pago. Probá de nuevo.");
-      setSeccion("cobros");
+    if (!cbuOAlias.trim() || !titularCuentaCobro.trim()) {
+      setErrorCobros("Completá el CBU/alias y el titular de la cuenta.");
+      return;
     }
 
-    router.replace("/cuenta");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+    setGuardandoCobros(true);
+    try {
+      const cuerpo: ActualizarDatosCobroRequest = {
+        cbuOAlias: cbuOAlias.trim(),
+        titularCuentaCobro: titularCuentaCobro.trim(),
+        diaPreferidoDeCobro: diaPreferidoDeCobro === "" ? null : diaPreferidoDeCobro,
+      };
+      const data = await apiFetch<PerfilPropio>("/api/usuarios/datos-cobro", {
+        method: "PUT",
+        body: JSON.stringify(cuerpo),
+      });
+      setPerfil(data);
+      setGuardadoCobros(true);
+    } catch (err) {
+      setErrorCobros(err instanceof ApiError ? err.message : "Error al guardar tus datos de cobro");
+    } finally {
+      setGuardandoCobros(false);
+    }
+  }
 
   async function cargarPerfil() {
     try {
@@ -293,6 +311,9 @@ function CuentaContenido() {
         setCoberturaLat(data.latitud);
         setCoberturaLng(data.longitud);
         if (data.radioAlcanceKm) setCoberturaRadioKm(data.radioAlcanceKm);
+        setCbuOAlias(data.cbuOAlias ?? "");
+        setTitularCuentaCobro(data.titularCuentaCobro ?? "");
+        setDiaPreferidoDeCobro(data.diaPreferidoDeCobro ?? "");
 
         // Si todavía no configuró su ubicación, le pedimos el GPS del dispositivo para
         // centrar el mapa ahí directamente (puede corregirla arrastrando el pin después)
@@ -300,7 +321,7 @@ function CuentaContenido() {
           obtenerUbicacionActual({ silencioso: true });
         }
 
-        await Promise.all([cargarBloques(), cargarPerfilPrestador(), cargarServicios(), cargarVerificacion(), cargarEstadoMp()]);
+        await Promise.all([cargarBloques(), cargarPerfilPrestador(), cargarServicios(), cargarVerificacion()]);
       }
 
       if (data.rol === "Cliente") {
@@ -419,27 +440,6 @@ function CuentaContenido() {
       setVerifEstado(data);
     } catch (err) {
       setErrorVerif(err instanceof ApiError ? err.message : "Error al cargar tu verificación");
-    }
-  }
-
-  async function cargarEstadoMp() {
-    try {
-      const data = await apiFetch<ConexionMercadoPago>("/api/mercadopago/estado");
-      setMpEstado(data);
-    } catch (err) {
-      setErrorMp(err instanceof ApiError ? err.message : "Error al consultar el estado de Mercado Pago");
-    }
-  }
-
-  async function handleConectarMp() {
-    setErrorMp(null);
-    setConectandoMp(true);
-    try {
-      const data = await apiFetch<IniciarConexionMercadoPago>("/api/mercadopago/oauth/iniciar");
-      window.location.href = data.initPoint;
-    } catch (err) {
-      setErrorMp(err instanceof ApiError ? err.message : "Error al iniciar la conexión con Mercado Pago");
-      setConectandoMp(false);
     }
   }
 
@@ -1453,47 +1453,66 @@ function CuentaContenido() {
         <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-cobros">
           <p className="font-medium text-ink mb-1">Cobros</p>
           <p className="text-xs text-ink/50 mb-4">
-            Conectá tu propia cuenta de Mercado Pago para que los pagos de tus trabajos se depositen
-            directo ahí. FixIt se queda con su comisión automáticamente al momento del cobro.
+            Cargá el CBU o alias donde querés que te transfiramos tu parte de cada trabajo, una vez
+            que el cliente lo marca como completado — la transferencia la hace un Admin de Oficy a
+            mano. Si preferís cobrar en tu cuenta de Mercado Pago, podés poner directamente tu alias
+            de Mercado Pago acá, funciona igual que uno bancario.
           </p>
 
-          {mensajeMp && (
-            <div className="border border-copper/30 bg-copper/5 rounded-lg p-3 mb-4">
-              <p className="text-sm text-ink">{mensajeMp}</p>
+          <form onSubmit={handleGuardarCobros} className="flex flex-col gap-4 max-w-sm">
+            <div>
+              <label className="text-xs font-medium text-ink/60 block mb-1">CBU o alias</label>
+              <input
+                type="text"
+                value={cbuOAlias}
+                onChange={(e) => setCbuOAlias(e.target.value)}
+                placeholder="Ej: mi.alias.mp"
+                className="w-full border border-ink/15 bg-paper rounded px-3 py-2 text-sm text-ink"
+              />
             </div>
-          )}
 
-          {mpEstado?.conectado ? (
-            <div className="border border-stamp/30 bg-stamp/5 rounded-lg p-4">
-              <p className="text-sm text-ink flex items-center gap-2 mb-1">
-                <span className="text-stamp text-lg">✓</span> Tu cuenta de Mercado Pago está conectada.
-              </p>
-              {mpEstado.trabajosGratisRestantes > 0 ? (
-                <p className="text-xs text-ink/60">
-                  Te quedan <span className="font-medium text-ink">{mpEstado.trabajosGratisRestantes}</span> trabajos
-                  sin comisión de FixIt (ya cobraste {mpEstado.trabajosPagados}).
-                </p>
-              ) : (
-                <p className="text-xs text-ink/60">
-                  Ya usaste tus trabajos sin comisión ({mpEstado.trabajosPagados} cobrados en total) — de acá en
-                  más se aplica la comisión de FixIt en cada cobro.
-                </p>
-              )}
+            <div>
+              <label className="text-xs font-medium text-ink/60 block mb-1">Titular de la cuenta</label>
+              <input
+                type="text"
+                value={titularCuentaCobro}
+                onChange={(e) => setTitularCuentaCobro(e.target.value)}
+                placeholder="Nombre y apellido tal como figura en la cuenta"
+                className="w-full border border-ink/15 bg-paper rounded px-3 py-2 text-sm text-ink"
+              />
             </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-ink/70">Todavía no conectaste ninguna cuenta de Mercado Pago.</p>
-              <button
-                onClick={handleConectarMp}
-                disabled={conectandoMp}
-                className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 self-start px-4"
+
+            <div>
+              <label className="text-xs font-medium text-ink/60 block mb-1">Día preferido para cobrar</label>
+              <select
+                value={diaPreferidoDeCobro}
+                onChange={(e) => setDiaPreferidoDeCobro(e.target.value === "" ? "" : Number(e.target.value))}
+                className="w-full border border-ink/15 bg-paper rounded px-3 py-2 text-sm text-ink"
               >
-                {conectandoMp ? "Redirigiendo..." : "Conectar con Mercado Pago"}
-              </button>
+                <option value="">Sin preferencia</option>
+                {DIAS.map((dia, indice) => (
+                  <option key={indice} value={indice}>
+                    {dia}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-ink/40 mt-1">
+                Es solo una referencia para que Oficy organice las transferencias — no cambia cuándo
+                se libera tu pago, eso sigue dependiendo de cuándo el cliente confirma el trabajo.
+              </p>
             </div>
-          )}
 
-          {errorMp && <p className="text-red-700 dark:text-red-400 text-sm mt-3">{errorMp}</p>}
+            <button
+              type="submit"
+              disabled={guardandoCobros}
+              className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 self-start px-4"
+            >
+              {guardandoCobros ? "Guardando..." : "Guardar"}
+            </button>
+
+            {guardadoCobros && <p className="text-stamp text-sm">✓ Datos de cobro guardados.</p>}
+            {errorCobros && <p className="text-red-700 dark:text-red-400 text-sm">{errorCobros}</p>}
+          </form>
         </div>
       )}
 

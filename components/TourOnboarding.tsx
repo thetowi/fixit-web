@@ -119,14 +119,21 @@ export default function TourOnboarding() {
   const [pasos, setPasos] = useState<Step[]>([]);
 
   useEffect(() => {
-    const usuario = obtenerUsuario();
-    // Si ya lo vio (marcado en el backend, ver handleEvent más abajo), no lo mostramos de nuevo.
-    if (!usuario || usuario.tutorialVisto) return;
-    if (usuario.rol !== "Cliente" && usuario.rol !== "Prestador") return;
+    function verificar() {
+      const usuario = obtenerUsuario();
+      // Si ya lo vio (marcado en el backend, ver handleEvent más abajo), no lo mostramos de nuevo.
+      if (!usuario || usuario.tutorialVisto) return;
+      if (usuario.rol !== "Cliente" && usuario.rol !== "Prestador") return;
 
-    setPasos(usuario.rol === "Cliente" ? PASOS_CLIENTE : PASOS_PRESTADOR);
-    const timer = setTimeout(() => setCorrer(true), 500);
-    return () => clearTimeout(timer);
+      setPasos(usuario.rol === "Cliente" ? PASOS_CLIENTE : PASOS_PRESTADOR);
+      setTimeout(() => setCorrer(true), 500);
+    }
+
+    // Al montar (cubre recargar la página ya logueado) y cada vez que se guarda una sesión nueva
+    // (cubre el primer login sin recargar — ver el evento nuevo en lib/auth.ts, guardarSesion).
+    verificar();
+    window.addEventListener("fixit:sesion-actualizada", verificar);
+    return () => window.removeEventListener("fixit:sesion-actualizada", verificar);
   }, []);
 
   async function handleEvent(data: EventData) {

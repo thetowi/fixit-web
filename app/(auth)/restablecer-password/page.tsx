@@ -67,7 +67,7 @@ function RestablecerPasswordForm() {
           required
           maxLength={6}
           pattern="[0-9]{6}"
-          className="border border-ink/20 rounded p-2 bg-paper text-center text-2xl tracking-[0.5em] font-mono"
+          className="border border-ink/20 rounded p-2 bg-paper text-center text-2xl tracking-[0.5em] font-mono placeholder:text-sm placeholder:tracking-normal placeholder:font-sans"
           value={codigo}
           onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 6))}
         />
