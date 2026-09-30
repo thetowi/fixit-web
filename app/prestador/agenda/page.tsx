@@ -64,6 +64,9 @@ export default function AgendaPage() {
   const [turnoAConfirmarReprogramacion, setTurnoAConfirmarReprogramacion] = useState<OrdenAgenda | null>(null);
 
   const [error, setError] = useState<string | null>(null);
+  // Aviso no bloqueante (30/09): a diferencia de `error`, esto NO impidió que el turno se agende —
+  // solo informa que quedó fuera del horario laboral declarado (ver AgendaService.ProgramarTurnoAsync).
+  const [avisoHorario, setAvisoHorario] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [cargandoRango, setCargandoRango] = useState(false);
 
@@ -235,11 +238,15 @@ export default function AgendaPage() {
     const fechaHora = new Date(`${fechaTurno}T${horaTurno}:00`);
 
     try {
-      await apiFetch(`/api/ordenes/${ordenAProgramar.id}/programar`, {
-        method: "PUT",
-        body: JSON.stringify({ fechaHora: fechaHora.toISOString(), duracionMinutos: duracionTurno }),
-      });
+      const resultado = await apiFetch<{ advertenciaFueraDeHorario?: string | null }>(
+        `/api/ordenes/${ordenAProgramar.id}/programar`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ fechaHora: fechaHora.toISOString(), duracionMinutos: duracionTurno }),
+        }
+      );
       setOrdenAProgramar(null);
+      setAvisoHorario(resultado?.advertenciaFueraDeHorario ?? null);
       await refrescarTodo();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al programar el turno");
@@ -290,6 +297,15 @@ export default function AgendaPage() {
       </div>
 
       {error && <p className="text-red-700 dark:text-red-400 text-sm mb-4">{error}</p>}
+
+      {avisoHorario && (
+        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-700 dark:text-amber-400 flex items-center justify-between gap-3">
+          <span>{avisoHorario}</span>
+          <button onClick={() => setAvisoHorario(null)} className="text-amber-700/70 dark:text-amber-400/70 hover:text-amber-700 dark:hover:text-amber-400 text-xs whitespace-nowrap">
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {bloques.length === 0 && (
         <div className="bg-surface border border-ink/10 rounded-lg p-4 mb-6 flex items-center justify-between gap-3 flex-wrap">
