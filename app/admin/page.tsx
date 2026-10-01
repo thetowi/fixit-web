@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
-import { CategoriaAdmin, CrearCategoriaRequest, EditarCategoriaRequest, UsuarioAdmin } from "@/types/admin";
+import { CategoriaAdmin, CrearCategoriaRequest, CrearTesoreroRequest, EditarCategoriaRequest, UsuarioAdmin } from "@/types/admin";
 import { Orden } from "@/types/ordenes";
 import { VerificacionAdmin, VerificacionCategoriaAdmin } from "@/types/verificacion";
 import IconoLucide from "@/components/IconoLucide";
@@ -46,6 +46,12 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [seccion, setSeccion] = useState<"categorias" | "usuarios" | "ordenes" | "verificaciones" | "matriculas">("categorias");
+
+  // Rol Tesorero (01/10) — formulario para que un Admin cree la cuenta a mano, no hay registro
+  // público para este rol (ver claude/backlog.md).
+  const [mostrarFormTesorero, setMostrarFormTesorero] = useState(false);
+  const [nuevoTesorero, setNuevoTesorero] = useState({ email: "", password: "", nombre: "", apellido: "" });
+  const [creandoTesorero, setCreandoTesorero] = useState(false);
 
   useEffect(() => {
     const usuario = obtenerUsuario();
@@ -213,6 +219,33 @@ export default function AdminPage() {
       setError(err instanceof ApiError ? err.message : "Error al resolver la disputa");
     } finally {
       setProcesandoOrdenId(null);
+    }
+  }
+
+  async function handleCrearTesorero(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nuevoTesorero.email.trim() || !nuevoTesorero.password || !nuevoTesorero.nombre.trim() || !nuevoTesorero.apellido.trim()) {
+      setError("Completá todos los campos para crear la cuenta de Tesorero.");
+      return;
+    }
+
+    const body: CrearTesoreroRequest = {
+      email: nuevoTesorero.email.trim(),
+      password: nuevoTesorero.password,
+      nombre: nuevoTesorero.nombre.trim(),
+      apellido: nuevoTesorero.apellido.trim(),
+    };
+
+    setCreandoTesorero(true);
+    try {
+      await apiFetch("/api/admin/tesoreros", { method: "POST", body: JSON.stringify(body) });
+      setNuevoTesorero({ email: "", password: "", nombre: "", apellido: "" });
+      setMostrarFormTesorero(false);
+      await cargarDatos();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al crear la cuenta de Tesorero");
+    } finally {
+      setCreandoTesorero(false);
     }
   }
 
@@ -402,26 +435,92 @@ export default function AdminPage() {
       )}
 
       {seccion === "usuarios" && (
-        <div className="bg-surface border border-ink/10 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left bg-ink/5 text-ink/60 text-xs uppercase tracking-wide">
-                <th className="p-3 font-medium">Nombre</th>
-                <th className="p-3 font-medium">Email</th>
-                <th className="p-3 font-medium">Rol</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((u) => (
-                <tr key={u.id} className="border-t border-ink/10">
-                  <td className="p-3 text-ink">{u.nombre} {u.apellido}</td>
-                  <td className="p-3 text-ink/70">{u.email}</td>
-                  <td className="p-3 font-mono text-xs text-ink/70">{u.rol}</td>
+        <>
+          {/* Rol Tesorero (01/10) — ver claude/backlog.md. No hay registro público para este rol,
+              así que un Admin lo crea a mano desde acá mismo. */}
+          <div className="bg-surface border border-ink/10 rounded-lg p-4 mb-4">
+            {mostrarFormTesorero ? (
+              <form onSubmit={handleCrearTesorero} className="flex flex-col gap-3">
+                <p className="font-medium text-ink text-sm">Crear cuenta de Tesorero</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre"
+                    className="border border-ink/20 rounded p-2 bg-paper text-sm"
+                    value={nuevoTesorero.nombre}
+                    onChange={(e) => setNuevoTesorero((p) => ({ ...p, nombre: e.target.value }))}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Apellido"
+                    className="border border-ink/20 rounded p-2 bg-paper text-sm"
+                    value={nuevoTesorero.apellido}
+                    onChange={(e) => setNuevoTesorero((p) => ({ ...p, apellido: e.target.value }))}
+                  />
+                </div>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  className="border border-ink/20 rounded p-2 bg-paper text-sm"
+                  value={nuevoTesorero.email}
+                  onChange={(e) => setNuevoTesorero((p) => ({ ...p, email: e.target.value }))}
+                />
+                <input
+                  type="password"
+                  placeholder="Contraseña (mínimo 6 caracteres)"
+                  className="border border-ink/20 rounded p-2 bg-paper text-sm"
+                  value={nuevoTesorero.password}
+                  onChange={(e) => setNuevoTesorero((p) => ({ ...p, password: e.target.value }))}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={creandoTesorero}
+                    className="text-sm bg-copper text-paper rounded px-3 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-40"
+                  >
+                    {creandoTesorero ? "Creando..." : "Crear cuenta"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMostrarFormTesorero(false)}
+                    disabled={creandoTesorero}
+                    className="text-sm border border-ink/20 text-ink/60 rounded px-3 py-1.5 hover:text-ink transition-colors disabled:opacity-40"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button
+                onClick={() => setMostrarFormTesorero(true)}
+                className="text-sm bg-copper text-paper rounded px-4 py-2 hover:bg-copper-dark transition-colors"
+              >
+                Crear cuenta de Tesorero
+              </button>
+            )}
+          </div>
+
+          <div className="bg-surface border border-ink/10 rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left bg-ink/5 text-ink/60 text-xs uppercase tracking-wide">
+                  <th className="p-3 font-medium">Nombre</th>
+                  <th className="p-3 font-medium">Email</th>
+                  <th className="p-3 font-medium">Rol</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {usuarios.map((u) => (
+                  <tr key={u.id} className="border-t border-ink/10">
+                    <td className="p-3 text-ink">{u.nombre} {u.apellido}</td>
+                    <td className="p-3 text-ink/70">{u.email}</td>
+                    <td className="p-3 font-mono text-xs text-ink/70">{u.rol}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {seccion === "ordenes" && (

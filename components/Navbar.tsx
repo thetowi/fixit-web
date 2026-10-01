@@ -244,6 +244,16 @@ export default function Navbar() {
               </button>
             </>
           )}
+
+          {/* Rol Tesorero (01/10) — ver backlog, panel /tesoreria. */}
+          {usuario?.rol === "Tesorero" && (
+            <>
+              <Link href="/tesoreria" className="hover:text-safety transition-colors">Tesorería</Link>
+              <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
+                Cerrar sesion
+              </button>
+            </>
+          )}
         </div>
 
         {/* Botón de hamburguesa: solo mobile */}
@@ -354,6 +364,15 @@ export default function Navbar() {
           {usuario?.rol === "Admin" && (
             <>
               <Link href="/admin" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Admin</Link>
+              <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
+                Cerrar sesion
+              </button>
+            </>
+          )}
+
+          {usuario?.rol === "Tesorero" && (
+            <>
+              <Link href="/tesoreria" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Tesorería</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
                 Cerrar sesion
               </button>

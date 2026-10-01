@@ -24,3 +24,11 @@ export interface UsuarioAdmin {
   verificado: boolean;
   creadoEn: string;
 }
+
+// Rol Tesorero (01/10) — lo crea un Admin a mano desde /admin, ver AdminController.CrearTesorero.
+export interface CrearTesoreroRequest {
+  email: string;
+  password: string;
+  nombre: string;
+  apellido: string;
+}

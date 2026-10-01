@@ -1,4 +1,6 @@
-export type Rol = "Cliente" | "Prestador" | "Admin";
+// "Tesorero" (01/10): rol nuevo, independiente de Admin — ver backlog, panel /tesoreria. No hay
+// registro público para él, lo crea un Admin a mano desde /admin.
+export type Rol = "Cliente" | "Prestador" | "Admin" | "Tesorero";
 
 export interface RegistroRequest {
   email: string;

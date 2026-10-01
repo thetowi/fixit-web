@@ -28,6 +28,17 @@
      para que el texto "Verificado" no se desfase del color del ícono. Si se cambia el PNG,
      hay que volver a sacar el color acá (promedio de los píxeles opacos del ícono). */
   --stamp: #177762;
+
+  /* Panel del Tesorero (01/10) — par categórico para el gráfico de "Comisión de Oficy" vs.
+     "Pagado a prestadores" (ver app/tesoreria/page.tsx). Elegido con la skill de dataviz:
+     --stamp es demasiado parecido/poco saturado para distinguirse bien de --copper en un
+     gráfico (falla el piso de croma del validador) — por eso esto usa un teal MÁS BRILLANTE,
+     distinto de --stamp, solo para este gráfico. "Comisión" reusa --copper en modo claro (acá
+     coinciden, #B5651D), pero en modo oscuro necesita su PROPIO tono (ver abajo) porque
+     --copper-dark normal (#D08A44) no pasa el validador combinado con este teal.
+     Pasó validate_palette.js con "#B5651D,#0E9488" en modo claro. */
+  --tesoreria-comision: #B5651D;
+  --tesoreria-prestadores: #0E9488;
 }
 
 .dark {
@@ -44,6 +55,13 @@
   --copper-dark: #E6A868;
   --safety: #F4B22E;
   --stamp: #2DC2A0;
+
+  /* Mismo par categórico que en modo claro, re-validado contra la superficie oscura (#211D17) —
+     pasó validate_palette.js con "#C97A3D,#1F9D83" en modo dark. A propósito NO es --copper-dark
+     (ver comentario en :root): ese tono normal de la marca no pasaba el validador junto a este
+     teal. */
+  --tesoreria-comision: #C97A3D;
+  --tesoreria-prestadores: #1F9D83;
 }
 
 @theme inline {
@@ -56,6 +74,8 @@
   --color-copper-dark: var(--copper-dark);
   --color-safety: var(--safety);
   --color-stamp: var(--stamp);
+  --color-tesoreria-comision: var(--tesoreria-comision);
+  --color-tesoreria-prestadores: var(--tesoreria-prestadores);
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-archivo);
