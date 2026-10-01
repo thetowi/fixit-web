@@ -38,6 +38,8 @@ export default function CalendarioSemanal({
   ordenes,
   onCeldaDisponibleClick,
   onReprogramar,
+  onCancelarVisita,
+  cancelandoVisitaId,
 }: {
   inicioSemana: Date;
   bloques: BloqueDisponibilidad[];
@@ -45,7 +47,13 @@ export default function CalendarioSemanal({
   onCeldaDisponibleClick?: (dia: Date, horaHHMM: string) => void;
   // Reprogramar un turno ya agendado (22/09, a pedido del usuario) — el padre es quien pide
   // confirmación antes de abrir el formulario de "Programar" pre-cargado con la fecha/hora actual.
+  // Solo aplica a Tipo === "Trabajo" (una Visita no se reprograma desde acá, ver onCancelarVisita).
   onReprogramar?: (orden: OrdenAgenda) => void;
+  // Cancelar una Visita a domicilio ya agendada (30/09) — a diferencia de un Turno, una Visita sí
+  // se puede cancelar directo desde la Agenda (no tiene "Reprogramar": para eso se agenda una
+  // nueva desde el chat, ver VisitaService.ProgramarAsync).
+  onCancelarVisita?: (orden: OrdenAgenda) => void;
+  cancelandoVisitaId?: string | null;
 }) {
   const hoy = new Date();
   // Turno tocado para ver el detalle completo (nombre, dirección, teléfono, rubro, título del
@@ -148,26 +156,58 @@ export default function CalendarioSemanal({
   }
 
   function TarjetaTurno({ orden }: { orden: OrdenAgenda }) {
+    const esVisita = orden.tipo === "Visita";
+    // Una Visita cancelada o ya realizada no es más "programada" (30/09) — se muestra atenuada
+    // (cancelada) o con la etiqueta en verde (realizada) en vez del copper de "programada".
+    const visitaCancelada = esVisita && orden.estado === "Cancelada";
+    const visitaRealizada = esVisita && orden.estado === "Realizada";
     const etiqueta = estiloEtiquetaCategoria(orden.categoriaNombre);
     return (
       <button
         onClick={() => setOrdenSeleccionada(orden)}
-        className="text-left w-full bg-paper hover:bg-white border border-transparent hover:border-ink/8 hover:shadow-sm rounded-2xl px-3 py-2.5 transition-all"
+        className={`text-left w-full hover:bg-white border rounded-2xl px-3 py-2.5 transition-all ${
+          visitaCancelada
+            ? "bg-ink/[0.03] border-ink/10 opacity-60"
+            : esVisita
+              ? "bg-copper/5 border-copper/20 hover:border-copper/40"
+              : "bg-paper border-transparent hover:border-ink/8 hover:shadow-sm"
+        }`}
       >
         <p className="font-mono text-[10px] text-ink/40 leading-none">
           {formatoHora(minutosDelDia(new Date(orden.fechaHoraProgramada!)))}
           {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
         </p>
-        <p className="text-[13px] font-bold text-ink leading-tight truncate mt-1">{orden.clienteNombreCompleto}</p>
+        <p className={`text-[13px] font-bold text-ink leading-tight truncate mt-1 ${visitaCancelada ? "line-through" : ""}`}>
+          {orden.clienteNombreCompleto}
+        </p>
         {orden.descripcion && (
-          <p className="text-[11.5px] text-ink/55 leading-snug truncate mt-0.5">{orden.descripcion}</p>
+          <p className={`text-[11.5px] text-ink/55 leading-snug truncate mt-0.5 ${visitaCancelada ? "line-through" : ""}`}>
+            {orden.descripcion}
+          </p>
         )}
-        <span
-          style={etiqueta}
-          className="inline-block mt-2 text-[9.5px] font-semibold px-2 py-0.5 rounded-full"
-        >
-          {orden.categoriaNombre}
-        </span>
+        {esVisita ? (
+          // Centrado + contenido dentro de la tarjeta (30/09/01-10): en columnas angostas (grilla
+          // de 7 días) "✓ Realizada" primero se partía en 2 líneas descentrado, y al forzar una
+          // sola línea (whitespace-nowrap) se salía del borde de la tarjeta — el usuario lo señaló
+          // con 2 capturas. Fix definitivo: `max-w-full` + `truncate` para que nunca se salga del
+          // ancho real de la tarjeta (si no entra, corta con "...", nunca desborda ni se parte en 2
+          // líneas), y `mx-auto` en vez de un wrapper `text-center` para centrarlo de verdad siendo
+          // un elemento de ancho acotado.
+          <span
+            className={`block w-fit max-w-full truncate mx-auto mt-2 text-[8.5px] font-semibold px-1.5 py-0.5 rounded-full ${
+              visitaCancelada ? "bg-ink/15 text-ink/50" : visitaRealizada ? "bg-green-600 text-paper" : "bg-copper text-paper"
+            }`}
+          >
+            {visitaCancelada ? "Cancelada" : visitaRealizada ? "✓ Realizada" : "📍 Visita"}
+          </span>
+        ) : (
+          <span
+            style={etiqueta}
+            className="inline-block mt-2 text-[9.5px] font-semibold px-2 py-0.5 rounded-full"
+          >
+            {orden.categoriaNombre}
+          </span>
+        )}
       </button>
     );
   }
@@ -268,13 +308,19 @@ export default function CalendarioSemanal({
               ) : (
                 <div className="space-y-2 mb-5">
                   {turnosDia.map((orden, i) => {
-                    const color = colorCategoria(orden.categoriaNombre);
+                    const esVisita = orden.tipo === "Visita";
+                    // Ver el mismo criterio en TarjetaTurno más arriba (30/09).
+                    const visitaCancelada = esVisita && orden.estado === "Cancelada";
+                    const visitaRealizada = esVisita && orden.estado === "Realizada";
+                    const color = visitaRealizada ? "#16a34a" : esVisita ? "var(--copper)" : colorCategoria(orden.categoriaNombre);
                     return (
                       <div
                         key={`${orden.fechaHoraProgramada}-${i}`}
                         onClick={() => setOrdenSeleccionada(orden)}
                         style={{ borderLeftColor: color }}
-                        className="relative flex gap-3 bg-surface border border-ink/10 border-l-4 rounded-xl p-3 cursor-pointer hover:border-copper/50 transition-colors"
+                        className={`relative flex gap-3 bg-surface border border-ink/10 border-l-4 rounded-xl p-3 cursor-pointer hover:border-copper/50 transition-colors ${
+                          visitaCancelada ? "opacity-60" : ""
+                        }`}
                       >
                         <div className="min-w-0 flex-1">
                           <p className="font-mono text-xs text-ink/45 mb-0.5">
@@ -284,10 +330,10 @@ export default function CalendarioSemanal({
                             })}
                             {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
                             {" · "}
-                            {orden.categoriaNombre}
+                            {visitaCancelada ? "Visita cancelada" : visitaRealizada ? "✓ Visita realizada" : esVisita ? "📍 Visita" : orden.categoriaNombre}
                           </p>
-                          <p className="font-medium text-ink">{orden.clienteNombreCompleto}</p>
-                          <p className="text-sm text-ink/55">{orden.descripcion || orden.categoriaNombre}</p>
+                          <p className={`font-medium text-ink ${visitaCancelada ? "line-through" : ""}`}>{orden.clienteNombreCompleto}</p>
+                          <p className={`text-sm text-ink/55 ${visitaCancelada ? "line-through" : ""}`}>{orden.descripcion || orden.categoriaNombre}</p>
                           {orden.clienteDireccion && (
                             <p className="text-xs text-ink/40 mt-0.5">
                               <a
@@ -413,7 +459,9 @@ export default function CalendarioSemanal({
               </div>
               {ordenSeleccionada.fechaHoraProgramada && (
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Turno</dt>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">
+                    {ordenSeleccionada.tipo === "Visita" ? "Visita" : "Turno"}
+                  </dt>
                   <dd className="text-ink">
                     {new Date(ordenSeleccionada.fechaHoraProgramada).toLocaleString("es-AR", {
                       weekday: "long",
@@ -426,9 +474,17 @@ export default function CalendarioSemanal({
                   </dd>
                 </div>
               )}
+              {ordenSeleccionada.tipo === "Visita" && ordenSeleccionada.estado !== "Programada" && (
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Estado</dt>
+                  <dd className={ordenSeleccionada.estado === "Realizada" ? "text-green-700 font-medium" : "text-ink/50"}>
+                    {ordenSeleccionada.estado === "Realizada" ? "✓ Realizada" : "Cancelada"}
+                  </dd>
+                </div>
+              )}
             </dl>
 
-            {onReprogramar && (
+            {onReprogramar && ordenSeleccionada.tipo !== "Visita" && (
               <button
                 onClick={() => {
                   const orden = ordenSeleccionada;
@@ -438,6 +494,20 @@ export default function CalendarioSemanal({
                 className="mt-4 w-full text-center text-sm text-copper hover:underline"
               >
                 Reprogramar este turno
+              </button>
+            )}
+
+            {onCancelarVisita && ordenSeleccionada.tipo === "Visita" && ordenSeleccionada.estado === "Programada" && (
+              <button
+                onClick={() => {
+                  const orden = ordenSeleccionada;
+                  setOrdenSeleccionada(null);
+                  onCancelarVisita(orden);
+                }}
+                disabled={cancelandoVisitaId === ordenSeleccionada.id}
+                className="mt-4 w-full text-center text-sm text-ink/50 hover:text-ink hover:underline disabled:opacity-40"
+              >
+                {cancelandoVisitaId === ordenSeleccionada.id ? "Cancelando..." : "Cancelar visita"}
               </button>
             )}
           </div>

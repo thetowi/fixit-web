@@ -13,6 +13,10 @@ export interface AgregarBloqueRequest {
 
 export interface OrdenAgenda {
   id: string;
+  // "Trabajo" (un turno de una Orden pagada, de siempre) o "Visita" (visita a domicilio para
+  // presupuestar, 30/09) — se usa para decidir qué acciones mostrar en la tarjeta (una Visita no
+  // se reprograma ni tiene detalle de orden todavía, solo Cancelar).
+  tipo: "Trabajo" | "Visita";
   categoriaNombre: string;
   clienteId: string;
   clienteNombreCompleto: string;

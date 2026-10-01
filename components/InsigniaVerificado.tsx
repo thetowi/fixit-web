@@ -7,6 +7,13 @@
 // Solo se arma como cápsula+brillo cuando se pide con texto (conTexto=true) — en los lugares
 // donde se usa nada más el ícono chiquito pegado a un nombre en un listado denso (/buscar,
 // /explorar, "Mi cuenta") se deja el ícono solo, sin cápsula, para no romper esos layouts.
+// El ícono solo también tiene su propio brillo (01/10, a pedido del usuario): un destello
+// diagonal que cruza el propio ícono una sola vez cada 4-5 segundos y después queda apagado
+// hasta el próximo paso — nunca un halo prendido todo el tiempo. Elegido por el usuario a
+// partir de un mockup de 3 opciones (halo pulsante / anillo girando / destello diagonal, ver
+// claude/backlog.md), con el pedido explícito de que "solo pase el brillo, que no se quede".
+// El destello usa mask-image con el propio PNG del ícono (.insignia-icono-destello en
+// globals.css) para respetar exactamente su forma, en vez de un halo alrededor.
 //
 // (28/09) La cápsula pasó de un degradé plano color cobre + franja diagonal blanca, a una "placa
 // de bronce" multi-tono con 3 capas de luz orbitando (ver globals.css) — a pedido del usuario tras
@@ -32,14 +39,14 @@ export default function InsigniaVerificado({
 }) {
   if (!conTexto) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={LOGO_SRC}
-        alt="Verificado"
-        width={size}
-        height={size}
-        className={`inline-block shrink-0 align-middle ${className}`}
-      />
+      <span
+        className={`relative inline-flex items-center justify-center shrink-0 align-middle ${className}`}
+        style={{ width: size, height: size }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={LOGO_SRC} alt="Verificado" width={size} height={size} />
+        <span className="insignia-icono-destello" aria-hidden="true" />
+      </span>
     );
   }
 

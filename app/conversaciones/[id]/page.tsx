@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
-import { Paperclip, Mic, Check, X, Send, BanknoteArrowUp, ShieldCheck } from "lucide-react";
+import { Paperclip, Mic, Check, X, Send, BanknoteArrowUp, ShieldCheck, MapPin } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { crearConexionChat } from "@/lib/chatConnection";
@@ -60,6 +60,21 @@ export default function ConversacionPage() {
   const [enviandoOferta, setEnviandoOferta] = useState(false);
   const [pagando, setPagando] = useState(false);
   const [cancelandoOfertaId, setCancelandoOfertaId] = useState<string | null>(null);
+  // Visita a domicilio para presupuestar (30/09) — ver VisitaService.ProgramarAsync en el backend.
+  const [mostrandoVisita, setMostrandoVisita] = useState(false);
+  // Título corto de la visita (30/09, a pedido del usuario) — ej. "Presupuesto pintura living".
+  const [tituloVisita, setTituloVisita] = useState("");
+  const [fechaVisita, setFechaVisita] = useState("");
+  const [horaVisita, setHoraVisita] = useState("");
+  const [duracionVisita, setDuracionVisita] = useState("30");
+  const [enviandoVisita, setEnviandoVisita] = useState(false);
+  // Aviso no bloqueante de horario fuera de la disponibilidad declarada (30/09) — a diferencia de
+  // `error`, esto NO impidió que la visita se agende, por eso va en un cartel ámbar separado (mismo
+  // criterio que app/prestador/agenda/page.tsx) y no en el cartel rojo de error.
+  const [avisoHorarioVisita, setAvisoHorarioVisita] = useState<string | null>(null);
+  const [cancelandoVisitaId, setCancelandoVisitaId] = useState<string | null>(null);
+  // El prestador confirma que la visita se realizó (30/09) — ver VisitaService.MarcarRealizadaAsync.
+  const [marcandoRealizadaId, setMarcandoRealizadaId] = useState<string | null>(null);
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
   const [grabando, setGrabando] = useState(false);
   const [segundosGrabados, setSegundosGrabados] = useState(0);
@@ -159,6 +174,10 @@ export default function ConversacionPage() {
             if (mensaje.tipo === "Turno") {
               actualizados = actualizados.map((m) => (m.tipo === "Turno" ? { ...m, turnoVigente: false } : m));
             }
+            // Mismo criterio para una visita reprogramada (30/09) — ver VisitaService.ProgramarAsync.
+            if (mensaje.tipo === "Visita") {
+              actualizados = actualizados.map((m) => (m.tipo === "Visita" ? { ...m, visitaVigente: false } : m));
+            }
             return [...actualizados, mensaje];
           });
 
@@ -170,6 +189,14 @@ export default function ConversacionPage() {
         // A diferencia de RecibirMensaje, esto no agrega un mensaje nuevo: actualiza en el
         // lugar una oferta existente (ej. cuando el prestador la cancela)
         conexion.on("OfertaActualizada", (mensaje: Mensaje) => {
+          setMensajes((prev) => prev.map((m) => (m.id === mensaje.id ? mensaje : m)));
+        });
+
+        // Igual que OfertaActualizada, pero para una Visita cancelada o marcada como realizada
+        // (nunca se emite al reprogramar, ahí entra por RecibirMensaje de arriba) — ver
+        // VisitasController.Cancelar / MarcarRealizada. El mensaje ya trae su `visitaEstado`
+        // actualizado, no hace falta ningún estado local aparte para saber qué pasó.
+        conexion.on("VisitaActualizada", (mensaje: Mensaje) => {
           setMensajes((prev) => prev.map((m) => (m.id === mensaje.id ? mensaje : m)));
         });
 
@@ -484,6 +511,92 @@ export default function ConversacionPage() {
     }
   }
 
+  async function handleAgendarVisita(e: React.FormEvent) {
+    e.preventDefault();
+    // Mismo guard contra doble envío que handleEnviarOferta.
+    if (enviandoVisita) return;
+
+    if (!tituloVisita.trim()) {
+      setError("Contá brevemente de qué es la visita (ej. \"Presupuesto pintura living\").");
+      return;
+    }
+    if (!fechaVisita || !horaVisita) {
+      setError("Elegí fecha y hora para la visita.");
+      return;
+    }
+    const duracion = Number(duracionVisita);
+    if (!duracion || duracion <= 0) {
+      setError("Ingresá una duración válida.");
+      return;
+    }
+
+    // input type="date"/"time" dan valores en horario local — Date los interpreta como local
+    // también al construirlos así, y toISOString() los manda en UTC (lo que espera el backend).
+    const fechaHora = new Date(`${fechaVisita}T${horaVisita}`);
+
+    setEnviandoVisita(true);
+    try {
+      const resultado = await apiFetch<{ mensaje: Mensaje; advertenciaFueraDeHorario: string | null }>(
+        `/api/conversaciones/${conversacionId}/visitas`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            titulo: tituloVisita.trim(),
+            fechaHora: fechaHora.toISOString(),
+            duracionMinutos: duracion,
+          }),
+        }
+      );
+      setMensajes((prev) => {
+        if (prev.some((m) => m.id === resultado.mensaje.id)) return prev;
+        return [
+          ...prev.map((m) => (m.tipo === "Visita" ? { ...m, visitaVigente: false } : m)),
+          resultado.mensaje,
+        ];
+      });
+      setMostrandoVisita(false);
+      setTituloVisita("");
+      setFechaVisita("");
+      setHoraVisita("");
+      setDuracionVisita("30");
+      // Aviso no bloqueante (cartel ámbar, no el de error) — la visita ya quedó agendada igual.
+      setAvisoHorarioVisita(resultado.advertenciaFueraDeHorario ?? null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al agendar la visita");
+    } finally {
+      setEnviandoVisita(false);
+    }
+  }
+
+  async function handleCancelarVisita(visitaId: string) {
+    setCancelandoVisitaId(visitaId);
+    setError(null);
+    try {
+      await apiFetch(`/api/visitas/${visitaId}/cancelar`, { method: "PUT" });
+      // El backend difunde "VisitaActualizada" por SignalR (incluido a quien la cancela), que ya
+      // trae el mensaje con visitaEstado: "Cancelada" — no hace falta tocar el estado acá también.
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cancelar la visita");
+    } finally {
+      setCancelandoVisitaId(null);
+    }
+  }
+
+  // El prestador confirma que fue al domicilio y la visita se hizo (30/09) — no dispara ningún
+  // cobro, solo cambia el estado a "Realizada" (se ve en verde, ver VisitaService.MarcarRealizadaAsync).
+  async function handleMarcarVisitaRealizada(visitaId: string) {
+    setMarcandoRealizadaId(visitaId);
+    setError(null);
+    try {
+      await apiFetch(`/api/visitas/${visitaId}/realizada`, { method: "PUT" });
+      // El backend difunde "VisitaActualizada" por SignalR con visitaEstado: "Realizada".
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo marcar la visita como realizada");
+    } finally {
+      setMarcandoRealizadaId(null);
+    }
+  }
+
   async function handleConfirmarAvisoPago() {
     setConfirmandoAvisoPago(true);
     try {
@@ -752,6 +865,108 @@ export default function ConversacionPage() {
             );
           }
 
+          if (m.tipo === "Visita") {
+            // Visita a domicilio para presupuestar (30/09) — mismo patrón visual que el Turno de
+            // arriba (paso opcional ANTES de la Oferta: todavía no hay Orden ni pago de por medio,
+            // por eso no tiene botón de "Pagar" ni nada relacionado a dinero).
+            const fecha = m.visitaFechaHora ? new Date(m.visitaFechaHora) : null;
+            const fechaTexto = fecha
+              ? fecha.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
+              : "";
+            const horaTexto = fecha
+              ? fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+              : "";
+            // "Programada" | "Realizada" | "Cancelada" — viene persistido en el mensaje (30/09), ya
+            // no hace falta ningún Set local para saber qué pasó. Si viene null (mensajes viejos, ya
+            // no vigentes, de antes de este cambio) queda como "Reprogramada" por compatibilidad.
+            const esRealizada = m.visitaVigente && m.visitaEstado === "Realizada";
+            const esCancelada = !m.visitaVigente && m.visitaEstado === "Cancelada";
+            const colorBorde = esRealizada
+              ? "border-green-600"
+              : m.visitaVigente
+                ? "border-copper"
+                : "border-ink/10 opacity-60";
+            const colorHeader = esRealizada
+              ? "bg-green-600 text-paper"
+              : m.visitaVigente
+                ? "bg-copper text-paper"
+                : "bg-ink/10 text-ink/50";
+
+            return (
+              <div
+                key={m.id}
+                className={`max-w-[90%] w-[280px] shrink-0 rounded-xl overflow-hidden shadow-md border-2 ${colorBorde} ${
+                  esMio ? "self-end" : "self-start"
+                }`}
+              >
+                <div className={`flex items-center gap-2 px-3.5 py-2 ${colorHeader}`}>
+                  <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-display shrink-0">
+                    📍
+                  </span>
+                  <p className="font-mono text-[10px] uppercase tracking-widest truncate">
+                    {esMio ? "Agendaste una visita" : `${m.emisorNombre} agendó una visita`}
+                  </p>
+                  {esRealizada && (
+                    <span className="ml-auto font-mono text-[9px] uppercase tracking-widest bg-white/20 rounded-full px-2 py-0.5 shrink-0">
+                      Completada
+                    </span>
+                  )}
+                  {!m.visitaVigente && (
+                    <span className="ml-auto font-mono text-[9px] uppercase tracking-widest bg-white/20 rounded-full px-2 py-0.5 shrink-0">
+                      {esCancelada ? "Cancelada" : "Reprogramada"}
+                    </span>
+                  )}
+                </div>
+
+                <div className="bg-surface px-3.5 py-3">
+                  {m.visitaTitulo && (
+                    <p className={`text-sm font-semibold text-ink mb-1.5 ${m.visitaVigente ? "" : "line-through"}`}>
+                      {m.visitaTitulo}
+                    </p>
+                  )}
+                  <p className="text-xs text-ink/50 mb-1.5">Para ver el trabajo y armar el presupuesto</p>
+                  <p className={`text-base font-semibold text-ink capitalize ${m.visitaVigente ? "" : "line-through"}`}>
+                    {fechaTexto}
+                  </p>
+                  <p className={`text-sm text-ink/60 mt-0.5 ${m.visitaVigente ? "" : "line-through"}`}>
+                    {horaTexto}
+                    {m.visitaDuracionMinutos ? ` · ${formatoDuracion(m.visitaDuracionMinutos)}` : ""}
+                  </p>
+                  {!m.visitaVigente && (
+                    <p className="text-xs text-ink/40 mt-2">
+                      {esCancelada
+                        ? "Esta visita se canceló"
+                        : "Esta visita se reprogramó — ver el mensaje más reciente"}
+                    </p>
+                  )}
+                  {esRealizada && (
+                    <p className="text-xs text-green-700 mt-2">✓ Visita realizada</p>
+                  )}
+                  {m.visitaVigente && m.visitaEstado === "Programada" && (
+                    <div className="flex gap-2 mt-3">
+                      {esPrestador && (
+                        <button
+                          onClick={() => handleMarcarVisitaRealizada(m.visitaId!)}
+                          disabled={marcandoRealizadaId === m.visitaId}
+                          className="flex-1 border border-green-600 text-green-700 text-xs rounded-lg px-3 py-1.5 hover:bg-green-50 transition-colors disabled:opacity-40"
+                        >
+                          {marcandoRealizadaId === m.visitaId ? "Confirmando..." : "Marcar como realizada"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleCancelarVisita(m.visitaId!)}
+                        disabled={cancelandoVisitaId === m.visitaId}
+                        className="flex-1 border border-ink/20 text-ink/60 text-xs rounded-lg px-3 py-1.5 hover:border-ink/40 hover:text-ink transition-colors disabled:opacity-40"
+                      >
+                        {cancelandoVisitaId === m.visitaId ? "Cancelando..." : "Cancelar visita"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
           if (m.tipo === "Imagen") {
             return (
               <div
@@ -865,7 +1080,18 @@ export default function ConversacionPage() {
         </div>
       </div>
 
-      {error && !mostrandoOferta && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{error}</p>}
+      {error && !mostrandoOferta && !mostrandoVisita && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{error}</p>}
+      {avisoHorarioVisita && (
+        <div className="mb-2 rounded-lg border border-amber-500/30 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-700 dark:text-amber-400 flex items-center justify-between gap-3">
+          <span>{avisoHorarioVisita}</span>
+          <button
+            onClick={() => setAvisoHorarioVisita(null)}
+            className="text-amber-700/70 dark:text-amber-400/70 hover:text-amber-700 dark:hover:text-amber-400 text-xs whitespace-nowrap"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
       {subiendoArchivo && <p className="text-ink/40 text-xs mb-2">Enviando...</p>}
 
       <style jsx>{`
@@ -974,6 +1200,19 @@ export default function ConversacionPage() {
               className="border border-copper text-copper rounded px-3 shrink-0 hover:bg-copper/5 transition-colors flex items-center justify-center"
             >
               <BanknoteArrowUp size={18} />
+            </button>
+          )}
+          {esPrestador && (
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setMostrandoVisita(true);
+              }}
+              aria-label="Agendar una visita"
+              className="border border-copper text-copper rounded px-3 shrink-0 hover:bg-copper/5 transition-colors flex items-center justify-center"
+            >
+              <MapPin size={18} />
             </button>
           )}
           <button
@@ -1090,6 +1329,111 @@ export default function ConversacionPage() {
                 className="flex-1 bg-copper text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
               >
                 {enviandoOferta ? "Enviando..." : "Ofertar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {mostrandoVisita && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4"
+          onClick={() => {
+            if (enviandoVisita) return;
+            setError(null);
+            setMostrandoVisita(false);
+            setTituloVisita("");
+            setFechaVisita("");
+            setHoraVisita("");
+            setDuracionVisita("30");
+          }}
+        >
+          <form
+            onSubmit={handleAgendarVisita}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-surface rounded-xl shadow-xl border border-ink/10 w-full max-w-sm p-5 flex flex-col gap-4"
+          >
+            <div>
+              <p className="font-mono text-xs tracking-widest text-copper uppercase mb-1">Nueva visita</p>
+              <h2 className="font-display text-lg text-ink">
+                {otroNombre ? `Agendale una visita a ${otroNombre}` : "Agendale una visita a tu cliente"}
+              </h2>
+              <p className="text-xs text-ink/50 mt-1">Para ver el trabajo en persona antes de pasar un presupuesto.</p>
+            </div>
+
+            <label className="text-sm text-ink/60">
+              Título
+              <input
+                type="text"
+                autoFocus
+                placeholder='Ej. "Presupuesto pintura living"'
+                maxLength={120}
+                className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
+                value={tituloVisita}
+                onChange={(e) => setTituloVisita(e.target.value)}
+              />
+            </label>
+
+            <label className="text-sm text-ink/60">
+              Fecha
+              <input
+                type="date"
+                className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
+                value={fechaVisita}
+                onChange={(e) => setFechaVisita(e.target.value)}
+              />
+            </label>
+
+            <label className="text-sm text-ink/60">
+              Hora
+              <input
+                type="time"
+                className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
+                value={horaVisita}
+                onChange={(e) => setHoraVisita(e.target.value)}
+              />
+            </label>
+
+            <label className="text-sm text-ink/60">
+              Duración estimada
+              <select
+                className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
+                value={duracionVisita}
+                onChange={(e) => setDuracionVisita(e.target.value)}
+              >
+                <option value="15">15 minutos</option>
+                <option value="30">30 minutos</option>
+                <option value="45">45 minutos</option>
+                <option value="60">1 hora</option>
+                <option value="90">1 hora y media</option>
+                <option value="120">2 horas</option>
+              </select>
+            </label>
+
+            {error && <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>}
+
+            <div className="flex gap-2 mt-1">
+              <button
+                type="button"
+                disabled={enviandoVisita}
+                onClick={() => {
+                  setError(null);
+                  setMostrandoVisita(false);
+                  setTituloVisita("");
+                  setFechaVisita("");
+                  setHoraVisita("");
+                  setDuracionVisita("30");
+                }}
+                className="flex-1 border border-ink/20 text-ink rounded-lg py-2.5 font-medium hover:border-ink/40 transition-colors disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={enviandoVisita || !tituloVisita.trim() || !fechaVisita || !horaVisita}
+                className="flex-1 bg-copper text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+              >
+                {enviandoVisita ? "Agendando..." : "Agendar visita"}
               </button>
             </div>
           </form>

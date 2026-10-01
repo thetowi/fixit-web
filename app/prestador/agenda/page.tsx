@@ -69,6 +69,8 @@ export default function AgendaPage() {
   const [avisoHorario, setAvisoHorario] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [cargandoRango, setCargandoRango] = useState(false);
+  // Cancelar una Visita a domicilio ya agendada (30/09) — ver VisitaService.CancelarAsync.
+  const [cancelandoVisitaId, setCancelandoVisitaId] = useState<string | null>(null);
 
   const inicioSemana = (() => {
     const base = new Date();
@@ -253,6 +255,19 @@ export default function AgendaPage() {
     }
   }
 
+  async function handleCancelarVisita(orden: OrdenAgenda) {
+    setCancelandoVisitaId(orden.id);
+    setError(null);
+    try {
+      await apiFetch(`/api/visitas/${orden.id}/cancelar`, { method: "PUT" });
+      await refrescarTodo();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cancelar la visita");
+    } finally {
+      setCancelandoVisitaId(null);
+    }
+  }
+
   if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
 
   const finSemana = new Date(inicioSemana);
@@ -268,8 +283,13 @@ export default function AgendaPage() {
 
   const enHoy = vista === "semana" ? offsetSemana === 0 : offsetMes === 0;
 
+  // max-w-6xl (antes max-w-3xl, 01/10 a pedido del usuario): la grilla semanal de 7 columnas
+  // quedaba apretada en el centro de la pantalla en monitores grandes, desaprovechando todo el
+  // resto del ancho — con la vista mensual/semanal como contenido principal de esta pantalla
+  // (a diferencia de /ordenes o /cuenta, que son listas angostas de tarjetas), conviene un
+  // contenedor más ancho.
   return (
-    <div className="max-w-3xl mx-auto mt-16 p-6 w-full">
+    <div className="max-w-6xl mx-auto mt-16 p-6 w-full">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
         <div>
           <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Prestador</p>
@@ -403,6 +423,8 @@ export default function AgendaPage() {
             ordenes={programadas}
             onCeldaDisponibleClick={handleCeldaDisponibleClick}
             onReprogramar={pedirConfirmacionReprogramar}
+            onCancelarVisita={handleCancelarVisita}
+            cancelandoVisitaId={cancelandoVisitaId}
           />
         ) : (
           <CalendarioMensual
@@ -410,6 +432,8 @@ export default function AgendaPage() {
             ordenes={programadas}
             onSeleccionarDia={handleSeleccionarDiaMes}
             onReprogramar={pedirConfirmacionReprogramar}
+            onCancelarVisita={handleCancelarVisita}
+            cancelandoVisitaId={cancelandoVisitaId}
           />
         )}
       </div>

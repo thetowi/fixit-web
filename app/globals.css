@@ -164,3 +164,72 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .insignia-luz, .insignia-halo, .insignia-reflejo { animation: none; }
 }
+
+/* Brillo del ícono solo, sin la placa de bronce (01/10) — para listados densos (/buscar,
+   /explorar) donde antes se mostraba por error la cápsula completa con el texto "Verificado"
+   (a pedido del usuario, ahí tiene que verse solo el ícono con un brillo, la placa completa queda
+   reservada para el perfil del prestador).
+   Primer intento: un halo cálido pulsando alrededor del ícono — el usuario no lo aprobó ("no me
+   gusta el diseño del brillo") y pidió un mockup con 3 opciones (halo pulsante / anillo girando /
+   destello diagonal, ver claude/backlog.md). Eligió la Opción 3 (destello diagonal), con el pedido
+   de ajuste "que solo pase el brillo, que no se quede".
+   Primera implementación: animaba el "background-position" del propio elemento enmascarado — en
+   la práctica se veía un resto de brillo "congelado" un rato después de cada pase (reportado dos
+   veces por el usuario), probablemente por cómo se combinan background-size/position en % con el
+   mask-image, difícil de calcular con precisión. Reescrito con una estructura más robusta: un
+   elemento EXTERNO fijo que solo recorta con la forma del ícono (mask-image), y un ::after INTERNO
+   —la barra de brillo real— que se mueve con "transform: translateX" en porcentajes relativos a su
+   PROPIO ancho (no al contenedor), así las posiciones de reposo quedan muy lejos del área visible
+   sin ambigüedad de cálculo, garantizando que el brillo esté 100% apagado fuera del pase. Ver
+   InsigniaVerificado.tsx (conTexto=false). */
+.insignia-icono-destello {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  -webkit-mask-image: url("/insignia-verificado.png");
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-image: url("/insignia-verificado.png");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+}
+
+.insignia-icono-destello::after {
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 68%;
+  height: 240%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 244, 214, 0.9) 42%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 244, 214, 0.9) 58%,
+    transparent 100%
+  );
+  transform: translateX(-220%);
+  animation: insignia-icono-barrer 4.5s linear infinite;
+}
+
+/* El tramo quieto (0%-58% y 74%-100%) no cambia de posición, así que la curva de velocidad solo
+   importa en el tramo 58%->74% (el pase real): "linear" para que cruce a velocidad constante y se
+   apague de golpe, sin frenar al final.
+   translateX(220%) se quedaba corto: con este ancho de barra (55%) y su posición inicial
+   (left:-60%), a +220% todavía quedaba un pedazo de la barra DENTRO del ícono cuando la animación
+   se detenía — se veía como que el brillo se frenaba a mitad de camino en vez de terminar de
+   salir (reportado por el usuario). Subido a 300% para que la barra completa quede del todo afuera
+   antes de pararse. */
+@keyframes insignia-icono-barrer {
+  0%, 58% { transform: translateX(-220%); }
+  74%     { transform: translateX(300%); }
+  100%    { transform: translateX(300%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insignia-icono-destello::after { animation: none; display: none; }
+}

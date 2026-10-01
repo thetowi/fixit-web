@@ -49,7 +49,7 @@ export default function ExplorarCategoriaPage() {
                 <div>
                   <p className="font-medium text-ink">
                     {p.nombre} {p.apellido}
-                    {p.verificado && <InsigniaVerificado size={14} conTexto className="ml-2" />}
+                    {p.verificado && <InsigniaVerificado size={14} className="ml-2" />}
                   </p>
                   {p.descripcion && <p className="text-sm text-ink/60">{p.descripcion}</p>}
                   {p.precioReferencia && (

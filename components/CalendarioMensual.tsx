@@ -34,13 +34,20 @@ export default function CalendarioMensual({
   ordenes,
   onSeleccionarDia,
   onReprogramar,
+  onCancelarVisita,
+  cancelandoVisitaId,
 }: {
   mesBase: Date;
   ordenes: OrdenAgenda[];
   onSeleccionarDia?: (dia: Date) => void;
   // Reprogramar un turno ya agendado (22/09, a pedido del usuario) — mismo callback que
   // CalendarioSemanal, el padre se encarga de pedir confirmación antes de abrir el formulario.
+  // Solo aplica a Tipo === "Trabajo".
   onReprogramar?: (orden: OrdenAgenda) => void;
+  // Cancelar una Visita a domicilio ya agendada (30/09) — ver el comentario equivalente en
+  // CalendarioSemanal.
+  onCancelarVisita?: (orden: OrdenAgenda) => void;
+  cancelandoVisitaId?: string | null;
 }) {
   const hoy = new Date();
   const anio = mesBase.getFullYear();
@@ -129,9 +136,25 @@ export default function CalendarioMensual({
                     >
                       <span
                         className="w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ background: colorCategoria(t.categoriaNombre) }}
+                        style={{
+                          background:
+                            t.tipo === "Visita"
+                              ? t.estado === "Cancelada"
+                                ? "var(--ink)"
+                                : t.estado === "Realizada"
+                                  ? "#16a34a"
+                                  : "var(--copper)"
+                              : colorCategoria(t.categoriaNombre),
+                          opacity: t.tipo === "Visita" && t.estado === "Cancelada" ? 0.3 : 1,
+                        }}
                       />
-                      <span className="text-[10px] font-medium text-ink truncate">{nombreCorto(t.clienteNombreCompleto)}</span>
+                      <span
+                        className={`text-[10px] font-medium text-ink truncate ${
+                          t.tipo === "Visita" && t.estado === "Cancelada" ? "line-through opacity-60" : ""
+                        }`}
+                      >
+                        {nombreCorto(t.clienteNombreCompleto)}
+                      </span>
                     </div>
                   ))}
                   {celda.restantes > 0 && (
@@ -171,9 +194,17 @@ export default function CalendarioMensual({
 
             <div className="space-y-2.5">
               {turnosDelDiaDetalle.map((orden) => {
-                const color = colorCategoria(orden.categoriaNombre);
+                const esVisita = orden.tipo === "Visita";
+                // Ver el mismo criterio en CalendarioSemanal (30/09).
+                const visitaCancelada = esVisita && orden.estado === "Cancelada";
+                const visitaRealizada = esVisita && orden.estado === "Realizada";
+                const color = visitaRealizada ? "#16a34a" : esVisita ? "var(--copper)" : colorCategoria(orden.categoriaNombre);
                 return (
-                  <div key={orden.id} style={{ borderLeftColor: color }} className="bg-paper border-l-4 rounded-lg p-3">
+                  <div
+                    key={orden.id}
+                    style={{ borderLeftColor: color }}
+                    className={`bg-paper border-l-4 rounded-lg p-3 ${visitaCancelada ? "opacity-60" : ""}`}
+                  >
                     <p className="font-mono text-xs text-ink/45 mb-0.5">
                       {new Date(orden.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
                         hour: "2-digit",
@@ -181,10 +212,10 @@ export default function CalendarioMensual({
                       })}
                       {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
                       {" · "}
-                      {orden.categoriaNombre}
+                      {visitaCancelada ? "Visita cancelada" : visitaRealizada ? "✓ Visita realizada" : esVisita ? "📍 Visita" : orden.categoriaNombre}
                     </p>
-                    <p className="font-medium text-ink">{orden.clienteNombreCompleto}</p>
-                    <p className="text-sm text-ink/55">{orden.descripcion || orden.categoriaNombre}</p>
+                    <p className={`font-medium text-ink ${visitaCancelada ? "line-through" : ""}`}>{orden.clienteNombreCompleto}</p>
+                    <p className={`text-sm text-ink/55 ${visitaCancelada ? "line-through" : ""}`}>{orden.descripcion || orden.categoriaNombre}</p>
                     {orden.clienteDireccion && (
                       <p className="text-xs text-ink/40 mt-0.5">
                         <a
@@ -202,7 +233,7 @@ export default function CalendarioMensual({
                       </p>
                     )}
                     {orden.clienteTelefono && <p className="text-xs text-ink/40 mt-0.5">{orden.clienteTelefono}</p>}
-                    {onReprogramar && (
+                    {onReprogramar && !esVisita && (
                       <button
                         onClick={() => {
                           setDiaDetalle(null);
@@ -211,6 +242,18 @@ export default function CalendarioMensual({
                         className="mt-1.5 text-xs text-copper hover:underline"
                       >
                         Reprogramar
+                      </button>
+                    )}
+                    {onCancelarVisita && esVisita && orden.estado === "Programada" && (
+                      <button
+                        onClick={() => {
+                          setDiaDetalle(null);
+                          onCancelarVisita(orden);
+                        }}
+                        disabled={cancelandoVisitaId === orden.id}
+                        className="mt-1.5 text-xs text-ink/50 hover:text-ink hover:underline disabled:opacity-40"
+                      >
+                        {cancelandoVisitaId === orden.id ? "Cancelando..." : "Cancelar visita"}
                       </button>
                     )}
                   </div>

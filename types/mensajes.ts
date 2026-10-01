@@ -3,7 +3,7 @@ export interface Mensaje {
   conversacionId: string;
   emisorId: string;
   emisorNombre: string;
-  tipo: "Texto" | "Imagen" | "Oferta" | "Audio" | "Video" | "Turno";
+  tipo: "Texto" | "Imagen" | "Oferta" | "Audio" | "Video" | "Turno" | "Visita";
   contenido: string | null;
   archivoUrl: string | null;
   duracionSegundos: number | null;
@@ -20,5 +20,16 @@ export interface Mensaje {
   turnoFechaHora: string | null;
   turnoDuracionMinutos: number | null;
   turnoVigente: boolean;
+  // Visita a domicilio para presupuestar (30/09) — paso opcional antes de la Oferta, ver
+  // VisitaService.ProgramarAsync en el backend.
+  visitaId: string | null;
+  // Título corto puesto por el prestador al agendar (30/09, ej. "Presupuesto pintura living").
+  visitaTitulo: string | null;
+  visitaFechaHora: string | null;
+  visitaDuracionMinutos: number | null;
+  visitaVigente: boolean;
+  // "Programada" | "Realizada" | "Cancelada" (30/09) — refleja el estado real de la Visita,
+  // persistido en el mensaje (no depende de haber estado conectado en vivo al momento del cambio).
+  visitaEstado: "Programada" | "Realizada" | "Cancelada" | null;
   enviadoEn: string;
 }
