@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario, cerrarSesion, guardarSesion } from "@/lib/auth";
@@ -725,9 +726,18 @@ function CuentaContenido() {
   return (
     <div className="max-w-2xl mx-auto mt-16 p-6 w-full">
       <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Mi cuenta</p>
-      <h1 className="font-display text-2xl text-ink mb-6">
+      <h1 className="font-display text-2xl text-ink mb-1">
         {perfil.nombre} {perfil.apellido}
       </h1>
+
+      {/* Acceso al perfil público (03/10, a pedido del usuario: "como accede el prestador a ver
+          la reseña que le dejó su cliente" — las reseñas viven en /prestador/{id}, pero no había
+          ningún link desde la app hacia el propio perfil). */}
+      {perfil.rol === "Prestador" && (
+        <Link href={`/prestador/${perfil.id}`} className="text-sm text-copper hover:underline mb-6 inline-block">
+          Ver mi perfil público →
+        </Link>
+      )}
 
       {perfil.rol === "Prestador" && (
         <div className="flex gap-2 mb-6 flex-wrap">
@@ -1344,6 +1354,21 @@ function CuentaContenido() {
                   inputRef={fileInputRefAntecedentes}
                   onChange={setVerifAntecedentes}
                 />
+                {/* 02/10, a pedido del usuario: ayuda para quien todavía no tiene el certificado
+                    tramitado — el link se muestra corto ("argentina.gob") en vez de la URL completa,
+                    que es larga y arruinaría el diseño del formulario. */}
+                <p className="text-[11px] text-ink/50 -mt-1.5">
+                  Si no lo tenés todavía, podés tramitarlo ingresando a{" "}
+                  <a
+                    href="https://www.argentina.gob.ar/justicia/reincidencia/antecedentespenales"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-copper hover:underline"
+                  >
+                    argentina.gob
+                  </a>
+                  .
+                </p>
 
                 <p className="text-[11px] text-ink/40">Imagen o PDF, hasta 8 MB cada uno.</p>
 

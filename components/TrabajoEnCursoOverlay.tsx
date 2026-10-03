@@ -33,6 +33,14 @@ export default function TrabajoEnCursoOverlay() {
   const [tiempo, setTiempo] = useState("00:00");
   const ordenIdAnteriorRef = useRef<string | null>(null);
 
+  // Pausar trabajo en curso (03/10, a pedido del usuario: "poder pausar un trabajo en curso para
+  // continuar al otro día") — solo el Prestador decide, el Cliente solo ve el estado "Pausado" y
+  // la nota (si dejó una), sin tener que aprobar nada.
+  const [mostrarFormPausa, setMostrarFormPausa] = useState(false);
+  const [notaPausa, setNotaPausa] = useState("");
+  const [pausando, setPausando] = useState(false);
+  const [reanudando, setReanudando] = useState(false);
+
   useEffect(() => {
     setUsuario(obtenerUsuario());
   }, []);
@@ -70,11 +78,53 @@ export default function TrabajoEnCursoOverlay() {
   useEffect(() => {
     if (!ordenEnCurso) return;
     const inicio = new Date(ordenEnCurso.iniciadoEn).getTime();
+
+    // Pausado: el timer se congela en el momento de la pausa en vez de seguir sumando — no hace
+    // falta un intervalo, un solo cálculo alcanza (vuelve a correr si cambia pausadoEn).
+    if (ordenEnCurso.pausadoEn) {
+      const pausa = new Date(ordenEnCurso.pausadoEn).getTime();
+      setTiempo(formatearTiempo((pausa - inicio) / 1000));
+      return;
+    }
+
     const actualizar = () => setTiempo(formatearTiempo((Date.now() - inicio) / 1000));
     actualizar();
     const intervalo = setInterval(actualizar, 1000);
     return () => clearInterval(intervalo);
-  }, [ordenEnCurso?.iniciadoEn]);
+  }, [ordenEnCurso?.iniciadoEn, ordenEnCurso?.pausadoEn]);
+
+  async function pausarTrabajo() {
+    if (!ordenEnCurso) return;
+    setPausando(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/ordenes/${ordenEnCurso.ordenId}/pausar`, {
+        method: "PUT",
+        body: JSON.stringify({ nota: notaPausa.trim() || undefined }),
+      });
+      setOrdenEnCurso({ ...ordenEnCurso, pausadoEn: new Date().toISOString(), notaPausa: notaPausa.trim() || null });
+      setMostrarFormPausa(false);
+      setNotaPausa("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No pudimos pausar el trabajo.");
+    } finally {
+      setPausando(false);
+    }
+  }
+
+  async function reanudarTrabajo() {
+    if (!ordenEnCurso) return;
+    setReanudando(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/ordenes/${ordenEnCurso.ordenId}/reanudar`, { method: "PUT" });
+      setOrdenEnCurso({ ...ordenEnCurso, pausadoEn: null, notaPausa: null });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No pudimos reanudar el trabajo.");
+    } finally {
+      setReanudando(false);
+    }
+  }
 
   async function finalizarTrabajo() {
     if (!ordenEnCurso) return;
@@ -107,8 +157,10 @@ export default function TrabajoEnCursoOverlay() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-ink animate-pulse" />
-            <span className="text-xs font-bold text-ink uppercase tracking-wide">Trabajo en curso</span>
+            {!ordenEnCurso.pausadoEn && <span className="w-1.5 h-1.5 rounded-full bg-ink animate-pulse" />}
+            <span className="text-xs font-bold text-ink uppercase tracking-wide">
+              {ordenEnCurso.pausadoEn ? "Pausado" : "Trabajo en curso"}
+            </span>
           </span>
           <span className="block text-xs text-ink/70 truncate">
             {ordenEnCurso.categoriaNombre} · con {otraParte}
@@ -192,32 +244,91 @@ export default function TrabajoEnCursoOverlay() {
       <div className="px-6 pb-9 flex flex-col gap-3">
         {error && <p className="text-sm text-red-400 text-center">{error}</p>}
         {esCliente ? (
+          ordenEnCurso.pausadoEn ? (
+            <div className="flex flex-col gap-1.5 bg-white/[0.06] border border-white/10 rounded-2xl p-3.5">
+              <span className="text-sm font-medium">El prestador pausó el trabajo</span>
+              <span className="text-sm opacity-65">
+                {ordenEnCurso.notaPausa || "Lo van a continuar más adelante."}
+              </span>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={finalizarTrabajo}
+                disabled={finalizando}
+                className="w-full h-[54px] rounded-2xl bg-safety text-ink font-bold text-base disabled:opacity-60 transition-opacity"
+              >
+                {finalizando ? "Finalizando..." : "Finalizar trabajo"}
+              </button>
+              <button
+                onClick={() =>
+                  alert("Pronto vas a poder reportar un problema desde acá. Mientras tanto, contactanos por el chat.")
+                }
+                className="text-sm opacity-55 hover:opacity-80 transition-opacity"
+              >
+                Reportar un problema
+              </button>
+            </>
+          )
+        ) : ordenEnCurso.pausadoEn ? (
           <>
+            <div className="flex flex-col gap-1.5 bg-white/[0.06] border border-white/10 rounded-2xl p-3.5">
+              <span className="text-sm font-medium">Pausado</span>
+              {ordenEnCurso.notaPausa && <span className="text-sm opacity-65">{ordenEnCurso.notaPausa}</span>}
+            </div>
             <button
-              onClick={finalizarTrabajo}
-              disabled={finalizando}
+              onClick={reanudarTrabajo}
+              disabled={reanudando}
               className="w-full h-[54px] rounded-2xl bg-safety text-ink font-bold text-base disabled:opacity-60 transition-opacity"
             >
-              {finalizando ? "Finalizando..." : "Finalizar trabajo"}
-            </button>
-            <button
-              onClick={() =>
-                alert("Pronto vas a poder reportar un problema desde acá. Mientras tanto, contactanos por el chat.")
-              }
-              className="text-sm opacity-55 hover:opacity-80 transition-opacity"
-            >
-              Reportar un problema
+              {reanudando ? "Reanudando..." : "Reanudar trabajo"}
             </button>
           </>
-        ) : (
-          <div className="flex items-center gap-2.5 bg-white/[0.06] border border-white/10 rounded-2xl p-3.5">
-            <span className="flex gap-1 items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F4F1EA] animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F4F1EA] animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F4F1EA] animate-bounce [animation-delay:300ms]" />
-            </span>
-            <span className="text-sm opacity-75">Esperando que el cliente confirme la finalización</span>
+        ) : mostrarFormPausa ? (
+          <div className="flex flex-col gap-2.5 bg-white/[0.06] border border-white/10 rounded-2xl p-3.5">
+            <textarea
+              placeholder="Nota para el cliente (opcional) — ej. «Seguimos mañana a la misma hora»"
+              value={notaPausa}
+              onChange={(e) => setNotaPausa(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-lg p-2.5 text-sm text-paper placeholder:text-paper/40 resize-none"
+              rows={2}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setMostrarFormPausa(false);
+                  setNotaPausa("");
+                }}
+                className="flex-1 h-10 rounded-lg border border-white/15 text-sm opacity-80"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={pausarTrabajo}
+                disabled={pausando}
+                className="flex-1 h-10 rounded-lg bg-copper text-paper text-sm font-medium disabled:opacity-60"
+              >
+                {pausando ? "Pausando..." : "Confirmar pausa"}
+              </button>
+            </div>
           </div>
+        ) : (
+          <>
+            <button
+              onClick={() => setMostrarFormPausa(true)}
+              className="w-full h-[54px] rounded-2xl border border-white/20 text-paper font-bold text-base hover:bg-white/5 transition-colors"
+            >
+              Pausar trabajo
+            </button>
+            <div className="flex items-center gap-2.5 bg-white/[0.06] border border-white/10 rounded-2xl p-3.5">
+              <span className="flex gap-1 items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F4F1EA] animate-bounce [animation-delay:0ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F4F1EA] animate-bounce [animation-delay:150ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F4F1EA] animate-bounce [animation-delay:300ms]" />
+              </span>
+              <span className="text-sm opacity-75">Esperando que el cliente confirme la finalización</span>
+            </div>
+          </>
         )}
       </div>
     </div>

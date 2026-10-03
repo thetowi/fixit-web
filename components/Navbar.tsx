@@ -17,6 +17,10 @@ export default function Navbar() {
   const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [noLeidos, setNoLeidos] = useState(0);
+  // Centro de notificaciones (03/10, a pedido del usuario) — contador aparte del de mensajes
+  // sin leer de arriba: éste cuenta TODAS las notificaciones no leídas (chat, ofertas, repostos,
+  // pausar/reanudar un trabajo, etc. — ver Notificacion.cs), no solo mensajes de chat.
+  const [noLeidasNotificaciones, setNoLeidasNotificaciones] = useState(0);
   // Mientras esto esté en true, el título de la pestaña parpadea entre "FixIt" y el aviso.
   // Se prende cuando llega un mensaje nuevo con la pestaña en segundo plano, y se apaga solo
   // al volver a mirarla (no hace falta entrar a leer el mensaje puntual para que pare).
@@ -43,6 +47,7 @@ export default function Navbar() {
   useEffect(() => {
     if (!usuario || (usuario.rol !== "Cliente" && usuario.rol !== "Prestador")) {
       setNoLeidos(0);
+      setNoLeidasNotificaciones(0);
       return;
     }
 
@@ -60,7 +65,18 @@ export default function Navbar() {
         });
     }
 
+    function actualizarConteoNotificaciones() {
+      apiFetch<{ cantidad: number }>("/api/notificaciones/no-leidas-contador")
+        .then((data) => {
+          if (activo) setNoLeidasNotificaciones(data.cantidad);
+        })
+        .catch(() => {
+          // best-effort, mismo criterio que el resto de los contadores de este Navbar
+        });
+    }
+
     actualizarConteo();
+    actualizarConteoNotificaciones();
     pedirPermisoNotificaciones();
 
     async function conectar() {
@@ -69,6 +85,7 @@ export default function Navbar() {
         conexion.on("NuevaActividad", (data: { conversacionId: string; emisorNombre?: string; preview?: string }) => {
           console.info("[FixIt] Evento NuevaActividad recibido, actualizando contador de no leídos.");
           actualizarConteo();
+          actualizarConteoNotificaciones();
 
           // NuevaActividad también se dispara al cancelar una oferta (para refrescar el badge),
           // que no es un "mensaje nuevo" — esos eventos no traen emisorNombre, así que solo
@@ -91,6 +108,7 @@ export default function Navbar() {
         // addEventListener, sin tocar SignalR directamente.
         conexion.on("ActualizacionOrdenes", () => {
           window.dispatchEvent(new Event("fixit:ordenes-actualizadas"));
+          actualizarConteoNotificaciones();
         });
         conexion.onreconnected(() => {
           console.info("[FixIt] SignalR reconectado, volviendo a unirse a notificaciones.");
@@ -162,6 +180,16 @@ export default function Navbar() {
     );
   }
 
+  // Centro de notificaciones (03/10) — mismo look que BadgeNoLeidos, contador aparte.
+  function BadgeNotificaciones() {
+    if (noLeidasNotificaciones <= 0) return null;
+    return (
+      <span className="absolute -top-2 -right-3 bg-copper text-on-nav text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
+        {noLeidasNotificaciones > 9 ? "9+" : noLeidasNotificaciones}
+      </span>
+    );
+  }
+
   return (
     <nav className="bg-nav relative">
       <div className="px-6 py-3 flex items-center justify-between">
@@ -213,6 +241,10 @@ export default function Navbar() {
                 <BadgeNoLeidos />
               </Link>
               <Link href="/ordenes" className="hover:text-safety transition-colors" data-tour="nav-ordenes">Mis ordenes</Link>
+              <Link href="/notificaciones" className="relative hover:text-safety transition-colors">
+                Notificaciones
+                <BadgeNotificaciones />
+              </Link>
               <Link href="/cuenta" className="hover:text-safety transition-colors" data-tour="nav-cuenta">Mi cuenta</Link>
 
               <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
@@ -229,6 +261,10 @@ export default function Navbar() {
                 <BadgeNoLeidos />
               </Link>
               <Link href="/ordenes" className="hover:text-safety transition-colors" data-tour="nav-ordenes">Mis ordenes</Link>
+              <Link href="/notificaciones" className="relative hover:text-safety transition-colors">
+                Notificaciones
+                <BadgeNotificaciones />
+              </Link>
               <Link href="/cuenta" className="hover:text-safety transition-colors" data-tour="nav-cuenta">Mi cuenta</Link>
               <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
                 Cerrar sesion
@@ -264,9 +300,9 @@ export default function Navbar() {
           aria-expanded={menuAbierto}
           className="md:hidden relative w-9 h-9 flex items-center justify-center text-on-nav/90 hover:text-on-nav transition-colors shrink-0"
         >
-          {noLeidos > 0 && !menuAbierto && (
+          {noLeidos + noLeidasNotificaciones > 0 && !menuAbierto && (
             <span className="absolute top-0.5 right-0.5 bg-copper text-on-nav text-[9px] font-mono rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
-              {noLeidos > 9 ? "9+" : noLeidos}
+              {noLeidos + noLeidasNotificaciones > 9 ? "9+" : noLeidos + noLeidasNotificaciones}
             </span>
           )}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -339,6 +375,10 @@ export default function Navbar() {
                 <BadgeNoLeidos />
               </Link>
               <Link href="/ordenes" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-ordenes">Mis ordenes</Link>
+              <Link href="/notificaciones" className="relative py-3 border-b border-on-nav/10 hover:text-safety transition-colors">
+                Notificaciones
+                <BadgeNotificaciones />
+              </Link>
               <Link href="/cuenta" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-cuenta">Mi cuenta</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
                 Cerrar sesion
@@ -354,6 +394,10 @@ export default function Navbar() {
                 <BadgeNoLeidos />
               </Link>
               <Link href="/ordenes" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-ordenes">Mis ordenes</Link>
+              <Link href="/notificaciones" className="relative py-3 border-b border-on-nav/10 hover:text-safety transition-colors">
+                Notificaciones
+                <BadgeNotificaciones />
+              </Link>
               <Link href="/cuenta" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-cuenta">Mi cuenta</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
                 Cerrar sesion

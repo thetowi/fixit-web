@@ -96,6 +96,7 @@ export default function ConversacionPage() {
 
   const conexionRef = useRef<signalR.HubConnection | null>(null);
   const finalMensajesRef = useRef<HTMLDivElement>(null);
+  const contenedorMensajesRef = useRef<HTMLDivElement>(null);
   const inputArchivoRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksAudioRef = useRef<Blob[]>([]);
@@ -263,8 +264,23 @@ export default function ConversacionPage() {
     return () => clearInterval(intervalId);
   }, []);
 
+  // 02/10, a pedido del usuario: "no te lleva al final de todo, le falta un poquito". El problema
+  // real era `scrollIntoView` sobre el div vacío del final: se dispara apenas cambia `mensajes`,
+  // pero en ese momento las fotos/videos del chat (sin width/height declarado, ver más abajo)
+  // todavía no terminaron de cargar — el navegador calcula el scroll necesario con el alto que
+  // tiene el contenedor EN ESE INSTANTE, más chico que el final, así que el scroll queda corto en
+  // cuanto la imagen termina de cargar y empuja el contenido hacia abajo. Fix: scrollear el
+  // contenedor directo a su scrollHeight (no depender del algoritmo de alineación de
+  // scrollIntoView) y volver a hacerlo cuando cada imagen/video termina de cargar (ver
+  // onLoad/onLoadedMetadata en las burbujas de Imagen/Video más abajo).
+  function scrollAlFinal(comportamiento: ScrollBehavior = "smooth") {
+    const el = contenedorMensajesRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: comportamiento });
+  }
+
   useEffect(() => {
-    finalMensajesRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollAlFinal();
   }, [mensajes]);
 
   async function handleEnviar(e: React.FormEvent) {
@@ -700,7 +716,7 @@ export default function ConversacionPage() {
             <IconoLucide nombre={conversacion.categoriaIcono} size={190} strokeWidth={1} />
           </div>
         )}
-        <div className="relative h-full overflow-y-auto p-3 flex flex-col gap-2">
+        <div ref={contenedorMensajesRef} className="relative h-full overflow-y-auto p-3 flex flex-col gap-2">
         {conversacion && (esCliente || esPrestador) && (
           // Tarjeta fija de recordatorio (Opción B del mockup) — no es un mensaje real entre las
           // partes, es del sistema, por eso no tiene emisor ni entra al array de `mensajes`. Se ve
@@ -980,6 +996,7 @@ export default function ConversacionPage() {
                     src={m.archivoUrl ?? ""}
                     alt="Foto enviada en el chat"
                     className="max-h-64 w-auto rounded-lg object-cover hover:brightness-95 transition-all"
+                    onLoad={() => scrollAlFinal("auto")}
                   />
                 </button>
               </div>
@@ -993,7 +1010,12 @@ export default function ConversacionPage() {
                 className={`max-w-[70%] shrink-0 rounded-lg overflow-hidden ${esMio ? "self-end" : "self-start"}`}
               >
                 {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
-                <video controls src={m.archivoUrl ?? ""} className="max-h-64 w-auto rounded-lg" />
+                <video
+                  controls
+                  src={m.archivoUrl ?? ""}
+                  className="max-h-64 w-auto rounded-lg"
+                  onLoadedMetadata={() => scrollAlFinal("auto")}
+                />
               </div>
             );
           }

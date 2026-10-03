@@ -32,6 +32,9 @@ const CRITERIOS_CALIFICACION_CLIENTE: { key: keyof CalificacionClienteForm; labe
   { key: "trato", label: "Trato" },
 ];
 
+// Foto elegida localmente para la reseña, todavía no subida (ver fotosSeleccionadas más abajo).
+type FotoSeleccionada = { file: File; previewUrl: string };
+
 function claveMes(fechaISO: string): string {
   const fecha = new Date(fechaISO);
   return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
@@ -64,6 +67,18 @@ function OrdenesContenido() {
   const [calificacionForm, setCalificacionForm] = useState(CALIFICACION_INICIAL);
   const [criterioExpandido, setCriterioExpandido] = useState<string | null>(null);
   const [comentario, setComentario] = useState("");
+  // Fotos de la reseña (03/10, a pedido del usuario: "en mobile no nos deja cargar una foto a la
+  // reseña") — el backend ya tenía el endpoint listo (POST /api/ordenes/{id}/calificacion/fotos,
+  // hasta 5 por reseña) pero ninguna pantalla lo usaba, ni en mobile ni en web. Se eligen DENTRO
+  // del mismo formulario de calificación (el usuario pidió que esté "en el mismo momento que
+  // estás reseñando", no como un paso aparte después de publicar) y recién se suben al tocar
+  // "Enviar calificación": primero se crea la calificación y en ese mismo envío se suben las
+  // fotos ya elegidas — para la persona es un solo paso, aunque el backend necesite la
+  // calificación creada primero (ver CalificacionService.AgregarFotoAsync, que busca la
+  // calificación por ordenId).
+  const [fotosSeleccionadas, setFotosSeleccionadas] = useState<FotoSeleccionada[]>([]);
+  const [subiendoFotos, setSubiendoFotos] = useState(false);
+  const fileInputRefFotos = useRef<HTMLInputElement>(null);
   const [ordenCalificandoCliente, setOrdenCalificandoCliente] = useState<string | null>(null);
   const [calificacionClienteForm, setCalificacionClienteForm] = useState<CalificacionClienteForm>(CALIFICACION_CLIENTE_INICIAL);
   const [comentarioCliente, setComentarioCliente] = useState("");
@@ -170,19 +185,75 @@ function OrdenesContenido() {
     }
 
     const body: CrearCalificacionRequest = { ...calificacionForm, comentario: comentario || undefined };
+    const ordenId = ordenCalificando;
+    const fotos = fotosSeleccionadas;
 
     try {
-      await apiFetch(`/api/ordenes/${ordenCalificando}/calificacion`, {
+      await apiFetch(`/api/ordenes/${ordenId}/calificacion`, {
         method: "POST",
         body: JSON.stringify(body),
       });
+
+      // La calificación ya quedó creada. Si falla la subida de alguna foto no la deshacemos (ya
+      // se guardó bien) — solo avisamos, porque reintentar "Enviar calificación" ya no tiene
+      // sentido (la orden pasa a "yaCalificada"). Mismo patrón fetch+FormData que
+      // handleSubirFotoTrabajo en app/cuenta/page.tsx (apiFetch fuerza
+      // "Content-Type: application/json", así que para archivos se usa fetch directo).
+      if (fotos.length > 0) {
+        setSubiendoFotos(true);
+        const token = localStorage.getItem("fixit_token");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        try {
+          for (const foto of fotos) {
+            const formData = new FormData();
+            formData.append("archivo", foto.file);
+            const response = await fetch(`${apiUrl}/api/ordenes/${ordenId}/calificacion/fotos`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            });
+            if (!response.ok) {
+              const errorBody = await response.json().catch(() => null);
+              throw new Error(errorBody?.error ?? "Error al subir una de las fotos");
+            }
+          }
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? `La calificación se envió, pero: ${err.message}`
+              : "La calificación se envió, pero no se pudieron subir todas las fotos."
+          );
+        } finally {
+          setSubiendoFotos(false);
+        }
+      }
+
+      fotos.forEach((f) => URL.revokeObjectURL(f.previewUrl));
       setOrdenCalificando(null);
       setCalificacionForm(CALIFICACION_INICIAL);
       setComentario("");
+      setFotosSeleccionadas([]);
       await cargarOrdenes();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al enviar la calificación");
     }
+  }
+
+  function handleSeleccionarFotoResena(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0];
+    if (!archivo) return;
+    if (fotosSeleccionadas.length < 5) {
+      setFotosSeleccionadas((prev) => [...prev, { file: archivo, previewUrl: URL.createObjectURL(archivo) }]);
+    }
+    if (fileInputRefFotos.current) fileInputRefFotos.current.value = "";
+  }
+
+  function handleQuitarFotoSeleccionada(indice: number) {
+    setFotosSeleccionadas((prev) => {
+      const quitada = prev[indice];
+      if (quitada) URL.revokeObjectURL(quitada.previewUrl);
+      return prev.filter((_, i) => i !== indice);
+    });
   }
 
   // Calificación del cliente por parte del prestador (28/09) — ver comentario junto al estado de
@@ -428,6 +499,40 @@ function OrdenesContenido() {
                       value={comentario}
                       onChange={(e) => setComentario(e.target.value)}
                     />
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm text-ink/70">Fotos (opcional, hasta 5)</label>
+                      {fotosSeleccionadas.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {fotosSeleccionadas.map((f, i) => (
+                            <div key={f.previewUrl} className="relative w-16 h-16">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={f.previewUrl} alt="Foto de la reseña" className="w-16 h-16 rounded object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => handleQuitarFotoSeleccionada(i)}
+                                className="absolute bottom-0.5 right-0.5 bg-black/60 text-white text-[10px] rounded px-1"
+                              >
+                                Quitar
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {fotosSeleccionadas.length < 5 && (
+                        <label className="border border-ink/20 rounded p-2 text-sm text-center cursor-pointer hover:border-ink/40 transition-colors w-fit px-4">
+                          + Agregar foto
+                          <input
+                            ref={fileInputRefFotos}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            onChange={handleSeleccionarFotoResena}
+                          />
+                        </label>
+                      )}
+                    </div>
+
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -435,13 +540,19 @@ function OrdenesContenido() {
                           setError(null);
                           setOrdenCalificando(null);
                           setCalificacionForm(CALIFICACION_INICIAL);
+                          fotosSeleccionadas.forEach((f) => URL.revokeObjectURL(f.previewUrl));
+                          setFotosSeleccionadas([]);
                         }}
                         className="border border-ink/20 rounded p-2 flex-1 text-sm"
                       >
                         Cancelar
                       </button>
-                      <button type="submit" className="bg-copper text-paper rounded p-2 flex-1 text-sm">
-                        Enviar calificación
+                      <button
+                        type="submit"
+                        disabled={subiendoFotos}
+                        className="bg-copper text-paper rounded p-2 flex-1 text-sm disabled:opacity-60"
+                      >
+                        {subiendoFotos ? "Enviando..." : "Enviar calificación"}
                       </button>
                     </div>
                   </form>
