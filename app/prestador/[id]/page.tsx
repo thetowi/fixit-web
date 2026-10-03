@@ -9,6 +9,7 @@ import { IniciarConversacionRequest, Conversacion } from "@/types/conversaciones
 import Estrellas from "@/components/Estrellas";
 import { Calificacion, CRITERIOS_CALIFICACION } from "@/types/calificaciones";
 import InsigniaVerificado from "@/components/InsigniaVerificado";
+import ContadorAnimado from "@/components/ContadorAnimado";
 
 function inicialesCliente(nombre: string): string {
   return nombre
@@ -163,9 +164,14 @@ export default function PerfilPrestadorPage() {
             {perfil.verificado && <InsigniaVerificado size={18} conTexto />}
           </div>
 
+          {/* Tarjeta de contacto + "Acerca de mí" simétricas, una al lado de la otra en desktop
+              (03/10, a pedido del usuario) — mismo ancho de columna cada una (grid de 2), en vez
+              de que cada caja mida lo que su contenido pida. En mobile (web) se apilan, cada una
+              ocupando el ancho completo. */}
+          <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
           {/* Tarjeta de contacto: celdas rotuladas (etiqueta chica + valor en negrita), estilo
               Opción B, dentro de una caja angosta y centrada, estructura Opción C. */}
-          <div className="w-full max-w-[320px] grid grid-cols-2 divide-x divide-y divide-paper/10 border border-paper/10 rounded-2xl overflow-hidden bg-paper/5">
+          <div className="w-full grid grid-cols-2 divide-x divide-y divide-paper/10 border border-paper/10 rounded-2xl overflow-hidden bg-paper/5">
             <div className="px-4 py-3">
               <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Miembro desde</p>
               <p className="text-[12.5px] font-bold">{miembroDesdeTexto}</p>
@@ -199,6 +205,24 @@ export default function PerfilPrestadorPage() {
               </div>
             )}
           </div>
+
+          {/* ---- Acerca de mí (03/10, a pedido del usuario: moverlo arriba del todo, junto con
+              el resto de los datos del perfil, pero SIN la caja/borde — como estaba antes: label
+              en cobre + texto suelto, no encajonado). ---- */}
+          <div className="w-full text-left">
+            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Acerca de mí</p>
+            {perfil.biografia ? (
+              <p className="text-sm text-paper/70 whitespace-pre-wrap leading-snug">{perfil.biografia}</p>
+            ) : (
+              <p className="text-paper/40 text-sm">Este prestador todavía no agregó una descripción.</p>
+            )}
+            {añosEnOficy > 0 && (
+              <p className="text-sm text-paper/50 mt-2">
+                <span className="font-mono text-copper">{añosEnOficy}</span> {añosEnOficy === 1 ? "año" : "años"} en Oficy
+              </p>
+            )}
+          </div>
+          </div>
         </div>
       </div>
 
@@ -225,19 +249,22 @@ export default function PerfilPrestadorPage() {
         </div>
       )}
 
-      {/* ---- Barra de estadísticas (27/09) — antes el perfil solo mostraba el promedio. ---- */}
+      {/* ---- Barra de estadísticas (27/09) — antes el perfil solo mostraba el promedio.
+          Números animados (03/10, a pedido del usuario: "como tenemos en el landing, un numero
+          que vaya de 0 hasta la cantidad real") — mismo componente ContadorAnimado que ya usa la
+          landing, arranca cuando esta barra entra en pantalla. ---- */}
       <div className="max-w-3xl mx-auto px-6">
         <div className="grid grid-cols-3 gap-3 -mt-px py-6 border-b border-ink/10">
           <div className="text-center">
-            <p className="font-display text-2xl text-ink">{perfil.cantidadCalificaciones}</p>
+            <ContadorAnimado valor={perfil.cantidadCalificaciones} className="font-display text-2xl text-ink" />
             <p className="text-xs text-ink/50">Trabajos calificados</p>
           </div>
           <div className="text-center">
-            <p className="font-display text-2xl text-ink">{cantidadReseñasConFotos}</p>
+            <ContadorAnimado valor={cantidadReseñasConFotos} className="font-display text-2xl text-ink" />
             <p className="text-xs text-ink/50">Reseñas con fotos</p>
           </div>
           <div className="text-center">
-            <p className="font-display text-2xl text-ink">{cantidadFotosTrabajo}</p>
+            <ContadorAnimado valor={cantidadFotosTrabajo} className="font-display text-2xl text-ink" />
             <p className="text-xs text-ink/50">Fotos de trabajos</p>
           </div>
         </div>
@@ -408,21 +435,6 @@ export default function PerfilPrestadorPage() {
               </li>
             ))}
           </ul>
-        </div>
-
-        {/* ---- Acerca de mí ---- */}
-        <div>
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Acerca de mí</p>
-          {perfil.biografia ? (
-            <p className="text-sm text-ink/70 whitespace-pre-wrap">{perfil.biografia}</p>
-          ) : (
-            <p className="text-ink/50 text-sm">Este prestador todavía no agregó una descripción.</p>
-          )}
-          {añosEnOficy > 0 && (
-            <p className="text-sm text-ink/50 mt-2">
-              <span className="font-mono text-copper">{añosEnOficy}</span> {añosEnOficy === 1 ? "año" : "años"} en Oficy
-            </p>
-          )}
         </div>
       </div>
     </div>

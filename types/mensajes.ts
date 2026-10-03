@@ -7,6 +7,11 @@ export interface Mensaje {
   contenido: string | null;
   archivoUrl: string | null;
   duracionSegundos: number | null;
+  // Onda real del audio (03/10), calculada por el backend con ffmpeg al subir el archivo —
+  // array de amplitudes normalizadas 0..1, o null si no se pudo analizar (ver
+  // FfmpegWaveformService.cs en el backend), en cuyo caso el reproductor cae a un patrón
+  // decorativo fijo. Solo tiene sentido cuando tipo === "Audio".
+  picos: number[] | null;
   montoOferta: number | null;
   descripcionOferta: string | null;
   ofertaVigente: boolean;

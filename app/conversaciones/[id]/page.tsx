@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
-import { Paperclip, Mic, Check, X, Send, BanknoteArrowUp, ShieldCheck, MapPin } from "lucide-react";
+import { Paperclip, Mic, Check, X, Send, BanknoteArrowUp, ShieldCheck, MapPin, Play, Pause } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { crearConexionChat } from "@/lib/chatConnection";
@@ -1024,40 +1024,21 @@ export default function ConversacionPage() {
             return (
               <div
                 key={m.id}
-                className={`max-w-[85%] w-[260px] shrink-0 rounded-lg p-2 ${
+                className={`max-w-[78%] w-[280px] shrink-0 rounded-2xl p-2.5 ${
                   esMio ? "bg-ink text-paper self-end" : "bg-paper border border-ink/10 self-start"
                 }`}
               >
                 {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
-                <audio
-                  controls
-                  src={m.archivoUrl ?? ""}
-                  className="w-full h-9"
-                  onError={(e) => {
-                    const codigo = e.currentTarget.error?.code;
-                    // Códigos estándar de MediaError (spec HTML5): 1 abortado, 2 red, 3 no se
-                    // pudo decodificar el archivo (lo más probable acá), 4 formato/fuente no
-                    // soportada por este navegador/dispositivo en particular.
-                    const nombres: Record<number, string> = {
-                      1: "cancelado",
-                      2: "de red",
-                      3: "no se pudo decodificar el archivo",
-                      4: "formato no soportado en este dispositivo",
-                    };
-                    setErroresAudio((prev) => ({
-                      ...prev,
-                      [m.id]: codigo ? (nombres[codigo] ?? `código ${codigo}`) : "desconocido",
-                    }));
-                  }}
+                <BurbujaAudio
+                  mensaje={m}
+                  esMio={esMio}
+                  onError={(mensajeId, codigo) =>
+                    setErroresAudio((prev) => ({ ...prev, [mensajeId]: codigo }))
+                  }
                 />
                 {erroresAudio[m.id] && (
                   <p className="text-[11px] mt-1 text-red-400">
                     Error de audio: {erroresAudio[m.id]}
-                  </p>
-                )}
-                {m.duracionSegundos != null && (
-                  <p className={`text-[11px] mt-1 ${esMio ? "text-paper/60" : "text-ink/40"}`}>
-                    {formatoTiempo(m.duracionSegundos)}
                   </p>
                 )}
               </div>
@@ -1495,4 +1476,143 @@ export default function ConversacionPage() {
       )}
     </div>
   );
+}
+
+// Reproductor de nota de voz con onda real (03/10, a pedido del usuario — mockup aprobado en el
+// Artifact GqEpejdNSQJuw7pqXTLVhL, Opción 1 con la onda a todo el ancho). Reemplaza el <audio
+// controls> nativo por un botón de play/pausa + las barras de amplitud reales que calculó el
+// backend al subir el archivo (ver FfmpegWaveformService.cs) — las barras a la izquierda del
+// punto de reproducción quedan en color sólido ("escuchado") y el resto más tenue. Es su propio
+// componente (no una función adentro de ConversacionPage) porque usa sus propios hooks de
+// useState/useRef por cada nota de voz del chat, uno por burbuja.
+function BurbujaAudio({
+  mensaje,
+  esMio,
+  onError,
+}: {
+  mensaje: Mensaje;
+  esMio: boolean;
+  onError: (mensajeId: string, codigo: string) => void;
+}) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [reproduciendo, setReproduciendo] = useState(false);
+  const [progreso, setProgreso] = useState(0); // 0..1
+
+  // Si el backend no pudo calcular la onda real (ffmpeg no disponible en ese momento, archivo
+  // corrupto, etc. — ver FfmpegWaveformService.cs), caemos a un patrón decorativo fijo por
+  // mensaje: determinístico a partir del id, para que no "tiemble" entre renders ni recargas.
+  const picos = mensaje.picos && mensaje.picos.length > 0 ? mensaje.picos : patronFijoPorId(mensaje.id);
+  const indiceActual = Math.min(picos.length, Math.round(progreso * picos.length));
+
+  function alternar() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (reproduciendo) {
+      audio.pause();
+    } else {
+      if (audio.ended) audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
+  }
+
+  function buscar(fraccion: number) {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    audio.currentTime = fraccion * audio.duration;
+    setProgreso(fraccion);
+  }
+
+  const colorAcento = "#B5651D";
+  const colorLleno = esMio ? "rgba(239,238,230,0.9)" : colorAcento;
+  const colorVacio = esMio ? "rgba(239,238,230,0.25)" : "rgba(27,27,24,0.18)";
+
+  return (
+    <div className="flex items-center gap-2.5 w-full">
+      <audio
+        ref={audioRef}
+        src={mensaje.archivoUrl ?? ""}
+        preload="metadata"
+        onPlay={() => setReproduciendo(true)}
+        onPause={() => setReproduciendo(false)}
+        onEnded={() => {
+          setReproduciendo(false);
+          setProgreso(0);
+        }}
+        onTimeUpdate={(e) => {
+          const audio = e.currentTarget;
+          if (audio.duration) setProgreso(audio.currentTime / audio.duration);
+        }}
+        onError={(e) => {
+          const codigo = e.currentTarget.error?.code;
+          // Mismos códigos estándar de MediaError que antes: 1 abortado, 2 red, 3 no se pudo
+          // decodificar, 4 formato/fuente no soportada en este dispositivo particular.
+          const nombres: Record<number, string> = {
+            1: "cancelado",
+            2: "de red",
+            3: "no se pudo decodificar el archivo",
+            4: "formato no soportado en este dispositivo",
+          };
+          onError(mensaje.id, codigo ? (nombres[codigo] ?? `código ${codigo}`) : "desconocido");
+        }}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={alternar}
+        aria-label={reproduciendo ? "Pausar nota de voz" : "Reproducir nota de voz"}
+        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
+        style={{ backgroundColor: colorAcento }}
+      >
+        {reproduciendo ? (
+          <Pause size={14} color="#EFEEE6" />
+        ) : (
+          <Play size={14} color="#EFEEE6" fill="#EFEEE6" />
+        )}
+      </button>
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
+        <div className="flex items-end justify-between gap-[2px] h-[22px]">
+          {picos.map((pico, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => buscar(i / picos.length)}
+              aria-label={`Ir al segundo ${Math.round((i / picos.length) * (mensaje.duracionSegundos ?? 0))}`}
+              className="flex-1 min-w-0 p-0 border-0 bg-transparent rounded-sm cursor-pointer"
+              style={{ height: "22px", display: "flex", alignItems: "flex-end" }}
+            >
+              <span
+                className="w-full rounded-sm"
+                style={{
+                  height: `${Math.max(3, pico * 22)}px`,
+                  backgroundColor: i < indiceActual ? colorLleno : colorVacio,
+                  display: "block",
+                }}
+              />
+            </button>
+          ))}
+        </div>
+        <span className={`font-mono text-[10.5px] ${esMio ? "text-paper/50" : "text-ink/40"}`}>
+          {mensaje.duracionSegundos != null ? formatoTiempoAudio(mensaje.duracionSegundos) : ""}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function formatoTiempoAudio(segundos: number): string {
+  const min = Math.floor(segundos / 60);
+  const seg = Math.floor(segundos % 60);
+  return `${min}:${seg.toString().padStart(2, "0")}`;
+}
+
+function patronFijoPorId(id: string): number[] {
+  let seed = 0;
+  for (let i = 0; i < id.length; i++) seed = (seed * 31 + id.charCodeAt(i)) >>> 0;
+  const cantidad = 26;
+  const picos: number[] = [];
+  for (let i = 0; i < cantidad; i++) {
+    seed = (seed * 1103515245 + 12345) >>> 0;
+    picos.push(0.25 + ((seed % 1000) / 1000) * 0.65);
+  }
+  return picos;
 }
