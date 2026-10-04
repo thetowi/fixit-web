@@ -8,32 +8,45 @@ type RouterMinimo = {
   replace: (href: string) => void;
 };
 
+// A qué ruta cae cada rol al loguearse (04/10, antes todos caían a "/app" sin importar el rol —
+// un Admin tenía que escribir /admin a mano después de entrar). Devuelve la ruta "real" (la que
+// existe como archivo bajo app/): para Admin y Tesorero es su panel propio, para el resto sigue
+// siendo el dashboard de siempre.
+function rutaDashboardPorRol(rol?: string): string {
+  if (rol === "Admin") return "/admin";
+  if (rol === "Tesorero") return "/tesoreria";
+  return "/app";
+}
+
 // Navega al dashboard operativo del usuario logueado, sea cual sea el host actual en el que
 // estemos parados:
-// - En app.oficy.ar (producción): el dashboard ya es "/" (hay un rewrite interno a "/app" en
-//   middleware.ts), así que alcanza con un push/replace común, sin ensuciar la URL con "/app".
+// - En app.oficy.ar (producción): el dashboard de Cliente/Prestador ya es "/" (hay un rewrite
+//   interno a "/app" en middleware.ts), así que para ESE caso alcanza con un push/replace a "/"
+//   sin ensuciar la URL con "/app". Admin y Tesorero no tienen ese rewrite — van directo a su
+//   ruta real (/admin, /tesoreria), que ya está en RUTAS_APP de middleware.ts.
 // - En oficy.ar (producción — ej. la landing detectando que ya hay una sesión iniciada): cruzar
 //   de dominio con router.push/replace de Next ROMPE ("Redirect is not allowed for a preflight
 //   request", ver middleware.ts) porque el fetch interno que arma el router para traer el RSC no
 //   puede seguir una redirección a otro origen. Por eso acá hace falta una navegación de verdad
 //   (cambiar window.location), no una del router.
 // - En cualquier otro host (desarrollo local, previews de Vercel): no hay subdominios — el
-//   middleware no actúa ahí — así que el dashboard sigue siendo la ruta "/app" de siempre.
-export function irAlDashboard(router: RouterMinimo, modo: "push" | "replace" = "push") {
+//   middleware no actúa ahí — así que se navega directo a la ruta real de cada rol.
+export function irAlDashboard(router: RouterMinimo, rol?: string, modo: "push" | "replace" = "push") {
   if (typeof window === "undefined") return;
   const host = window.location.hostname;
+  const ruta = rutaDashboardPorRol(rol);
 
   if (host === SUBDOMINIO_APP) {
-    router[modo]("/");
+    router[modo](ruta === "/app" ? "/" : ruta);
     return;
   }
 
   if (host === DOMINIO_PRINCIPAL) {
-    window.location.href = `https://${SUBDOMINIO_APP}/`;
+    window.location.href = `https://${SUBDOMINIO_APP}${ruta === "/app" ? "/" : ruta}`;
     return;
   }
 
-  router[modo]("/app");
+  router[modo](ruta);
 }
 
 // La dirección inversa: mandar a la landing pública a alguien que no tiene sesión iniciada (ej.

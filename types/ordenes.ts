@@ -36,9 +36,11 @@ export interface Orden {
   inasistenciaResueltaEn?: string | null;
   inasistenciaResolucion?: string | null;
 
-  // Datos de cobro del prestador (29/09) — solo vienen completos en el listado de Admin
-  // (GET /api/admin/ordenes), para poder transferirle sin ir a buscarlos a otro lado.
-  prestadorCbuOAlias?: string | null;
+  // Datos de cobro del prestador (29/09, separado en cbu+alias el 04/10) — solo vienen completos
+  // en el listado de Admin (GET /api/admin/ordenes), para poder transferirle sin ir a buscarlos a
+  // otro lado.
+  prestadorCbu?: string | null;
+  prestadorAlias?: string | null;
   prestadorTitularCuentaCobro?: string | null;
   prestadorDiaPreferidoDeCobro?: number | null; // 0 = Domingo ... 6 = Sábado
 

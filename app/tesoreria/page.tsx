@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { Orden } from "@/types/ordenes";
 import { SaludOperativa } from "@/types/tesoreria";
+import IconoLucide from "@/components/IconoLucide";
 
 // 0 = Domingo ... 6 = Sábado, mismo orden que devuelve el backend (DayOfWeek de .NET).
 const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -28,6 +29,101 @@ function lunesDeLaSemana(fecha: Date): Date {
 
 function formatoFechaCorta(d: Date) {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// Copiar CBU/alias con un clic (04/10, a pedido del usuario: "facilitar la tarea al tesorero a la
+// hora de pagarle a los prestadores") — antes había que seleccionar el texto a mano para pegarlo
+// en la app del banco o de Mercado Pago. Feedback visual breve (✓ 1.5s) en vez de un alert/toast,
+// para no interrumpir si el tesorero está copiando varios valores seguidos.
+function BotonCopiar({ valor }: { valor: string }) {
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(valor);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1500);
+    } catch {
+      // Si el navegador bloquea el clipboard (sin HTTPS, sin permiso, etc.) no hacemos nada más
+      // llamativo que fallar en silencio — el valor sigue visible para seleccionarlo a mano.
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copiar}
+      title="Copiar"
+      className="inline-flex items-center text-ink/30 hover:text-copper transition-colors"
+    >
+      {copiado ? <IconoLucide nombre="check" size={13} className="text-stamp" /> : <IconoLucide nombre="copy" size={13} />}
+    </button>
+  );
+}
+
+type PrestadorPendiente = {
+  nombre: string;
+  cbu: string | null;
+  alias: string | null;
+  titular: string | null;
+  dia: number | null;
+  total: number;
+  cantidad: number;
+  ordenId: string;
+};
+
+// Una fila de la lista de "pagos pendientes" — factorizada porque ahora aparece en 2 listas
+// separadas ("Para pagar hoy" y "El resto", ver más abajo) con la misma estructura.
+function FilaPrestadorPendiente({
+  g,
+  hoy,
+  destacado,
+  procesando,
+  onMarcarTransferido,
+}: {
+  g: PrestadorPendiente;
+  hoy: number;
+  destacado: boolean;
+  procesando: boolean;
+  onMarcarTransferido: (ordenId: string) => void;
+}) {
+  return (
+    <li
+      className={`rounded-lg p-3 flex justify-between items-center gap-3 flex-wrap ${
+        destacado ? "bg-copper/10 border border-copper/40" : "bg-paper border border-ink/10"
+      }`}
+    >
+      <div>
+        <p className="text-sm text-ink font-medium">{g.nombre}</p>
+        <p className="text-xs text-ink/60 flex items-center gap-1.5 flex-wrap">
+          {g.cbu && g.alias ? (
+            <>
+              CBU <span className="font-mono">{g.cbu}</span>
+              <BotonCopiar valor={g.cbu} />
+              · alias <span className="font-mono">{g.alias}</span>
+              <BotonCopiar valor={g.alias} />
+              <span>({g.titular})</span>
+            </>
+          ) : (
+            <span className="text-safety">Todavía no cargó sus datos de cobro completos</span>
+          )}
+          {g.dia !== null && g.dia !== hoy && <span>· Prefiere cobrar los {DIAS_SEMANA[g.dia]}</span>}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-mono text-ink whitespace-nowrap">
+          {formatoMonto(g.total)} · {g.cantidad} {g.cantidad === 1 ? "trabajo" : "trabajos"}
+        </p>
+        <button
+          onClick={() => onMarcarTransferido(g.ordenId)}
+          disabled={procesando}
+          className="text-xs bg-copper text-paper rounded px-2.5 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-50 whitespace-nowrap"
+        >
+          Marcar transferido
+        </button>
+      </div>
+    </li>
+  );
 }
 
 export default function TesoreriaPage() {
@@ -190,7 +286,7 @@ export default function TesoreriaPage() {
   const hoy = ahora.getDay();
   const porPrestador = new Map<
     string,
-    { nombre: string; cbuOAlias: string | null; titular: string | null; dia: number | null; total: number; cantidad: number; ordenId: string }
+    { nombre: string; cbu: string | null; alias: string | null; titular: string | null; dia: number | null; total: number; cantidad: number; ordenId: string }
   >();
   for (const o of pendientesTransferir) {
     const existente = porPrestador.get(o.prestadorId);
@@ -201,7 +297,8 @@ export default function TesoreriaPage() {
     } else {
       porPrestador.set(o.prestadorId, {
         nombre: o.prestadorNombreCompleto,
-        cbuOAlias: o.prestadorCbuOAlias ?? null,
+        cbu: o.prestadorCbu ?? null,
+        alias: o.prestadorAlias ?? null,
         titular: o.prestadorTitularCuentaCobro ?? null,
         dia: o.prestadorDiaPreferidoDeCobro ?? null,
         total: monto,
@@ -210,11 +307,14 @@ export default function TesoreriaPage() {
       });
     }
   }
-  const gruposPendientes = Array.from(porPrestador.values()).sort((a, b) => {
-    const aHoy = a.dia === hoy ? 0 : 1;
-    const bHoy = b.dia === hoy ? 0 : 1;
-    return aHoy - bHoy;
-  });
+  const gruposPendientes = Array.from(porPrestador.values());
+  // Separados en 2 vistas el 04/10 (antes una sola lista con "· Hoy" como badge) — a pedido del
+  // usuario, para que el tesorero vea de un vistazo a quién tiene que pagarle hoy sin tener que
+  // escanear toda la lista buscando el badge.
+  const gruposHoy = gruposPendientes.filter((g) => g.dia === hoy);
+  const gruposResto = gruposPendientes
+    .filter((g) => g.dia !== hoy)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   // Clases completas y literales a propósito (nada de `bg-${color}/5`) — Tailwind analiza el
   // código fuente de forma estática, así que una clase armada por interpolación de string nunca
@@ -324,44 +424,54 @@ export default function TesoreriaPage() {
           {gruposPendientes.length === 0 ? (
             <p className="text-sm text-ink/50">No hay transferencias pendientes en este momento.</p>
           ) : (
-            <ul className="flex flex-col gap-2">
-              {gruposPendientes.map((g) => (
-                <li
-                  key={g.nombre + g.cbuOAlias}
-                  className={`rounded-lg p-3 flex justify-between items-center gap-3 flex-wrap ${
-                    g.dia === hoy ? "bg-copper/10 border border-copper/40" : "bg-paper border border-ink/10"
-                  }`}
-                >
-                  <div>
-                    <p className="text-sm text-ink font-medium">
-                      {g.nombre} {g.dia === hoy && <span className="text-copper text-xs font-semibold ml-1">· Hoy</span>}
-                    </p>
-                    <p className="text-xs text-ink/60">
-                      {g.cbuOAlias ? (
-                        <>
-                          <span className="font-mono">{g.cbuOAlias}</span> ({g.titular})
-                        </>
-                      ) : (
-                        <span className="text-safety">Todavía no cargó su CBU/alias</span>
-                      )}
-                      {g.dia !== null && <> · Prefiere cobrar los {DIAS_SEMANA[g.dia]}</>}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-mono text-ink whitespace-nowrap">
-                      {formatoMonto(g.total)} · {g.cantidad} {g.cantidad === 1 ? "trabajo" : "trabajos"}
-                    </p>
-                    <button
-                      onClick={() => handleMarcarTransferidoPrestador(g.ordenId)}
-                      disabled={procesandoOrdenId === g.ordenId}
-                      className="text-xs bg-copper text-paper rounded px-2.5 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-50 whitespace-nowrap"
-                    >
-                      Marcar transferido
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="flex flex-col gap-5">
+              {/* Para pagar hoy */}
+              <div>
+                <div className="flex justify-between items-baseline mb-2">
+                  <p className="font-mono text-[11px] uppercase tracking-wide text-copper">Para pagar hoy</p>
+                  {gruposHoy.length > 0 && (
+                    <span className="font-mono text-xs text-ink/50">
+                      {formatoMonto(gruposHoy.reduce((acc, g) => acc + g.total, 0))}
+                    </span>
+                  )}
+                </div>
+                {gruposHoy.length === 0 ? (
+                  <p className="text-xs text-ink/40">Nadie prefiere cobrar hoy — podés mirar "El resto" más abajo.</p>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {gruposHoy.map((g) => (
+                      <FilaPrestadorPendiente
+                        key={g.nombre + g.cbu}
+                        g={g}
+                        hoy={hoy}
+                        destacado
+                        procesando={procesandoOrdenId === g.ordenId}
+                        onMarcarTransferido={handleMarcarTransferidoPrestador}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* El resto */}
+              {gruposResto.length > 0 && (
+                <div>
+                  <p className="font-mono text-[11px] uppercase tracking-wide text-ink/40 mb-2">El resto</p>
+                  <ul className="flex flex-col gap-2">
+                    {gruposResto.map((g) => (
+                      <FilaPrestadorPendiente
+                        key={g.nombre + g.cbu}
+                        g={g}
+                        hoy={hoy}
+                        destacado={false}
+                        procesando={procesandoOrdenId === g.ordenId}
+                        onMarcarTransferido={handleMarcarTransferidoPrestador}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
           <p className="text-xs text-ink/40 mt-3">
             "Marcar transferido" confirma UNA orden de este prestador por vez — si tiene varios trabajos pendientes, hacelo

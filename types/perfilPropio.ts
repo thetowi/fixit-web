@@ -12,8 +12,10 @@ export interface PerfilPropio {
   latitud: number | null;
   longitud: number | null;
   radioAlcanceKm: number | null;
-  // Datos de cobro del prestador (29/09) — espejo de fixit-mobile/src/types/perfilPropio.ts.
-  cbuOAlias: string | null;
+  // Datos de cobro del prestador (29/09, separado en cbu+alias el 04/10 para más seguridad —
+  // espejo de fixit-mobile/src/types/perfilPropio.ts).
+  cbu: string | null;
+  alias: string | null;
   titularCuentaCobro: string | null;
   // 0 = Domingo ... 6 = Sábado (mismo orden que el array DIAS ya usado en esta pantalla para Horarios).
   diaPreferidoDeCobro: number | null;
@@ -30,7 +32,8 @@ export interface ActualizarPerfilRequest {
 }
 
 export interface ActualizarDatosCobroRequest {
-  cbuOAlias: string;
+  cbu: string;
+  alias: string;
   titularCuentaCobro: string;
   diaPreferidoDeCobro?: number | null;
 }

@@ -68,7 +68,7 @@ export default function LoginPage() {
         body: JSON.stringify(form),
       });
       guardarSesion(resultado.token, resultado.usuario);
-      irAlDashboard(router);
+      irAlDashboard(router, resultado.usuario.rol);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error inesperado");
     } finally {
@@ -100,7 +100,7 @@ export default function LoginPage() {
       }
 
       guardarSesion(resultado.token!, resultado.usuario!);
-      irAlDashboard(router);
+      irAlDashboard(router, resultado.usuario!.rol);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al iniciar sesión con Google");
     }

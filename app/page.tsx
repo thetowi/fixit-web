@@ -13,7 +13,12 @@ import {
   HardHat,
   Trophy,
   Eye,
+  Globe,
 } from "lucide-react";
+// Logos reales de Apple/Google Play para los botones de tienda (03/10, a pedido del usuario) —
+// lucide-react no tiene logos de marca, así que usamos react-icons/si (paquete "Simple Icons"),
+// que sí los tiene. Hay que instalarlo: ver nota en el mensaje de chat.
+import { SiApple, SiGoogleplay } from "react-icons/si";
 import { apiFetch } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { Categoria } from "@/types/categorias";
@@ -32,6 +37,16 @@ import { irAlDashboard } from "@/lib/dominio";
 // Palabras del eyebrow del hero mientras todavía no llegaron las categorías reales del backend
 // (o si esa llamada falla) — mismo texto que estaba antes hardcodeado ahí.
 const RUBROS_EYEBROW_POR_DEFECTO = ["Plomería", "Electricidad", "Gas", "Jardinería", "y más"];
+
+// Botones "Disponible en App Store / Play Store" del hero (03/10, a pedido del usuario).
+// TODO: reemplazar estos dos links placeholder por los reales apenas la app esté publicada en
+// cada tienda — hoy (03/10) ninguna de las dos build de producción existe todavía: iOS sigue
+// bloqueado por el "Enrollment pending" de Apple Developer y Android todavía no tiene el build
+// de producción armado para Play Store (ver claude/backlog.md, puntos de iOS/Android). Mientras
+// tanto quedan clickeables e igual de vistosos que el resto, para no tener que volver a tocar el
+// diseño cuando llegue el link real — solo hay que pisar estas dos constantes.
+const URL_APP_STORE = "https://apps.apple.com/app/TODO-reemplazar-cuando-este-publicada";
+const URL_PLAY_STORE = "https://play.google.com/store/apps/details?id=TODO-reemplazar-cuando-este-publicada";
 
 const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
   {
@@ -175,6 +190,46 @@ export default function LandingPage() {
         <p className="text-center font-display text-2xl sm:text-3xl text-ink tracking-tight mt-14">
           Desde <span className="text-copper">Paraná</span>, hacia toda Argentina
         </p>
+
+        {/* Botones de tienda + "Continuar en web" (03/10, a pedido del usuario) — debajo del
+            tagline de origen, cerrando el hero. Los dos de tienda usan un link placeholder (ver
+            URL_APP_STORE/URL_PLAY_STORE arriba) hasta que la app esté publicada de verdad. */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+          <a
+            href={URL_APP_STORE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 border border-ink/20 rounded-xl px-5 py-2.5 hover:border-ink/40 transition-colors"
+          >
+            <SiApple size={20} className="text-ink/80" />
+            <span className="flex flex-col items-start leading-tight">
+              <span className="text-[10px] text-ink/50">Disponible en</span>
+              <span className="text-sm font-medium text-ink">App Store</span>
+            </span>
+          </a>
+          <a
+            href={URL_PLAY_STORE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 border border-ink/20 rounded-xl px-5 py-2.5 hover:border-ink/40 transition-colors"
+          >
+            <SiGoogleplay size={18} className="text-ink/80" />
+            <span className="flex flex-col items-start leading-tight">
+              <span className="text-[10px] text-ink/50">Disponible en</span>
+              <span className="text-sm font-medium text-ink">Play Store</span>
+            </span>
+          </a>
+          {/* Va al subdominio operativo (app.oficy.ar), no a una ruta interna de "/" — por eso es
+              un <a> normal y no un <Link> (mismo split de dominios que el resto del sitio, ver
+              claude/backlog.md). */}
+          <a
+            href="https://app.oficy.ar/login"
+            className="flex items-center gap-2 bg-copper text-paper rounded-xl px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors"
+          >
+            <Globe size={18} />
+            Continuar en web
+          </a>
+        </div>
       </div>
 
       {/* Barra de estadísticas reales (25/09, animada 25/09 a pedido del usuario: "que vaya de 0
@@ -210,9 +265,13 @@ export default function LandingPage() {
       {/* Cómo funciona */}
       <div className="w-full bg-surface border-b border-ink/10 py-16 px-6">
         <div className="max-w-4xl mx-auto">
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
+          {/* Era un "eyebrow" chico (font-mono text-xs) haciendo de único título de la sección —
+              ese estilo en el resto de la página siempre va EMPAREJADO con un título grande abajo
+              (ver "¿Sos un profesional del oficio?" más abajo); acá no había nada grande, así que
+              se veía chico comparado con el resto (03/10, reportado por el usuario). */}
+          <h2 className="font-display text-2xl sm:text-3xl text-ink tracking-tight mb-8 text-center">
             Cómo funciona
-          </p>
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center gap-3">
               <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center text-copper">
@@ -276,9 +335,9 @@ export default function LandingPage() {
           y la de entrada en cascada (para mobile, donde no hay hover) viven en GrillaRubros.tsx. */}
       {categorias.length > 0 && (
         <div className="w-full max-w-4xl px-6 py-16">
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
+          <h2 className="font-display text-2xl sm:text-3xl text-ink tracking-tight mb-8 text-center">
             Rubros disponibles
-          </p>
+          </h2>
           <GrillaRubros categorias={categorias} />
         </div>
       )}
@@ -287,9 +346,9 @@ export default function LandingPage() {
       {trabajos.length > 0 && (
         <div className="w-full bg-surface border-y border-ink/10 px-6 py-16">
           <div className="max-w-5xl mx-auto">
-            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
+            <h2 className="font-display text-2xl sm:text-3xl text-ink tracking-tight mb-8 text-center">
               Trabajos hechos en Oficy
-            </p>
+            </h2>
             {/* Desde el 27/09 cada tarjeta muestra la identidad completa del prestador (foto,
                 nombre, promedio general) y linkea a su perfil — antes lo mostraba anonimizado. */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -300,10 +359,32 @@ export default function LandingPage() {
                   className="bg-paper border border-ink/10 rounded-lg overflow-hidden flex flex-col hover:border-copper/40 transition-colors"
                 >
                   {t.fotosResena.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-0.5 h-28 bg-ink/5">
+                    // grid-cols fijo en 3 dejaba columnas vacías cuando la reseña tenía 1 o 2
+                    // fotos (03/10, reportado por el usuario con una captura) — la cantidad de
+                    // columnas tiene que seguir a la cantidad real de fotos, hasta un máximo de 3.
+                    <div
+                      className={`grid gap-0.5 h-28 bg-ink/5 overflow-hidden ${
+                        t.fotosResena.length === 1
+                          ? "grid-cols-1"
+                          : t.fotosResena.length === 2
+                            ? "grid-cols-2"
+                            : "grid-cols-3"
+                      }`}
+                    >
                       {t.fotosResena.slice(0, 3).map((url, j) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={j} src={url} alt="Foto del trabajo" className="w-full h-full object-cover" />
+                        // Con 1 sola foto, la fila de la grilla crecía al tamaño natural de la
+                        // imagen (el truco de "h-28 + object-cover" no alcanza si la celda no
+                        // tiene su propio recorte) y tapaba el texto de abajo (03/10, reportado
+                        // por el usuario). Cada celda ahora es "relative" + la foto "absolute
+                        // inset-0", así la imagen no participa del cálculo de alto de la grilla.
+                        <div key={j} className="relative w-full h-full overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt="Foto del trabajo"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -444,9 +525,12 @@ export default function LandingPage() {
       {/* Preguntas frecuentes (25/09) */}
       <div className="w-full bg-surface border-y border-ink/10 px-6 py-16">
         <div className="max-w-2xl mx-auto">
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-8 text-center">
+          {/* Mismo ajuste que "Cómo funciona"/"Rubros disponibles"/"Trabajos hechos en Oficy" de
+              arriba (03/10) — era el único título de la sección usando el estilo de etiqueta
+              chica. */}
+          <h2 className="font-display text-2xl sm:text-3xl text-ink tracking-tight mb-8 text-center">
             Preguntas frecuentes
-          </p>
+          </h2>
           <FaqAcordeon preguntas={PREGUNTAS_FRECUENTES} />
         </div>
       </div>

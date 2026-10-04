@@ -30,6 +30,13 @@ const MapaCobertura = dynamic(() => import("@/components/MapaCobertura"), {
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
+// Día preferido de COBRO: el tesorero solo transfiere en días hábiles, así que acá no tiene
+// sentido ofrecer sábado/domingo (04/10, a pedido del usuario). Los índices son los mismos que
+// usa el backend (DayOfWeek de .NET: 0 = Domingo ... 6 = Sábado) — nada más se recorta la lista
+// de opciones del selector, no se toca `DIAS` (lo siguen usando los horarios de disponibilidad,
+// que sí pueden incluir fin de semana).
+const DIAS_HABILES_COBRO = [1, 2, 3, 4, 5];
+
 type Seccion = "perfil" | "servicios" | "acerca" | "cobertura" | "horarios" | "verificacion" | "cobros" | "ganancias";
 
 const SECCIONES: { id: Seccion; label: string }[] = [
@@ -249,7 +256,10 @@ function CuentaContenido() {
   // funciona en el campo "CBU o alias" exactamente igual que uno bancario, no hace falta ninguna
   // integración nueva — ver el hallazgo documentado en el backlog sobre por qué Mercado Pago no
   // tiene una API para retener y transferir después a una cuenta conectada.
-  const [cbuOAlias, setCbuOAlias] = useState("");
+  // Separado en 2 campos el 04/10 (antes "cbuOAlias" único) — a pedido del usuario, para que el
+  // Admin pueda cruzar el CBU contra el alias antes de transferir en vez de fiarse de un solo dato.
+  const [cbu, setCbu] = useState("");
+  const [alias, setAlias] = useState("");
   const [titularCuentaCobro, setTitularCuentaCobro] = useState("");
   const [diaPreferidoDeCobro, setDiaPreferidoDeCobro] = useState<number | "">("");
   const [guardandoCobros, setGuardandoCobros] = useState(false);
@@ -269,15 +279,16 @@ function CuentaContenido() {
     setErrorCobros(null);
     setGuardadoCobros(false);
 
-    if (!cbuOAlias.trim() || !titularCuentaCobro.trim()) {
-      setErrorCobros("Completá el CBU/alias y el titular de la cuenta.");
+    if (!cbu.trim() || !alias.trim() || !titularCuentaCobro.trim()) {
+      setErrorCobros("Completá el CBU, el alias y el titular de la cuenta.");
       return;
     }
 
     setGuardandoCobros(true);
     try {
       const cuerpo: ActualizarDatosCobroRequest = {
-        cbuOAlias: cbuOAlias.trim(),
+        cbu: cbu.trim(),
+        alias: alias.trim(),
         titularCuentaCobro: titularCuentaCobro.trim(),
         diaPreferidoDeCobro: diaPreferidoDeCobro === "" ? null : diaPreferidoDeCobro,
       };
@@ -312,7 +323,8 @@ function CuentaContenido() {
         setCoberturaLat(data.latitud);
         setCoberturaLng(data.longitud);
         if (data.radioAlcanceKm) setCoberturaRadioKm(data.radioAlcanceKm);
-        setCbuOAlias(data.cbuOAlias ?? "");
+        setCbu(data.cbu ?? "");
+        setAlias(data.alias ?? "");
         setTitularCuentaCobro(data.titularCuentaCobro ?? "");
         setDiaPreferidoDeCobro(data.diaPreferidoDeCobro ?? "");
 
@@ -1478,19 +1490,31 @@ function CuentaContenido() {
         <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-cobros">
           <p className="font-medium text-ink mb-1">Cobros</p>
           <p className="text-xs text-ink/50 mb-4">
-            Cargá el CBU o alias donde querés que te transfiramos tu parte de cada trabajo, una vez
-            que el cliente lo marca como completado — la transferencia la hace un Admin de Oficy a
-            mano. Si preferís cobrar en tu cuenta de Mercado Pago, podés poner directamente tu alias
-            de Mercado Pago acá, funciona igual que uno bancario.
+            Cargá el CBU y el alias de la cuenta donde querés que te transfiramos tu parte de cada
+            trabajo, una vez que el cliente lo marca como completado — la transferencia la hace un
+            Admin de Oficy a mano. Pedimos los dos datos (no uno u otro) para poder verificar que
+            coinciden antes de transferir. Si preferís cobrar en tu cuenta de Mercado Pago, podés
+            poner tu CVU y tu alias de Mercado Pago acá, funcionan igual que los bancarios.
           </p>
 
           <form onSubmit={handleGuardarCobros} className="flex flex-col gap-4 max-w-sm">
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1">CBU o alias</label>
+              <label className="text-xs font-medium text-ink/60 block mb-1">CBU (o CVU de Mercado Pago)</label>
               <input
                 type="text"
-                value={cbuOAlias}
-                onChange={(e) => setCbuOAlias(e.target.value)}
+                value={cbu}
+                onChange={(e) => setCbu(e.target.value)}
+                placeholder="22 dígitos"
+                className="w-full border border-ink/15 bg-paper rounded px-3 py-2 text-sm text-ink"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-ink/60 block mb-1">Alias</label>
+              <input
+                type="text"
+                value={alias}
+                onChange={(e) => setAlias(e.target.value)}
                 placeholder="Ej: mi.alias.mp"
                 className="w-full border border-ink/15 bg-paper rounded px-3 py-2 text-sm text-ink"
               />
@@ -1515,15 +1539,16 @@ function CuentaContenido() {
                 className="w-full border border-ink/15 bg-paper rounded px-3 py-2 text-sm text-ink"
               >
                 <option value="">Sin preferencia</option>
-                {DIAS.map((dia, indice) => (
+                {DIAS_HABILES_COBRO.map((indice) => (
                   <option key={indice} value={indice}>
-                    {dia}
+                    {DIAS[indice]}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-ink/40 mt-1">
-                Es solo una referencia para que Oficy organice las transferencias — no cambia cuándo
-                se libera tu pago, eso sigue dependiendo de cuándo el cliente confirma el trabajo.
+                Solo días hábiles — es una referencia para que Oficy organice las transferencias, no
+                cambia cuándo se libera tu pago, eso sigue dependiendo de cuándo el cliente confirma
+                el trabajo.
               </p>
             </div>
 
