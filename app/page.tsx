@@ -352,12 +352,27 @@ export default function LandingPage() {
             {/* Desde el 27/09 cada tarjeta muestra la identidad completa del prestador (foto,
                 nombre, promedio general) y linkea a su perfil — antes lo mostraba anonimizado. */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {trabajos.map((t, i) => (
+              {/* Máximo 6 (04/10): las primeras 5 se ven normales y la 6ª queda borrosa con una
+                  invitación a ver más en la app — así la sección no crece con la cantidad de
+                  reseñas. La 6ª solo se difumina si realmente hay 6; con menos, todas se ven. */}
+              {trabajos.slice(0, 6).map((t, i) => {
+                const borrosa = i === 5;
+                return (
                 <Link
                   key={i}
-                  href={`/prestador/${t.prestadorId}`}
-                  className="bg-paper border border-ink/10 rounded-lg overflow-hidden flex flex-col hover:border-copper/40 transition-colors"
+                  href={borrosa ? "/registro" : `/prestador/${t.prestadorId}`}
+                  aria-label={borrosa ? "Ver más trabajos en la app" : undefined}
+                  className={`relative bg-paper border border-ink/10 rounded-lg overflow-hidden flex flex-col hover:border-copper/40 transition-colors ${
+                    borrosa ? "select-none" : ""
+                  }`}
                 >
+                  {borrosa && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-paper/40 text-center px-4">
+                      <span className="font-display text-lg text-ink">Ver más trabajos en la app</span>
+                      <span className="text-xs font-medium text-copper">Registrate gratis →</span>
+                    </div>
+                  )}
+                  <div className={`flex flex-col flex-1 ${borrosa ? "blur-sm pointer-events-none" : ""}`}>
                   {t.fotosResena.length > 0 ? (
                     // grid-cols fijo en 3 dejaba columnas vacías cuando la reseña tenía 1 o 2
                     // fotos (03/10, reportado por el usuario con una captura) — la cantidad de
@@ -420,8 +435,10 @@ export default function LandingPage() {
                       )}
                     </div>
                   </div>
+                  </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
