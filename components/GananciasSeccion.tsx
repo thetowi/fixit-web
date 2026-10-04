@@ -144,19 +144,20 @@ export default function GananciasSeccion() {
             </div>
           </div>
 
-          {/* Progreso hacia 10 trabajos gratis */}
+          {/* Progreso hacia los trabajos sin comisión. El tope sale del backend (pagados + restantes),
+              no está hardcodeado: así sigue bien si se vuelve a cambiar (hoy 5). */}
           {datos.trabajosGratisRestantes > 0 && (
             <div className="border border-dashed border-ink/15 rounded-lg p-3">
               <div className="flex items-center justify-between mb-1.5">
                 <p className="text-xs text-ink/60">Trabajos sin comisión de FixIt</p>
                 <p className="text-xs font-mono text-ink/70">
-                  {datos.trabajosPagadosTotal}/10
+                  {datos.trabajosPagadosTotal}/{datos.trabajosPagadosTotal + datos.trabajosGratisRestantes}
                 </p>
               </div>
               <div className="h-1.5 rounded-full bg-ink/10 overflow-hidden">
                 <div
                   className="h-full bg-copper rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (datos.trabajosPagadosTotal / 10) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (datos.trabajosPagadosTotal / (datos.trabajosPagadosTotal + datos.trabajosGratisRestantes)) * 100)}%` }}
                 />
               </div>
               <p className="text-xs text-ink/50 mt-1.5">

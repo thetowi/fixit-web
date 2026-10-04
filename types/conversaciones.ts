@@ -15,6 +15,9 @@ export interface Conversacion {
   // Aviso de "no pagues/cobres por fuera de la app" (28/09) — ya resuelto por el backend contra
   // el rol de quien lo pide, ver ConversacionService.
   avisoPagoVisto: boolean;
+  // Trabajos sin comisión que le quedan al prestador (04/10). Solo viene cuando quien pide la
+  // conversación es el prestador; para el cliente es null.
+  trabajosGratisRestantes?: number | null;
 }
 
 export interface IniciarConversacionRequest {

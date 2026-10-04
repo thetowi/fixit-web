@@ -72,7 +72,7 @@ const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
   {
     pregunta: "¿Y si soy prestador, cuánto me cobran de comisión?",
     respuesta:
-      "Tus primeros 10 trabajos cobrados no tienen ninguna comisión de Oficy. Después de eso, se descuenta una comisión chica sobre cada trabajo, siempre transparente antes de aceptar.",
+      "Tus primeros 5 trabajos cobrados no tienen ninguna comisión de Oficy. Después de eso, se descuenta una comisión chica sobre cada trabajo, siempre transparente antes de aceptar.",
   },
   {
     pregunta: "¿Puedo coordinar todo por chat antes de contratar?",
@@ -435,7 +435,7 @@ export default function LandingPage() {
           </span>
           <h2 className="font-display text-2xl">¿Sos un profesional del oficio?</h2>
           <p className="text-paper/70 max-w-md">
-            Sumate como prestador, recibí pedidos de clientes cerca tuyo y cobrá tus primeros 10
+            Sumate como prestador, recibí pedidos de clientes cerca tuyo y cobrá tus primeros 5
             trabajos sin comisión de Oficy.
           </p>
           <Link
@@ -495,9 +495,9 @@ export default function LandingPage() {
               <div>
                 <p className="font-medium mb-1">Premios y objetivos</p>
                 <p className="text-sm text-paper/65">
-                  Al llegar a 50 trabajos completados en tu rubro vas a recibir un kit de
-                  indumentaria de trabajo (borceguíes, pantalón y camisa) — el primero de varios
-                  premios por cumplir objetivos.
+                  Al llegar a 50 trabajos completados en tu rubro vamos a obsequiarte un kit de
+                  indumentaria completo para tu uso laboral — el primero de varios premios por
+                  cumplir objetivos.
                 </p>
               </div>
             </div>

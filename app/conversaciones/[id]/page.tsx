@@ -22,8 +22,9 @@ const MAX_SEGUNDOS_AUDIO = 120;
 
 // Mismo valor que Comision:PorcentajeDefault en appsettings.json del backend (22/09) — hardcodeado
 // acá porque hoy no hay ningún endpoint que lo exponga al frontend. Si se cambia el valor en el
-// backend, hay que actualizar este número a mano (o, mejor, exponerlo por API antes de sumar la
-// lógica real de los 10 trabajos gratis).
+// backend, hay que actualizar este número a mano (o, mejor, exponerlo por API). Mientras al
+// prestador le queden trabajos sin comisión (Conversacion.trabajosGratisRestantes > 0, desde el
+// 04/10) la vista previa de "Vos cobrarías" directamente no se muestra.
 const PORCENTAJE_COMISION_ESTIMADO = 0.1;
 
 // Aviso de "no pagues/cobres por fuera de la app" (28/09, a pedido del usuario) — combina las dos
@@ -1296,12 +1297,13 @@ export default function ConversacionPage() {
               </div>
             </label>
 
-            {/* Vista previa de cuánto cobraría el prestador (22/09, a pedido del usuario) — por ahora
-                es SOLO visual, siempre resta el % de comisión configurado en el backend
-                (Comision:PorcentajeDefault, hoy 10%), sin todavía chequear si el prestador ya superó
-                los primeros 10 trabajos gratis (ReglasNegocio.TrabajosGratisPorPrestador) — eso queda
-                para una vuelta futura, una vez validada la parte visual. */}
-            {Number(montoOferta) > 0 && (
+            {/* Vista previa de cuánto cobraría el prestador (22/09, a pedido del usuario) — es SOLO
+                visual y resta el % de comisión configurado en el backend (Comision:PorcentajeDefault,
+                hoy 10%). Desde el 04/10 solo se muestra cuando al prestador ya no le quedan trabajos
+                sin comisión (trabajosGratisRestantes === 0): mientras le queden, no se le descuenta
+                nada, así que no corresponde mostrar un monto menor al que puso. Si el dato todavía
+                no llegó (undefined) tampoco se muestra, para no mostrar un descuento que no va. */}
+            {Number(montoOferta) > 0 && conversacion?.trabajosGratisRestantes === 0 && (
               <p className="text-sm text-ink/60">
                 Vos cobrarías del trabajo:{" "}
                 <span className="text-ink font-semibold">

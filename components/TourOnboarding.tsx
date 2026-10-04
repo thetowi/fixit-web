@@ -100,7 +100,7 @@ const PASOS_PRESTADOR: Step[] = [
   pasoDeNav("nav-cuenta", {
     title: "Cobrar tus trabajos",
     content:
-      "En la pestaña Cobros conectás tu propia cuenta de Mercado Pago. Oficy deposita ahí tu parte y descuenta su comisión automáticamente — tus primeros 10 trabajos son sin comisión.",
+      "En la pestaña Cobros conectás tu propia cuenta de Mercado Pago. Oficy deposita ahí tu parte y descuenta su comisión automáticamente — tus primeros 5 trabajos son sin comisión.",
   }),
   pasoDeNav("nav-agenda", {
     title: "Agenda",
