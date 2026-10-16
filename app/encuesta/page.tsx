@@ -74,12 +74,14 @@ const PREGUNTAS: Pregunta[] = [
   },
   {
     id: "prioridadCobro", seccion: "Cobros y garantía", tipo: "single",
-    titulo: "¿Qué te importa más a la hora de cobrar un trabajo?",
+    // Reescrita el 16/10 (el usuario: "esta pregunta y respuestas están raras"): ahora contrapone
+    // las dos opciones reales en palabras simples — cobrar en el momento vs. pago asegurado por la
+    // app que llega unos días después.
+    titulo: "Cuando terminás un trabajo, ¿qué preferís?",
     opciones: [
-      "Cobrar al instante, aunque no haya garantía de pago",
-      "Cobrar al instante y que haya cierta garantía de que el cliente paga",
-      "Puedo esperar unos días si el pago está 100% asegurado",
-      "Me da igual, depende del trabajo",
+      "Cobrar en el momento, directo del cliente",
+      "Que el cliente pague antes por la app y me llegue unos días después, con el pago asegurado",
+      "Me da igual, mientras cobre",
     ],
   },
   {

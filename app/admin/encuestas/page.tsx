@@ -178,7 +178,7 @@ export default function AdminEncuestasPage() {
             <h2 className="font-display text-lg text-ink mb-3">Cobros y garantía</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <Grafico titulo="Cómo prefieren que les pague el cliente" datos={contar(respuestas.map((r) => r.formaCobroPreferida))} total={total} />
-              <Grafico titulo="Qué importa más al cobrar" datos={contar(respuestas.map((r) => r.prioridadCobro))} total={total} />
+              <Grafico titulo="Qué prefieren al terminar un trabajo" datos={contar(respuestas.map((r) => r.prioridadCobro))} total={total} />
               <Grafico titulo="Seña por la app" datos={contar(respuestas.map((r) => r.opinionSena))} total={total} />
               <Grafico titulo="Cómo pagarían la comisión" datos={contar(respuestas.map((r) => r.opinionPrepagoComision))} total={total} />
               <Grafico titulo="Garantía de Oficy con descuento al prestador" datos={contar(respuestas.map((r) => r.opinionGarantia))} total={total} />
