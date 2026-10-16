@@ -258,7 +258,7 @@ export default function EncuestaPage() {
   const progreso = paso < 0 ? 0 : Math.min(paso, TOTAL + 1) / (TOTAL + 1);
 
   return (
-    <div className="max-w-xl mx-auto mt-16 px-4 pt-6 w-full pb-24">
+    <div className="max-w-xl mx-auto px-4 pt-12 sm:pt-20 w-full pb-24">
       <style>{ESTILOS}</style>
 
       {paso >= 0 && paso <= PASO_CONTACTO && (

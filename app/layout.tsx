@@ -6,6 +6,7 @@ import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 import TourOnboarding from "@/components/TourOnboarding";
 import Footer from "@/components/Footer";
 import TrabajoEnCursoOverlay from "@/components/TrabajoEnCursoOverlay";
+import OcultarEnRutasLimpias from "@/components/OcultarEnRutasLimpias";
 
 const archivoBlack = Archivo_Black({
   weight: "400",
@@ -53,11 +54,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               el flujo normal del documento para empujar el Navbar hacia abajo en vez de taparle
               los botones y links de arriba. La pantalla completa (fixed inset-0) no depende del
               orden, así que este mismo componente sirve para las dos vistas sin duplicar nada. */}
-          <TrabajoEnCursoOverlay />
-          <Navbar />
-          <TourOnboarding />
+          {/* OcultarEnRutasLimpias (16/10): en /encuesta no se muestra nada de la app alrededor
+              (ni logo, ni "Iniciar sesión"/"Crear cuenta", ni footer) — solo la encuesta. */}
+          <OcultarEnRutasLimpias>
+            <TrabajoEnCursoOverlay />
+            <Navbar />
+            <TourOnboarding />
+          </OcultarEnRutasLimpias>
           {children}
-          <Footer />
+          <OcultarEnRutasLimpias>
+            <Footer />
+          </OcultarEnRutasLimpias>
         </GoogleAuthProvider>
       </body>
     </html>
