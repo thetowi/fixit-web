@@ -14,15 +14,23 @@ import { apiFetch } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { VerificacionAdmin, VerificacionCategoriaAdmin } from "@/types/verificacion";
 
-const TABS = [
+// Tipo explícito (16/10): con `as const` TypeScript trata cada pestaña como un tipo distinto y
+// `tab.contador` falla en las que no lo tienen (error de build en Vercel al sumar "Encuesta").
+interface TabAdmin {
+  href: string;
+  label: string;
+  contador?: "verificaciones" | "matriculas";
+}
+
+const TABS: readonly TabAdmin[] = [
   { href: "/admin/categorias", label: "Categorías" },
   { href: "/admin/usuarios", label: "Usuarios" },
   { href: "/admin/ordenes", label: "Órdenes" },
   { href: "/admin/reportes", label: "Reportes" },
-  { href: "/admin/verificaciones", label: "Identidad", contador: "verificaciones" as const },
-  { href: "/admin/matriculas", label: "Matrículas", contador: "matriculas" as const },
+  { href: "/admin/verificaciones", label: "Identidad", contador: "verificaciones" },
+  { href: "/admin/matriculas", label: "Matrículas", contador: "matriculas" },
   { href: "/admin/encuestas", label: "Encuesta" }, // resultados de la encuesta de prestadores (16/10)
-] as const;
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
