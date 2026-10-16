@@ -21,6 +21,7 @@ const TABS = [
   { href: "/admin/reportes", label: "Reportes" },
   { href: "/admin/verificaciones", label: "Identidad", contador: "verificaciones" as const },
   { href: "/admin/matriculas", label: "Matrículas", contador: "matriculas" as const },
+  { href: "/admin/encuestas", label: "Encuesta" }, // resultados de la encuesta de prestadores (16/10)
 ] as const;
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

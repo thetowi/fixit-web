@@ -461,6 +461,12 @@ export default function LandingPage() {
           >
             Quiero ofrecer mis servicios
           </Link>
+          {/* Encuesta para profesionales (16/10, a pedido del usuario): para ir recibiendo
+              devoluciones antes del lanzamiento. Va como enlace secundario para no competir con el
+              botón principal de registro. */}
+          <Link href="/encuesta" className="text-sm text-paper/70 underline underline-offset-4 hover:text-paper transition-colors">
+            ¿Todavía no te decidís? Contanos qué necesitás (encuesta de 4 minutos)
+          </Link>
         </div>
       </div>
 
