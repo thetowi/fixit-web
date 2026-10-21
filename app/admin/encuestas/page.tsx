@@ -70,6 +70,46 @@ function Grafico({ titulo, datos, total }: { titulo: string; datos: [string, num
   );
 }
 
+// Ficha individual (17/10, a pedido del usuario: "ver discriminadamente las respuestas de cada
+// uno"): todas las respuestas de una persona, en el mismo orden que la encuesta.
+function lista(valores: string[], otro: string | null) {
+  const todos = [...valores, ...(otro ? [`Otro: ${otro}`] : [])];
+  return todos.length > 0 ? todos.join(" · ") : null;
+}
+
+function FichaRespuesta({ r }: { r: RespuestaEncuesta }) {
+  const filas: [string, string | null][] = [
+    ["Rubros", lista(r.rubros.filter((x) => x !== "Otro" || !r.rubroOtro), r.rubroOtro)],
+    ["Antigüedad en el rubro", r.antiguedad],
+    ["Cómo consigue trabajo hoy", lista(r.canalesTrabajo, r.canalOtro)],
+    ["Períodos sin trabajo", r.frecuenciaSinTrabajo],
+    ["¿Usaría una app así?", r.interesApp],
+    ["Qué valoraría más", lista(r.valorEsperado, r.valorOtro)],
+    ["¿Pagaría comisión?", r.dispuestoComision],
+    ["Comisión que ve razonable", r.porcentajeComision],
+    ["Cómo prefiere que le pague el cliente", r.formaCobroPreferida],
+    ["Qué prefiere al terminar un trabajo", r.prioridadCobro],
+    ["Seña por la app", r.opinionSena],
+    ["Cómo pagaría la comisión", r.opinionPrepagoComision],
+    ["Garantía con plazo para corregir", r.opinionGarantia],
+    ["Dudas o comentarios", r.dudas],
+    ["Interés en probar", r.interesProbar],
+  ];
+  return (
+    <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 pt-3 mt-3 border-t border-ink/10">
+      {filas.map(([pregunta, respuesta]) => (
+        <div key={pregunta} className={pregunta === "Dudas o comentarios" ? "sm:col-span-2" : ""}>
+          <dt className="text-xs text-ink/50">{pregunta}</dt>
+          <dd className={`text-sm mt-0.5 ${respuesta ? "text-ink" : "text-ink/35 italic"}`}>{respuesta ?? "Sin responder"}</dd>
+        </div>
+      ))}
+      <div className="sm:col-span-2 text-xs text-ink/40">
+        Respondió el {new Date(r.creadoEn).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
+      </div>
+    </dl>
+  );
+}
+
 function csvCelda(valor: string | string[] | null | undefined): string {
   const texto = Array.isArray(valor) ? valor.join(" | ") : valor ?? "";
   return `"${texto.replace(/"/g, '""')}"`;
@@ -95,7 +135,34 @@ export default function AdminEncuestasPage() {
   const conContacto = useMemo(() => respuestas.filter((r) => r.whatsApp), [respuestas]);
   const interesados = useMemo(() => conContacto.filter((r) => r.interesProbar !== NO_POR_AHORA), [conContacto]);
   const sinInteres = useMemo(() => conContacto.filter((r) => r.interesProbar === NO_POR_AHORA), [conContacto]);
-  const contactos = filtroContactos === "interesados" ? interesados : filtroContactos === "sin_interes" ? sinInteres : conContacto;
+  const porInteres = filtroContactos === "interesados" ? interesados : filtroContactos === "sin_interes" ? sinInteres : conContacto;
+
+  // Búsqueda por nombre / WhatsApp / localidad y filtro por rubro (17/10).
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroRubro, setFiltroRubro] = useState("");
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const rubrosDisponibles = useMemo(
+    () => Array.from(new Set(respuestas.flatMap((r) => r.rubros))).filter((x) => x !== "Otro").sort((a, b) => a.localeCompare(b, "es")),
+    [respuestas]
+  );
+  const contactos = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    const qDigitos = q.replace(/\D/g, "");
+    return porInteres.filter((r) => {
+      if (filtroRubro === "__otro") {
+        if (!r.rubroOtro) return false;
+      } else if (filtroRubro && !r.rubros.includes(filtroRubro)) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        (r.nombre ?? "").toLowerCase().includes(q) ||
+        (r.localidad ?? "").toLowerCase().includes(q) ||
+        (r.rubroOtro ?? "").toLowerCase().includes(q) ||
+        (qDigitos.length >= 3 && (r.whatsApp ?? "").replace(/\D/g, "").includes(qDigitos))
+      );
+    });
+  }, [porInteres, busqueda, filtroRubro]);
   const dudas = useMemo(() => respuestas.filter((r) => r.dudas), [respuestas]);
 
   function descargarCsv() {
@@ -194,7 +261,7 @@ export default function AdminEncuestasPage() {
                 <li key={r.id} className="bg-surface border border-ink/10 rounded-lg p-3 text-sm text-ink/80">
                   {r.dudas}
                   <span className="block text-xs text-ink/40 mt-1">
-                    {r.rubros.join(", ")} · {new Date(r.creadoEn).toLocaleDateString("es-AR")}
+                    {r.nombre ?? "Sin nombre"} · {r.rubros.join(", ")} · {new Date(r.creadoEn).toLocaleDateString("es-AR")}
                   </span>
                 </li>
               ))}
@@ -225,26 +292,65 @@ export default function AdminEncuestasPage() {
                 ))}
               </div>
             </div>
+            <div className="flex gap-2 flex-wrap mb-3">
+              <input
+                type="search"
+                placeholder="Buscar por nombre, WhatsApp o localidad"
+                className="border border-ink/20 rounded p-1.5 text-sm flex-1 min-w-[220px] bg-paper"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+              <select
+                className="border border-ink/20 rounded p-1.5 text-sm bg-paper text-ink"
+                value={filtroRubro}
+                onChange={(e) => setFiltroRubro(e.target.value)}
+                aria-label="Filtrar por rubro"
+              >
+                <option value="">Todos los rubros</option>
+                {rubrosDisponibles.map((rubro) => (
+                  <option key={rubro} value={rubro}>
+                    {rubro}
+                  </option>
+                ))}
+                <option value="__otro">Otro rubro (escrito a mano)</option>
+              </select>
+            </div>
+            <p className="text-xs text-ink/50 mb-2">Tocá a una persona para ver todas sus respuestas.</p>
             <ul className="flex flex-col gap-2">
-              {contactos.length === 0 && <p className="text-ink/50 text-sm">No hay contactos en esta lista.</p>}
+              {contactos.length === 0 && <p className="text-ink/50 text-sm">No hay contactos que coincidan.</p>}
               {contactos.map((r) => (
-                <li key={r.id} className="bg-surface border border-ink/10 rounded-lg p-3 flex justify-between items-center gap-3 flex-wrap">
-                  <div>
-                    <p className="font-medium text-ink text-sm">
-                      {r.nombre} <span className="text-ink/50 font-normal">· {r.rubros.join(", ")}</span>
-                    </p>
-                    <p className="text-xs text-ink/50">
-                      {r.interesProbar} · {r.localidad ?? "—"}
-                    </p>
+                <li
+                  key={r.id}
+                  className={`bg-surface border rounded-lg p-3 transition-colors ${abierta === r.id ? "border-copper/50" : "border-ink/10"}`}
+                >
+                  <div className="flex justify-between items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setAbierta(abierta === r.id ? null : r.id)}
+                      aria-expanded={abierta === r.id}
+                      className="text-left flex-1 min-w-0 group"
+                    >
+                      <p className="font-medium text-ink text-sm group-hover:text-copper transition-colors">
+                        <span className="inline-block w-4 text-ink/40">{abierta === r.id ? "−" : "+"}</span>
+                        {r.nombre}{" "}
+                        <span className="text-ink/50 font-normal">
+                          · {[...r.rubros.filter((x) => x !== "Otro" || !r.rubroOtro), ...(r.rubroOtro ? [r.rubroOtro] : [])].join(", ")}
+                        </span>
+                      </p>
+                      <p className="text-xs text-ink/50 pl-4">
+                        {r.interesProbar} · {r.localidad ?? "—"} · {new Date(r.creadoEn).toLocaleDateString("es-AR")}
+                      </p>
+                    </button>
+                    <a
+                      href={`https://wa.me/${(r.whatsApp ?? "").replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-copper hover:underline border border-copper/30 rounded px-2 py-1"
+                    >
+                      {r.whatsApp}
+                    </a>
                   </div>
-                  <a
-                    href={`https://wa.me/${(r.whatsApp ?? "").replace(/\D/g, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-copper hover:underline border border-copper/30 rounded px-2 py-1"
-                  >
-                    {r.whatsApp}
-                  </a>
+                  {abierta === r.id && <FichaRespuesta r={r} />}
                 </li>
               ))}
             </ul>

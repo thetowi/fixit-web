@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Search,
   MessageCircle,
   ShieldCheck,
   Wrench,
@@ -32,6 +31,7 @@ import ContadorAnimado from "@/components/ContadorAnimado";
 import ChatEnVivoPreview from "@/components/ChatEnVivoPreview";
 import GrillaRubros from "@/components/GrillaRubros";
 import TypewriterRubros from "@/components/TypewriterRubros";
+import QueEsOficy from "@/components/QueEsOficy";
 import { irAlDashboard } from "@/lib/dominio";
 
 // Palabras del eyebrow del hero mientras todavía no llegaron las categorías reales del backend
@@ -232,6 +232,11 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* Qué es Oficy (21/10, recomendación del polo tecnológico): justo debajo del hero, explica qué
+          es Oficy, qué problema resuelve y cómo funciona, con un video para clientes y otro para
+          profesionales — ver components/QueEsOficy.tsx. */}
+      <QueEsOficy />
+
       {/* Barra de estadísticas reales (25/09, animada 25/09 a pedido del usuario: "que vaya de 0
           hasta donde llegue el numero" apenas la sección entra en pantalla — ver ContadorAnimado). */}
       {estadisticas && (
@@ -262,47 +267,8 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Cómo funciona */}
-      <div className="w-full bg-surface border-b border-ink/10 py-16 px-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Era un "eyebrow" chico (font-mono text-xs) haciendo de único título de la sección —
-              ese estilo en el resto de la página siempre va EMPAREJADO con un título grande abajo
-              (ver "¿Sos un profesional del oficio?" más abajo); acá no había nada grande, así que
-              se veía chico comparado con el resto (03/10, reportado por el usuario). */}
-          <h2 className="font-display text-2xl sm:text-3xl text-ink tracking-tight mb-8 text-center">
-            Cómo funciona
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center text-copper">
-                <Search size={22} strokeWidth={1.8} />
-              </div>
-              <p className="font-medium text-ink">1. Contanos qué necesitás</p>
-              <p className="text-sm text-ink/60">
-                Elegí el rubro y buscá prestadores verificados cerca de tu domicilio.
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center text-copper">
-                <MessageCircle size={22} strokeWidth={1.8} />
-              </div>
-              <p className="font-medium text-ink">2. Chateá y coordiná</p>
-              <p className="text-sm text-ink/60">
-                Hablá directo con el profesional, acordá el trabajo y agendá un turno.
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center text-copper">
-                <ShieldCheck size={22} strokeWidth={1.8} />
-              </div>
-              <p className="font-medium text-ink">3. Pagá con confianza</p>
-              <p className="text-sm text-ink/60">
-                El pago queda retenido hasta que confirmás que el trabajo se completó.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* La sección "Cómo funciona" (3 pasos con íconos) se sacó el 21/10: repetía lo que ahora
+          explican los videos de "Qué es Oficy" justo arriba (ver components/QueEsOficy.tsx). */}
 
       {/* Trabajo en curso en vivo (25/09, a pedido del usuario: "que se vea como lo visualizaría
           un usuario") — muestra la pantalla real que ve el cliente mientras el prestador está
