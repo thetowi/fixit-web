@@ -183,11 +183,16 @@ export default function LandingPage() {
             <ChatEnVivoPreview />
           </div>
         </div>
+      </div>
 
-        {/* Tagline de origen (25/09, a pedido del usuario: destacar que Oficy es de Paraná) —
-            grande, debajo del grid del hero (texto + mockup), pero todavía dentro de la sección
-            del hero, antes de la barra de estadísticas. "Paraná" resaltado en cobre a propósito. */}
-        <p className="text-center font-display text-2xl sm:text-3xl text-ink tracking-tight mt-14">
+      {/* Banda oscura "Desde Paraná" + tiendas (22/10, a pedido del usuario): antes iba dentro del
+          hero, sobre fondo claro; se separó en su propia banda con los colores invertidos para
+          respetar la alternancia claro/oscuro de la landing (hero claro, esta banda oscura, "Qué es
+          Oficy" claro, estadísticas oscuras...). */}
+      <div className="w-full bg-ink px-6 py-14">
+        {/* Tagline de origen (25/09, a pedido del usuario: destacar que Oficy es de Paraná).
+            "Paraná" resaltado en cobre a propósito. */}
+        <p className="text-center font-display text-2xl sm:text-3xl text-paper tracking-tight">
           Desde <span className="text-copper">Paraná</span>, hacia toda Argentina
         </p>
 
@@ -199,24 +204,24 @@ export default function LandingPage() {
             href={URL_APP_STORE}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2.5 border border-ink/20 rounded-xl px-5 py-2.5 hover:border-ink/40 transition-colors"
+            className="flex items-center gap-2.5 border border-paper/25 rounded-xl px-5 py-2.5 hover:border-paper/50 transition-colors"
           >
-            <SiApple size={20} className="text-ink/80" />
+            <SiApple size={20} className="text-paper/85" />
             <span className="flex flex-col items-start leading-tight">
-              <span className="text-[10px] text-ink/50">Disponible en</span>
-              <span className="text-sm font-medium text-ink">App Store</span>
+              <span className="text-[10px] text-paper/55">Disponible en</span>
+              <span className="text-sm font-medium text-paper">App Store</span>
             </span>
           </a>
           <a
             href={URL_PLAY_STORE}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2.5 border border-ink/20 rounded-xl px-5 py-2.5 hover:border-ink/40 transition-colors"
+            className="flex items-center gap-2.5 border border-paper/25 rounded-xl px-5 py-2.5 hover:border-paper/50 transition-colors"
           >
-            <SiGoogleplay size={18} className="text-ink/80" />
+            <SiGoogleplay size={18} className="text-paper/85" />
             <span className="flex flex-col items-start leading-tight">
-              <span className="text-[10px] text-ink/50">Disponible en</span>
-              <span className="text-sm font-medium text-ink">Play Store</span>
+              <span className="text-[10px] text-paper/55">Disponible en</span>
+              <span className="text-sm font-medium text-paper">Play Store</span>
             </span>
           </a>
           {/* Va al subdominio operativo (app.oficy.ar), no a una ruta interna de "/" — por eso es
