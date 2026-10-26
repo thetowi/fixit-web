@@ -58,9 +58,9 @@ function ConfirmarEmailForm() {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Un último paso</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Un último paso</p>
       <h1 className="font-display text-2xl text-ink mb-2">Confirmá tu email</h1>
-      <p className="text-ink/60 mb-6">
+      <p className="text-ink-muted mb-6">
         Te mandamos un código de 6 dígitos a <span className="font-medium text-ink">{email || "tu email"}</span>. Ingresalo acá abajo para activar tu cuenta.
       </p>
 
@@ -91,7 +91,7 @@ function ConfirmarEmailForm() {
         <button
           type="submit"
           disabled={cargando || codigo.length !== 6}
-          className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+          className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
         >
           {cargando ? "Confirmando..." : "Confirmar cuenta"}
         </button>
@@ -100,14 +100,14 @@ function ConfirmarEmailForm() {
           type="button"
           onClick={handleReenviar}
           disabled={reenviando || !email}
-          className="text-copper text-sm hover:underline disabled:opacity-40"
+          className="text-copper-text text-sm hover:underline disabled:opacity-40"
         >
           {reenviando ? "Reenviando..." : "¿No te llegó? Reenviar código"}
         </button>
       </form>
 
-      <p className="text-sm text-ink/50 mt-4 text-center">
-        ¿Ya confirmaste? <a href="/login" className="text-copper hover:underline">Iniciá sesión</a>
+      <p className="text-sm text-ink-muted mt-4 text-center">
+        ¿Ya confirmaste? <a href="/login" className="text-copper-text hover:underline">Iniciá sesión</a>
       </p>
     </div>
   );

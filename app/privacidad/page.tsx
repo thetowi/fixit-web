@@ -5,9 +5,9 @@ export const metadata = {
 export default function PrivacidadPage() {
   return (
     <div className="max-w-2xl mx-auto mt-16 p-6 w-full pb-24">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Legal</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Legal</p>
       <h1 className="font-display text-2xl text-ink mb-1">Política de Privacidad</h1>
-      <p className="text-xs text-ink/40 mb-8">Última actualización: [completar fecha antes de publicar]</p>
+      <p className="text-xs text-ink-muted mb-8">Última actualización: [completar fecha antes de publicar]</p>
 
       <div className="flex flex-col gap-6 text-sm text-ink/80 leading-relaxed [&_h2]:font-display [&_h2]:text-lg [&_h2]:text-ink [&_h2]:mb-2 [&_h2]:mt-2 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1">
 
@@ -22,7 +22,7 @@ export default function PrivacidadPage() {
           </p>
           <p>
             Al crear una cuenta o usar Oficy de cualquier forma, aceptás esta Política y nuestros{" "}
-            <a href="/terminos" className="text-copper hover:underline">Términos y Condiciones</a>.
+            <a href="/terminos" className="text-copper-text hover:underline">Términos y Condiciones</a>.
           </p>
         </section>
 
@@ -30,10 +30,10 @@ export default function PrivacidadPage() {
           <h2>2. Qué datos recopilamos</h2>
           <ul>
             <li><strong className="text-ink">Datos de identificación y contacto:</strong> nombre, email, teléfono, y, en el caso de Prestadores, DNI y otra documentación de verificación (certificado de antecedentes penales, matrícula del rubro cuando corresponda).</li>
-            <li><strong className="text-ink">Datos de ubicación:</strong> dirección o zona de cobertura que cargás, y tu ubicación aproximada si nos das permiso para usarla al buscar prestadores cerca tuyo.</li>
+            <li><strong className="text-ink">Datos de ubicación:</strong> dirección o zona de cobertura que cargás, y tu ubicación aproximada si nos das permiso para usarla al buscar prestadores cerca tuyo. Si sos Prestador y usás el botón &quot;Llegué&quot;, guardamos tu ubicación en ese momento y su distancia al domicilio del Cliente, como registro de la visita.</li>
             <li><strong className="text-ink">Contenido que subís:</strong> foto de perfil, fotos de trabajos, reseñas y calificaciones.</li>
-            <li><strong className="text-ink">Mensajes:</strong> el contenido de las conversaciones del chat entre Cliente y Prestador dentro de la Plataforma.</li>
-            <li><strong className="text-ink">Datos de pago:</strong> Oficy no almacena números de tarjeta ni datos financieros sensibles. Los pagos se procesan a través de Mercado Pago, que maneja esos datos bajo su propia política de privacidad. Oficy sí recibe y guarda información sobre las transacciones (montos, fechas, estado del pago) para llevar el registro de tus órdenes.</li>
+            <li><strong className="text-ink">Mensajes:</strong> el contenido de las conversaciones del chat entre Cliente y Prestador dentro de la Plataforma. Antes de que se acepte una oferta, los teléfonos, mails y links de contacto se ocultan automáticamente y se registra que hubo un intento de compartirlos.</li>
+            <li><strong className="text-ink">Datos de pago:</strong> el pago de cada trabajo se hace directamente entre Cliente y Prestador, fuera de Oficy. Guardamos el monto acordado en cada oferta y el estado de cada trabajo. Si sos Prestador y pagás tu resumen mensual por Mercado Pago, Mercado Pago maneja los datos de pago bajo su propia política de privacidad; Oficy no almacena números de tarjeta ni datos financieros sensibles.</li>
             <li><strong className="text-ink">Datos técnicos y de uso:</strong> información del dispositivo, dirección IP, y datos guardados localmente en tu navegador o app (ver sección 8, Cookies y almacenamiento local).</li>
           </ul>
         </section>
@@ -43,7 +43,7 @@ export default function PrivacidadPage() {
           <ul>
             <li>Crear y administrar tu cuenta, y verificar tu identidad cuando corresponda.</li>
             <li>Conectar Clientes y Prestadores, mostrar resultados de búsqueda relevantes y facilitar la comunicación entre ambos.</li>
-            <li>Procesar pagos, retener y liberar fondos según el estado de cada trabajo, y calcular la comisión de Oficy.</li>
+            <li>Registrar y confirmar los trabajos, calcular y cobrar el cargo mensual a los Prestadores, y detectar trabajos acordados por fuera de la Plataforma.</li>
             <li>Enviarte notificaciones sobre tus órdenes, mensajes y turnos agendados.</li>
             <li>Mejorar la Plataforma, prevenir fraude y hacer cumplir nuestros Términos y Condiciones.</li>
             <li>Cumplir con obligaciones legales o requerimientos de autoridades competentes.</li>
@@ -58,7 +58,7 @@ export default function PrivacidadPage() {
           </p>
           <ul>
             <li><strong className="text-ink">Con otros Usuarios:</strong> tu nombre, foto, calificaciones y, cuando corresponda, tu ubicación o zona de cobertura son visibles para la contraparte de un trabajo (Cliente o Prestador) o de una búsqueda.</li>
-            <li><strong className="text-ink">Mercado Pago:</strong> para procesar cobros y pagos.</li>
+            <li><strong className="text-ink">Mercado Pago:</strong> para procesar el pago del resumen mensual de los Prestadores.</li>
             <li><strong className="text-ink">Proveedores de infraestructura:</strong> como el hosting, la base de datos (por ejemplo, Supabase) y servicios de almacenamiento de imágenes, que procesan datos en nuestro nombre bajo acuerdos de confidencialidad.</li>
             <li><strong className="text-ink">Autoridades:</strong> cuando la ley lo exija o para responder a un requerimiento judicial válido.</li>
           </ul>
@@ -80,7 +80,7 @@ export default function PrivacidadPage() {
             De acuerdo con la Ley de Protección de Datos Personales (Ley 25.326), tenés derecho a acceder, rectificar,
             actualizar o suprimir tus datos personales, así como a revocar el consentimiento que hayas dado para su
             tratamiento. Para ejercer estos derechos, escribinos a{" "}
-            <a href="mailto:legal@oficy.ar" className="text-copper hover:underline">legal@oficy.ar</a>. También podés
+            <a href="mailto:legal@oficy.ar" className="text-copper-text hover:underline">legal@oficy.ar</a>. También podés
             presentar un reclamo ante la Agencia de Acceso a la Información Pública, el organismo de control de esta
             ley, si considerás que tus derechos no fueron respetados.
           </p>
@@ -125,11 +125,11 @@ export default function PrivacidadPage() {
           <h2>11. Contacto</h2>
           <p>
             Ante cualquier consulta sobre esta Política o sobre tus datos personales, podés escribirnos a{" "}
-            <a href="mailto:legal@oficy.ar" className="text-copper hover:underline">legal@oficy.ar</a>.
+            <a href="mailto:legal@oficy.ar" className="text-copper-text hover:underline">legal@oficy.ar</a>.
           </p>
         </section>
 
-        <p className="text-xs text-ink/40 mt-4 border-t border-ink/10 pt-4">
+        <p className="text-xs text-ink-muted mt-4 border-t border-ink/10 pt-4">
           Este documento es un borrador inicial pensado para reflejar cómo funciona Oficy hoy. Antes de publicarlo o
           de lanzar la aplicación al público, revisalo con un abogado para adaptarlo a tu estructura legal real y
           confirmar que cumple con la Ley de Protección de Datos Personales (Ley 25.326) y cualquier otra normativa

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Categoria } from "@/types/categorias";
+import { ThemeToggleFooter } from "@/components/ThemeToggle";
 
 // Footer propio de la landing publicitaria (25/09, a pedido del usuario, al estilo del footer
 // completo de tegu.ar) — se muestra SOLO en "/" (app/page.tsx), arriba del Footer.tsx global
@@ -14,13 +15,13 @@ export default function LandingFooter({ categorias }: { categorias: Categoria[] 
           <p className="text-sm text-paper/60 leading-relaxed mb-3">
             Conectamos clientes con profesionales de oficios verificados, cerca tuyo.
           </p>
-          <p className="font-mono text-xs tracking-widest text-copper uppercase">
+          <p className="font-mono text-xs tracking-widest text-copper-sobre-ink uppercase">
             Desde Paraná, hacia toda Argentina
           </p>
         </div>
 
         <div>
-          <p className="font-mono text-xs tracking-widest text-paper/50 uppercase mb-3">Rubros</p>
+          <p className="font-mono text-xs tracking-widest text-paper/65 uppercase mb-3">Rubros</p>
           <ul className="flex flex-col gap-2 text-sm">
             {categorias.slice(0, 6).map((c) => (
               <li key={c.id}>
@@ -33,7 +34,7 @@ export default function LandingFooter({ categorias }: { categorias: Categoria[] 
         </div>
 
         <div>
-          <p className="font-mono text-xs tracking-widest text-paper/50 uppercase mb-3">Oficy</p>
+          <p className="font-mono text-xs tracking-widest text-paper/65 uppercase mb-3">Oficy</p>
           <ul className="flex flex-col gap-2 text-sm">
             <li><Link href="/explorar" className="hover:text-safety transition-colors">Explorar rubros</Link></li>
             <li><Link href="/registro?rol=prestador" className="hover:text-safety transition-colors">Sumate como profesional</Link></li>
@@ -42,7 +43,7 @@ export default function LandingFooter({ categorias }: { categorias: Categoria[] 
         </div>
 
         <div>
-          <p className="font-mono text-xs tracking-widest text-paper/50 uppercase mb-3">Legal</p>
+          <p className="font-mono text-xs tracking-widest text-paper/65 uppercase mb-3">Legal</p>
           <ul className="flex flex-col gap-2 text-sm">
             <li><Link href="/terminos" className="hover:text-safety transition-colors">Términos y Condiciones</Link></li>
             <li><Link href="/privacidad" className="hover:text-safety transition-colors">Política de Privacidad</Link></li>
@@ -50,8 +51,12 @@ export default function LandingFooter({ categorias }: { categorias: Categoria[] 
         </div>
       </div>
 
-      <div className="border-t border-paper/10 px-6 py-4 text-center text-xs text-paper/40">
-        © {new Date().getFullYear()} Oficy — Todos los derechos reservados
+      {/* Audit 26/10 (/impeccable harden): el footer global (Footer.tsx) ya no se muestra
+          en "/", así que el cambio de modo oscuro pasa a esta fila. */}
+      <div className="border-t border-paper/10 px-6 py-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-paper/65">
+        <span>© {new Date().getFullYear()} Oficy — Todos los derechos reservados</span>
+        <a href="/contacto" className="hover:text-paper hover:underline underline-offset-4">Contacto</a>
+        <ThemeToggleFooter />
       </div>
     </div>
   );

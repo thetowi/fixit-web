@@ -268,7 +268,7 @@ export default function AgendaPage() {
     }
   }
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
 
   const finSemana = new Date(inicioSemana);
   finSemana.setDate(finSemana.getDate() + 6);
@@ -292,7 +292,7 @@ export default function AgendaPage() {
     <div className="max-w-6xl mx-auto mt-16 p-6 w-full">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
         <div>
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Prestador</p>
+          <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Prestador</p>
           <h1 className="font-display text-2xl text-ink">Mi agenda</h1>
         </div>
 
@@ -300,7 +300,7 @@ export default function AgendaPage() {
           <button
             onClick={() => setVista("semana")}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              vista === "semana" ? "bg-copper text-paper" : "text-ink/55 hover:text-ink"
+              vista === "semana" ? "bg-copper-accion text-paper" : "text-ink-muted hover:text-ink"
             }`}
           >
             Semana
@@ -308,7 +308,7 @@ export default function AgendaPage() {
           <button
             onClick={() => setVista("mes")}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              vista === "mes" ? "bg-copper text-paper" : "text-ink/55 hover:text-ink"
+              vista === "mes" ? "bg-copper-accion text-paper" : "text-ink-muted hover:text-ink"
             }`}
           >
             Mes
@@ -329,8 +329,8 @@ export default function AgendaPage() {
 
       {bloques.length === 0 && (
         <div className="bg-surface border border-ink/10 rounded-lg p-4 mb-6 flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-sm text-ink/60">Todavía no cargaste los horarios en los que trabajás.</p>
-          <a href="/cuenta" className="text-sm text-copper hover:underline whitespace-nowrap">
+          <p className="text-sm text-ink-muted">Todavía no cargaste los horarios en los que trabajás.</p>
+          <a href="/cuenta" className="text-sm text-copper-text hover:underline whitespace-nowrap">
             Configurar en Mi cuenta →
           </a>
         </div>
@@ -338,10 +338,10 @@ export default function AgendaPage() {
 
       <div className="bg-surface border border-ink/10 rounded-xl p-5 mb-6">
         <p className="font-semibold text-ink mb-3">
-          Pendientes de programar {sinProgramar.length > 0 && <span className="text-ink/40 font-normal">({sinProgramar.length})</span>}
+          Pendientes de programar {sinProgramar.length > 0 && <span className="text-ink-muted font-normal">({sinProgramar.length})</span>}
         </p>
         {sinProgramar.length === 0 ? (
-          <p className="text-ink/50 text-sm">No tenés trabajos pendientes de agendar.</p>
+          <p className="text-ink-muted text-sm">No tenés trabajos pendientes de agendar.</p>
         ) : (
           <ul className="flex flex-col gap-2.5">
             {sinProgramar.map((o) => (
@@ -354,7 +354,7 @@ export default function AgendaPage() {
                   <p className="text-ink font-medium truncate">
                     {o.descripcion || o.categoriaNombre} · {o.clienteNombreCompleto}
                   </p>
-                  <p className="text-xs text-ink/45 truncate">
+                  <p className="text-xs text-ink-muted truncate">
                     {o.categoriaNombre}
                     {o.clienteDireccion && (
                       <>
@@ -363,7 +363,7 @@ export default function AgendaPage() {
                           href={linkGoogleMaps(o.clienteDireccion, o.clienteDireccionLat, o.clienteDireccionLon)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline decoration-dotted hover:text-copper"
+                          className="underline decoration-dotted hover:text-copper-text"
                         >
                           {o.clienteDireccion}
                         </a>
@@ -373,12 +373,12 @@ export default function AgendaPage() {
                     {o.clienteTelefono ? ` · ${o.clienteTelefono}` : ""}
                   </p>
                   {o.clienteDistanciaKm != null && (
-                    <p className="text-xs text-ink/35 truncate">{formatoDistancia(o.clienteDistanciaKm)}</p>
+                    <p className="text-xs text-ink-muted truncate">{formatoDistancia(o.clienteDistanciaKm)}</p>
                   )}
                 </div>
                 <button
                   onClick={() => abrirProgramar(o)}
-                  className="bg-copper text-paper rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-copper-dark transition-colors shrink-0"
+                  className="bg-copper-accion text-paper rounded-lg px-4 py-2.5 text-sm font-semibold hover:bg-copper-dark transition-colors shrink-0"
                 >
                   Programar
                 </button>
@@ -394,19 +394,19 @@ export default function AgendaPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => (vista === "semana" ? setOffsetSemana((s) => s - 1) : setOffsetMes((m) => m - 1))}
-              className="text-ink/45 hover:text-ink text-sm px-1.5"
+              className="text-ink-muted hover:text-ink text-sm px-1.5"
               aria-label="Anterior"
             >
               ←
             </button>
             {!enHoy && (
-              <button onClick={irAHoy} className="text-xs text-copper hover:underline whitespace-nowrap">
+              <button onClick={irAHoy} className="text-xs text-copper-text hover:underline whitespace-nowrap">
                 Hoy
               </button>
             )}
             <button
               onClick={() => (vista === "semana" ? setOffsetSemana((s) => s + 1) : setOffsetMes((m) => m + 1))}
-              className="text-ink/45 hover:text-ink text-sm px-1.5"
+              className="text-ink-muted hover:text-ink text-sm px-1.5"
               aria-label="Siguiente"
             >
               →
@@ -415,7 +415,7 @@ export default function AgendaPage() {
         </div>
 
         {cargandoRango ? (
-          <p className="text-ink/50 text-sm">Cargando...</p>
+          <p className="text-ink-muted text-sm">Cargando...</p>
         ) : vista === "semana" ? (
           <CalendarioSemanal
             inicioSemana={inicioSemana}
@@ -447,7 +447,7 @@ export default function AgendaPage() {
             <h3 className="font-display text-lg text-ink mb-1">
               {esReprogramacion ? "Reprogramar" : "Programar"}: {ordenAProgramar.descripcion || ordenAProgramar.categoriaNombre}
             </h3>
-            <p className={`text-xs text-ink/50 ${ordenAProgramar.clienteDistanciaKm != null ? "mb-1" : "mb-4"}`}>
+            <p className={`text-xs text-ink-muted ${ordenAProgramar.clienteDistanciaKm != null ? "mb-1" : "mb-4"}`}>
               {ordenAProgramar.clienteNombreCompleto}
               {ordenAProgramar.clienteDireccion && (
                 <>
@@ -456,7 +456,7 @@ export default function AgendaPage() {
                     href={linkGoogleMaps(ordenAProgramar.clienteDireccion, ordenAProgramar.clienteDireccionLat, ordenAProgramar.clienteDireccionLon)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline decoration-dotted hover:text-copper"
+                    className="underline decoration-dotted hover:text-copper-text"
                   >
                     {ordenAProgramar.clienteDireccion}
                   </a>
@@ -465,10 +465,10 @@ export default function AgendaPage() {
               )}
             </p>
             {ordenAProgramar.clienteDistanciaKm != null && (
-              <p className="text-xs text-ink/35 mb-4">{formatoDistancia(ordenAProgramar.clienteDistanciaKm)}</p>
+              <p className="text-xs text-ink-muted mb-4">{formatoDistancia(ordenAProgramar.clienteDistanciaKm)}</p>
             )}
             <form onSubmit={handleProgramar} className="flex flex-col gap-3">
-              <label className="text-sm text-ink/60">
+              <label className="text-sm text-ink-muted">
                 Fecha
                 <input
                   type="date"
@@ -478,7 +478,7 @@ export default function AgendaPage() {
                   onChange={(e) => setFechaTurno(e.target.value)}
                 />
               </label>
-              <label className="text-sm text-ink/60">
+              <label className="text-sm text-ink-muted">
                 Hora de inicio
                 <input
                   type="time"
@@ -488,7 +488,7 @@ export default function AgendaPage() {
                   onChange={(e) => setHoraTurno(e.target.value)}
                 />
               </label>
-              <label className="text-sm text-ink/60">
+              <label className="text-sm text-ink-muted">
                 Duración del trabajo
                 <select
                   className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
@@ -504,7 +504,7 @@ export default function AgendaPage() {
               </label>
 
               {esReprogramacion && (
-                <p className="text-xs text-ink/45">
+                <p className="text-xs text-ink-muted">
                   Se va a avisar del nuevo horario en el chat, tanto a vos como al cliente.
                 </p>
               )}
@@ -515,7 +515,7 @@ export default function AgendaPage() {
                 <button type="button" onClick={() => setOrdenAProgramar(null)} className="border border-ink/20 rounded-lg p-2.5 flex-1 text-ink hover:border-ink/40 transition-colors">
                   Cancelar
                 </button>
-                <button type="submit" className="bg-copper text-paper rounded-lg p-2.5 flex-1 font-semibold hover:bg-copper-dark transition-colors">
+                <button type="submit" className="bg-copper-accion text-paper rounded-lg p-2.5 flex-1 font-semibold hover:bg-copper-dark transition-colors">
                   {esReprogramacion ? "Confirmar reprogramación" : "Confirmar"}
                 </button>
               </div>
@@ -531,7 +531,7 @@ export default function AgendaPage() {
         >
           <div onClick={(e) => e.stopPropagation()} className="bg-surface rounded-xl shadow-xl p-6 max-w-sm w-full border border-ink/10">
             <h3 className="font-display text-lg text-ink mb-2">¿Reprogramar este turno?</h3>
-            <p className="text-sm text-ink/60 mb-5">
+            <p className="text-sm text-ink-muted mb-5">
               Vas a poder elegir una nueva fecha y hora para{" "}
               <span className="font-medium text-ink">
                 {turnoAConfirmarReprogramacion.descripcion || turnoAConfirmarReprogramacion.categoriaNombre}
@@ -550,7 +550,7 @@ export default function AgendaPage() {
               <button
                 type="button"
                 onClick={confirmarReprogramar}
-                className="bg-copper text-paper rounded-lg p-2.5 flex-1 font-semibold hover:bg-copper-dark transition-colors"
+                className="bg-copper-accion text-paper rounded-lg p-2.5 flex-1 font-semibold hover:bg-copper-dark transition-colors"
               >
                 Sí, reprogramar
               </button>

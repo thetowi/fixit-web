@@ -92,13 +92,13 @@ export default function GrillaRubros({ categorias }: { categorias: Categoria[] }
           >
             <div
               aria-hidden="true"
-              className="absolute inset-0 bg-copper origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-[cubic-bezier(.65,0,.35,1)]"
+              className="absolute inset-0 bg-copper-accion origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-[cubic-bezier(.65,0,.35,1)]"
             />
             <IconoLucide
               nombre={c.icono}
               size={26}
               strokeWidth={1.75}
-              className="relative z-10 text-copper transition-transform duration-300 group-hover:scale-110 group-hover:text-paper"
+              className="relative z-10 text-copper-text transition-transform duration-300 group-hover:scale-110 group-hover:text-paper"
             />
             <span className="relative z-10 font-medium text-ink text-sm text-center transition-colors duration-300 group-hover:text-paper">
               {c.nombre}

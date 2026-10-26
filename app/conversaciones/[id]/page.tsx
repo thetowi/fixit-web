@@ -14,6 +14,7 @@ import { formatoDuracion } from "@/types/agenda";
 import Link from "next/link";
 import { colorCategoria } from "@/lib/coloresCategoria";
 import IconoLucide from "@/components/IconoLucide";
+import { pesos, useConfigCobros } from "@/lib/cobros";
 
 // Tope de duración de un audio grabado en el chat, para que nadie mande sin querer una nota de
 // voz de 10 minutos que tarda una eternidad en subir — 2 minutos alcanza de sobra para explicar
@@ -43,6 +44,23 @@ const AVISO_PAGO_TEXTO = {
     modal:
       "Coordiná y cobrá todo dentro de Oficy. Si arreglás el cobro por fuera de la app, no vas a estar cubierto por el seguro ni por el soporte de Oficy para este trabajo.",
     banner: "Cobrá siempre dentro de Oficy — fuera de la app no tenés cobertura de Oficy.",
+  },
+};
+
+// Nuevo sistema de cobros (26/10, modo "Directo"): el cliente le paga directo al profesional, así
+// que el aviso ya no habla de pagar/cobrar por la app sino de acordar y confirmar el trabajo acá.
+const AVISO_DIRECTO_TEXTO = {
+  cliente: {
+    titulo: "Acordá el trabajo dentro de Oficy",
+    modal:
+      "Aceptá la oferta acá y confirmá el trabajo cuando esté terminado. El pago lo arreglás directo con el profesional. Si acordás el trabajo por fuera de la app, no vas a poder calificarlo ni pedirnos ayuda si algo sale mal.",
+    banner: "Aceptá la oferta y confirmá el trabajo en Oficy: así podés calificar y pedir ayuda si algo sale mal.",
+  },
+  prestador: {
+    titulo: "Acordá tus trabajos dentro de Oficy",
+    modal:
+      "Mandá la oferta acá y cerrá el trabajo con el código del cliente. Cobrás directo y completo. Los trabajos confirmados suman reseñas y te ayudan a aparecer primero. Arreglar trabajos por fuera de la app va contra los términos de uso.",
+    banner: "Mandá la oferta y cerrá el trabajo en Oficy: suma reseñas y te posiciona mejor.",
   },
 };
 
@@ -122,6 +140,8 @@ export default function ConversacionPage() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [conversacion, setConversacion] = useState<Conversacion | null>(null);
   const [mostrandoAvisoPago, setMostrandoAvisoPago] = useState(false);
+  const configCobros = useConfigCobros();
+  const modoDirecto = configCobros?.modoCobro === "Directo";
   const [confirmandoAvisoPago, setConfirmandoAvisoPago] = useState(false);
 
   useEffect(() => {
@@ -291,8 +311,12 @@ export default function ConversacionPage() {
     try {
       await conexionRef.current.invoke("EnviarMensaje", conversacionId, nuevoMensaje);
       setNuevoMensaje("");
-    } catch {
-      setError("No se pudo enviar el mensaje.");
+    } catch (err) {
+      // El backend manda el motivo como HubException (ej. chat bloqueado por suspensión, 26/10):
+      // SignalR lo entrega como "... HubException: <motivo>".
+      const texto = err instanceof Error ? err.message : "";
+      const motivo = texto.includes("HubException: ") ? texto.split("HubException: ").pop() : null;
+      setError(motivo || "No se pudo enviar el mensaje.");
     }
   }
 
@@ -513,6 +537,23 @@ export default function ConversacionPage() {
     }
   }
 
+  // Nuevo sistema de cobros (26/10): en modo Directo el cliente acepta la oferta (no paga por la
+  // app). El backend crea la orden y avisa por SignalR ("OfertaActualizada") a los dos.
+  async function handleAceptar(mensajeId: string) {
+    setPagando(true);
+    setError(null);
+    try {
+      const actualizada = await apiFetch<Mensaje>(`/api/conversaciones/ofertas/${mensajeId}/aceptar`, {
+        method: "POST",
+      });
+      setMensajes((prev) => prev.map((m) => (m.id === actualizada.id ? { ...m, ...actualizada } : m)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No pudimos aceptar la oferta");
+    } finally {
+      setPagando(false);
+    }
+  }
+
   async function handleCancelarOferta(mensajeId: string) {
     setCancelandoOfertaId(mensajeId);
     setError(null);
@@ -684,7 +725,7 @@ export default function ConversacionPage() {
           {otroNombre && conversacion && (
             <Link
               href={esCliente ? `/prestador/${conversacion.prestadorId}` : `/prestador/clientes/${conversacion.clienteId}`}
-              className="font-display text-xl text-ink hover:text-copper truncate block"
+              className="font-display text-xl text-ink hover:text-copper-text truncate block"
             >
               {otroNombre}
             </Link>
@@ -723,9 +764,11 @@ export default function ConversacionPage() {
           // partes, es del sistema, por eso no tiene emisor ni entra al array de `mensajes`. Se ve
           // siempre, tanto antes como después de confirmar el modal de la primera vez.
           <div className="sticky top-0 z-10 -mx-3 -mt-3 mb-1 px-3 py-2 bg-copper/10 border-b border-copper/20 flex items-center gap-2 backdrop-blur-sm">
-            <ShieldCheck size={15} className="text-copper shrink-0" />
+            <ShieldCheck size={15} className="text-copper-text shrink-0" />
             <p className="text-xs text-ink/70 leading-snug">
-              {esCliente ? AVISO_PAGO_TEXTO.cliente.banner : AVISO_PAGO_TEXTO.prestador.banner}
+              {modoDirecto
+                ? esCliente ? AVISO_DIRECTO_TEXTO.cliente.banner : AVISO_DIRECTO_TEXTO.prestador.banner
+                : esCliente ? AVISO_PAGO_TEXTO.cliente.banner : AVISO_PAGO_TEXTO.prestador.banner}
             </p>
           </div>
         )}
@@ -741,8 +784,8 @@ export default function ConversacionPage() {
             const colorHeader = m.ofertaPagada
               ? "bg-emerald-600 text-paper"
               : m.ofertaVigente
-              ? "bg-copper text-paper"
-              : "bg-ink/10 text-ink/50";
+              ? "bg-copper-accion text-paper"
+              : "bg-ink/10 text-ink-muted";
 
             return (
               <div
@@ -760,7 +803,7 @@ export default function ConversacionPage() {
                   </p>
                   {(m.ofertaPagada || m.ofertaVigente) && (
                     <span className="ml-auto font-mono text-[9px] uppercase tracking-widest bg-white/20 rounded-full px-2 py-0.5 shrink-0">
-                      {m.ofertaPagada ? "Pagada" : "Vigente"}
+                      {m.ofertaPagada ? (modoDirecto ? "Aceptada" : "Pagada") : "Vigente"}
                     </span>
                   )}
                 </div>
@@ -776,10 +819,18 @@ export default function ConversacionPage() {
                   {m.ofertaPagada ? (
                     <>
                       <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-3 flex items-center gap-1.5 font-medium">
-                        <span className="text-emerald-600">✓</span> Esta oferta ya fue pagada
+                        <span className="text-emerald-600">✓</span>{" "}
+                        {modoDirecto ? "Oferta aceptada" : "Esta oferta ya fue pagada"}
                       </p>
+                      {modoDirecto && (
+                        <p className="text-xs text-ink-muted mt-1">
+                          {esCliente
+                            ? "El pago lo arreglás directo con el profesional. Tu código de cierre está en Mis órdenes."
+                            : "Cobrás directo al cliente. Al terminar, pedile el código de cierre."}
+                        </p>
+                      )}
                       {m.ofertaAgendadaEn && (
-                        <p className="text-xs text-ink/50 mt-1">
+                        <p className="text-xs text-ink-muted mt-1">
                           Agendada el{" "}
                           {new Date(m.ofertaAgendadaEn).toLocaleDateString("es-AR", { day: "numeric", month: "short" })} a las{" "}
                           {new Date(m.ofertaAgendadaEn).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
@@ -789,33 +840,48 @@ export default function ConversacionPage() {
                   ) : (
                     <>
                       {!m.ofertaVigente && (
-                        <p className="text-xs text-ink/40 mt-2">
+                        <p className="text-xs text-ink-muted mt-2">
                           {m.ofertaExpiraEn && new Date(m.ofertaExpiraEn).getTime() <= Date.now()
                             ? "Esta oferta venció"
                             : "Superada por una oferta más reciente"}
                         </p>
                       )}
 
-                      {m.ofertaVigente && esCliente && !esMio && (
-                        <button
-                          onClick={() => handlePagar(m.id)}
-                          disabled={pagando}
-                          className="w-full mt-3 bg-safety text-ink text-sm font-semibold rounded-lg px-3 py-2.5 hover:brightness-95 transition-all disabled:opacity-40"
-                        >
-                          {pagando ? "Redirigiendo..." : "Pagar con Mercado Pago"}
-                        </button>
+                      {m.ofertaVigente && esCliente && !esMio && configCobros && (
+                        modoDirecto ? (
+                          <>
+                            <button
+                              onClick={() => handleAceptar(m.id)}
+                              disabled={pagando || conversacion?.chatBloqueado}
+                              className="w-full mt-3 bg-safety text-on-safety text-sm font-semibold rounded-lg px-3 py-2.5 hover:brightness-95 transition-all disabled:opacity-40"
+                            >
+                              {pagando ? "Aceptando..." : "Aceptar oferta"}
+                            </button>
+                            <p className="text-[11px] text-ink-muted mt-1.5">
+                              Le pagás directo al profesional. Aceptar en Oficy te permite calificarlo y pedir ayuda si algo sale mal.
+                            </p>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handlePagar(m.id)}
+                            disabled={pagando}
+                            className="w-full mt-3 bg-safety text-on-safety text-sm font-semibold rounded-lg px-3 py-2.5 hover:brightness-95 transition-all disabled:opacity-40"
+                          >
+                            {pagando ? "Redirigiendo..." : "Pagar con Mercado Pago"}
+                          </button>
+                        )
                       )}
 
                       {m.ofertaVigente && esMio && (
                         <>
-                          <p className="text-xs text-ink/50 mt-3 flex items-center gap-1.5">
+                          <p className="text-xs text-ink-muted mt-3 flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-safety animate-pulse shrink-0" />
-                            Esperando que el cliente pague...
+                            {modoDirecto ? "Esperando que el cliente acepte..." : "Esperando que el cliente pague..."}
                           </p>
                           <button
                             onClick={() => handleCancelarOferta(m.id)}
                             disabled={cancelandoOfertaId === m.id}
-                            className="w-full mt-2 border border-ink/20 text-ink/60 text-xs rounded-lg px-3 py-1.5 hover:border-ink/40 hover:text-ink transition-colors disabled:opacity-40"
+                            className="w-full mt-2 border border-ink/20 text-ink-muted text-xs rounded-lg px-3 py-1.5 hover:border-ink/40 hover:text-ink transition-colors disabled:opacity-40"
                           >
                             {cancelandoOfertaId === m.id ? "Cancelando..." : "Cancelar oferta"}
                           </button>
@@ -823,7 +889,7 @@ export default function ConversacionPage() {
                       )}
 
                       {m.ofertaVigente && textoVencimiento(m.ofertaExpiraEn) && (
-                        <p className="text-[11px] text-ink/40 mt-2">{textoVencimiento(m.ofertaExpiraEn)}</p>
+                        <p className="text-[11px] text-ink-muted mt-2">{textoVencimiento(m.ofertaExpiraEn)}</p>
                       )}
                     </>
                   )}
@@ -843,7 +909,7 @@ export default function ConversacionPage() {
               ? fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
               : "";
             const colorBorde = m.turnoVigente ? "border-copper" : "border-ink/10 opacity-60";
-            const colorHeader = m.turnoVigente ? "bg-copper text-paper" : "bg-ink/10 text-ink/50";
+            const colorHeader = m.turnoVigente ? "bg-copper-accion text-paper" : "bg-ink/10 text-ink-muted";
 
             return (
               <div
@@ -870,12 +936,12 @@ export default function ConversacionPage() {
                   <p className={`text-base font-semibold text-ink capitalize ${m.turnoVigente ? "" : "line-through"}`}>
                     {fechaTexto}
                   </p>
-                  <p className={`text-sm text-ink/60 mt-0.5 ${m.turnoVigente ? "" : "line-through"}`}>
+                  <p className={`text-sm text-ink-muted mt-0.5 ${m.turnoVigente ? "" : "line-through"}`}>
                     {horaTexto}
                     {m.turnoDuracionMinutos ? ` · ${formatoDuracion(m.turnoDuracionMinutos)}` : ""}
                   </p>
                   {!m.turnoVigente && (
-                    <p className="text-xs text-ink/40 mt-2">Este turno se reprogramó — ver el mensaje más reciente</p>
+                    <p className="text-xs text-ink-muted mt-2">Este turno se reprogramó — ver el mensaje más reciente</p>
                   )}
                 </div>
               </div>
@@ -906,8 +972,8 @@ export default function ConversacionPage() {
             const colorHeader = esRealizada
               ? "bg-green-600 text-paper"
               : m.visitaVigente
-                ? "bg-copper text-paper"
-                : "bg-ink/10 text-ink/50";
+                ? "bg-copper-accion text-paper"
+                : "bg-ink/10 text-ink-muted";
 
             return (
               <div
@@ -941,16 +1007,16 @@ export default function ConversacionPage() {
                       {m.visitaTitulo}
                     </p>
                   )}
-                  <p className="text-xs text-ink/50 mb-1.5">Para ver el trabajo y armar el presupuesto</p>
+                  <p className="text-xs text-ink-muted mb-1.5">Para ver el trabajo y armar el presupuesto</p>
                   <p className={`text-base font-semibold text-ink capitalize ${m.visitaVigente ? "" : "line-through"}`}>
                     {fechaTexto}
                   </p>
-                  <p className={`text-sm text-ink/60 mt-0.5 ${m.visitaVigente ? "" : "line-through"}`}>
+                  <p className={`text-sm text-ink-muted mt-0.5 ${m.visitaVigente ? "" : "line-through"}`}>
                     {horaTexto}
                     {m.visitaDuracionMinutos ? ` · ${formatoDuracion(m.visitaDuracionMinutos)}` : ""}
                   </p>
                   {!m.visitaVigente && (
-                    <p className="text-xs text-ink/40 mt-2">
+                    <p className="text-xs text-ink-muted mt-2">
                       {esCancelada
                         ? "Esta visita se canceló"
                         : "Esta visita se reprogramó — ver el mensaje más reciente"}
@@ -973,7 +1039,7 @@ export default function ConversacionPage() {
                       <button
                         onClick={() => handleCancelarVisita(m.visitaId!)}
                         disabled={cancelandoVisitaId === m.visitaId}
-                        className="flex-1 border border-ink/20 text-ink/60 text-xs rounded-lg px-3 py-1.5 hover:border-ink/40 hover:text-ink transition-colors disabled:opacity-40"
+                        className="flex-1 border border-ink/20 text-ink-muted text-xs rounded-lg px-3 py-1.5 hover:border-ink/40 hover:text-ink transition-colors disabled:opacity-40"
                       >
                         {cancelandoVisitaId === m.visitaId ? "Cancelando..." : "Cancelar visita"}
                       </button>
@@ -990,7 +1056,7 @@ export default function ConversacionPage() {
                 key={m.id}
                 className={`max-w-[70%] shrink-0 rounded-lg overflow-hidden ${esMio ? "self-end" : "self-start"}`}
               >
-                {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
+                {!esMio && <p className="text-xs text-copper-text mb-1">{m.emisorNombre}</p>}
                 <button type="button" onClick={() => setImagenAmpliada(m.archivoUrl)} className="block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -1010,7 +1076,7 @@ export default function ConversacionPage() {
                 key={m.id}
                 className={`max-w-[70%] shrink-0 rounded-lg overflow-hidden ${esMio ? "self-end" : "self-start"}`}
               >
-                {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
+                {!esMio && <p className="text-xs text-copper-text mb-1">{m.emisorNombre}</p>}
                 <video
                   controls
                   src={m.archivoUrl ?? ""}
@@ -1029,7 +1095,7 @@ export default function ConversacionPage() {
                   esMio ? "bg-ink text-paper self-end" : "bg-paper border border-ink/10 self-start"
                 }`}
               >
-                {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
+                {!esMio && <p className="text-xs text-copper-text mb-1">{m.emisorNombre}</p>}
                 <BurbujaAudio
                   mensaje={m}
                   esMio={esMio}
@@ -1053,8 +1119,14 @@ export default function ConversacionPage() {
                 esMio ? "bg-ink text-paper self-end" : "bg-paper border border-ink/10 self-start"
               }`}
             >
-              {!esMio && <p className="text-xs text-copper mb-1">{m.emisorNombre}</p>}
+              {!esMio && <p className="text-xs text-copper-text mb-1">{m.emisorNombre}</p>}
               <p>{m.contenido}</p>
+              {/* Filtro de contacto (26/10): aviso de por qué se ocultó parte del mensaje. */}
+              {m.contactoOculto && (
+                <p className={`text-[11px] mt-1 ${esMio ? "text-paper/60" : "text-ink-muted"}`}>
+                  Los datos de contacto se comparten cuando se acepta una oferta.
+                </p>
+              )}
             </div>
           );
         })}
@@ -1068,12 +1140,12 @@ export default function ConversacionPage() {
           <div className="max-w-[75%] shrink-0 self-start">
             <div className="inline-flex items-center gap-1 bg-paper border border-ink/10 rounded-lg rounded-bl-sm px-3.5 py-2.5">
               {otroGrabandoAudio ? (
-                <Mic size={15} className="text-copper burbuja-mic-pulso" />
+                <Mic size={15} className="text-copper-text burbuja-mic-pulso" />
               ) : (
                 <>
-                  <span className="burbuja-punto-escribiendo bg-copper" style={{ animationDelay: "0ms" }} />
-                  <span className="burbuja-punto-escribiendo bg-copper" style={{ animationDelay: "150ms" }} />
-                  <span className="burbuja-punto-escribiendo bg-copper" style={{ animationDelay: "300ms" }} />
+                  <span className="burbuja-punto-escribiendo bg-copper-accion" style={{ animationDelay: "0ms" }} />
+                  <span className="burbuja-punto-escribiendo bg-copper-accion" style={{ animationDelay: "150ms" }} />
+                  <span className="burbuja-punto-escribiendo bg-copper-accion" style={{ animationDelay: "300ms" }} />
                 </>
               )}
             </div>
@@ -1096,7 +1168,7 @@ export default function ConversacionPage() {
           </button>
         </div>
       )}
-      {subiendoArchivo && <p className="text-ink/40 text-xs mb-2">Enviando...</p>}
+      {subiendoArchivo && <p className="text-ink-muted text-xs mb-2">Enviando...</p>}
 
       <style jsx>{`
         .burbuja-punto-escribiendo {
@@ -1139,7 +1211,18 @@ export default function ConversacionPage() {
         onChange={handleArchivoSeleccionado}
       />
 
-      {grabando ? (
+      {/* Chat bloqueado (26/10): el prestador está suspendido por un resumen impago (ver backend
+          BloqueoChatSuspension). Se puede leer el historial, pero no escribir ni mandar ofertas. */}
+      {conversacion?.chatBloqueado ? (
+        <div className="rounded-lg border border-ink/15 bg-ink/5 p-3 text-sm text-ink/70 flex flex-col gap-2">
+          <p>{conversacion.motivoChatBloqueado ?? "No podés escribir en esta conversación por el momento."}</p>
+          {esPrestador && (
+            <Link href="/mi-plan" className="self-start text-sm bg-copper-accion text-paper rounded px-3 py-1.5 hover:bg-copper-dark transition-colors">
+              Ir a Mi plan
+            </Link>
+          )}
+        </div>
+      ) : grabando ? (
         <div className="flex items-center gap-2 border border-ink/20 rounded p-2">
           <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse shrink-0" />
           <p className="text-sm text-ink flex-1">Grabando audio... {formatoTiempo(segundosGrabados)}</p>
@@ -1147,7 +1230,7 @@ export default function ConversacionPage() {
             type="button"
             onClick={() => detenerGrabacion(false)}
             aria-label="Cancelar grabación"
-            className="text-ink/50 hover:text-ink transition-colors p-1"
+            className="text-ink-muted hover:text-ink transition-colors p-1"
           >
             <X size={18} />
           </button>
@@ -1167,7 +1250,7 @@ export default function ConversacionPage() {
             onClick={() => inputArchivoRef.current?.click()}
             disabled={!conectado || subiendoArchivo}
             aria-label="Adjuntar foto o video"
-            className="text-ink/50 hover:text-ink transition-colors disabled:opacity-40 shrink-0 px-1"
+            className="text-ink-muted hover:text-ink transition-colors disabled:opacity-40 shrink-0 px-1"
           >
             <Paperclip size={20} />
           </button>
@@ -1188,7 +1271,7 @@ export default function ConversacionPage() {
               onClick={iniciarGrabacion}
               disabled={!conectado || subiendoArchivo}
               aria-label="Grabar audio"
-              className="text-ink/50 hover:text-ink transition-colors disabled:opacity-40 shrink-0 px-1"
+              className="text-ink-muted hover:text-ink transition-colors disabled:opacity-40 shrink-0 px-1"
             >
               <Mic size={20} />
             </button>
@@ -1201,7 +1284,7 @@ export default function ConversacionPage() {
                 setMostrandoOferta(true);
               }}
               aria-label="Ofertar un trabajo"
-              className="border border-copper text-copper rounded px-3 shrink-0 hover:bg-copper/5 transition-colors flex items-center justify-center"
+              className="border border-copper text-copper-text rounded px-3 shrink-0 hover:bg-copper/5 transition-colors flex items-center justify-center"
             >
               <BanknoteArrowUp size={18} />
             </button>
@@ -1214,7 +1297,7 @@ export default function ConversacionPage() {
                 setMostrandoVisita(true);
               }}
               aria-label="Agendar una visita"
-              className="border border-copper text-copper rounded px-3 shrink-0 hover:bg-copper/5 transition-colors flex items-center justify-center"
+              className="border border-copper text-copper-text rounded px-3 shrink-0 hover:bg-copper/5 transition-colors flex items-center justify-center"
             >
               <MapPin size={18} />
             </button>
@@ -1265,13 +1348,13 @@ export default function ConversacionPage() {
             className="bg-surface rounded-xl shadow-xl border border-ink/10 w-full max-w-sm p-5 flex flex-col gap-4"
           >
             <div>
-              <p className="font-mono text-xs tracking-widest text-copper uppercase mb-1">Nueva oferta</p>
+              <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-1">Nueva oferta</p>
               <h2 className="font-display text-lg text-ink">
                 {otroNombre ? `Ofertale un trabajo a ${otroNombre}` : "Ofertale un trabajo a tu cliente"}
               </h2>
             </div>
 
-            <label className="text-sm text-ink/60">
+            <label className="text-sm text-ink-muted">
               Título
               <input
                 type="text"
@@ -1283,10 +1366,10 @@ export default function ConversacionPage() {
               />
             </label>
 
-            <label className="text-sm text-ink/60">
+            <label className="text-sm text-ink-muted">
               Precio
               <div className="relative mt-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40 text-sm pointer-events-none">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted text-sm pointer-events-none">$</span>
                 <input
                   type="number"
                   placeholder="0"
@@ -1303,8 +1386,16 @@ export default function ConversacionPage() {
                 sin comisión (trabajosGratisRestantes === 0): mientras le queden, no se le descuenta
                 nada, así que no corresponde mostrar un monto menor al que puso. Si el dato todavía
                 no llegó (undefined) tampoco se muestra, para no mostrar un descuento que no va. */}
-            {Number(montoOferta) > 0 && conversacion?.trabajosGratisRestantes === 0 && (
-              <p className="text-sm text-ink/60">
+            {/* Modo Directo (26/10): el prestador cobra el total; Oficy le cobra un fijo por trabajo
+                confirmado con tope mensual (ver /mi-plan). */}
+            {modoDirecto && configCobros?.tarifa && (
+              <p className="text-xs text-ink-muted leading-snug">
+                Cobrás el total directo al cliente. Oficy te cobra {pesos(configCobros.tarifa.montoPorTrabajo)} por trabajo
+                confirmado, con un tope de {pesos(configCobros.tarifa.topeMensual)} por mes.
+              </p>
+            )}
+            {!modoDirecto && configCobros && Number(montoOferta) > 0 && conversacion?.trabajosGratisRestantes === 0 && (
+              <p className="text-sm text-ink-muted">
                 Vos cobrarías del trabajo:{" "}
                 <span className="text-ink font-semibold">
                   ${Math.round(Number(montoOferta) * (1 - PORCENTAJE_COMISION_ESTIMADO)).toLocaleString("es-AR")}
@@ -1331,7 +1422,7 @@ export default function ConversacionPage() {
               <button
                 type="submit"
                 disabled={enviandoOferta || !descripcionOferta.trim() || !montoOferta || Number(montoOferta) <= 0}
-                className="flex-1 bg-copper text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+                className="flex-1 bg-copper-accion text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
               >
                 {enviandoOferta ? "Enviando..." : "Ofertar"}
               </button>
@@ -1359,14 +1450,14 @@ export default function ConversacionPage() {
             className="bg-surface rounded-xl shadow-xl border border-ink/10 w-full max-w-sm p-5 flex flex-col gap-4"
           >
             <div>
-              <p className="font-mono text-xs tracking-widest text-copper uppercase mb-1">Nueva visita</p>
+              <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-1">Nueva visita</p>
               <h2 className="font-display text-lg text-ink">
                 {otroNombre ? `Agendale una visita a ${otroNombre}` : "Agendale una visita a tu cliente"}
               </h2>
-              <p className="text-xs text-ink/50 mt-1">Para ver el trabajo en persona antes de pasar un presupuesto.</p>
+              <p className="text-xs text-ink-muted mt-1">Para ver el trabajo en persona antes de pasar un presupuesto.</p>
             </div>
 
-            <label className="text-sm text-ink/60">
+            <label className="text-sm text-ink-muted">
               Título
               <input
                 type="text"
@@ -1379,7 +1470,7 @@ export default function ConversacionPage() {
               />
             </label>
 
-            <label className="text-sm text-ink/60">
+            <label className="text-sm text-ink-muted">
               Fecha
               <input
                 type="date"
@@ -1389,7 +1480,7 @@ export default function ConversacionPage() {
               />
             </label>
 
-            <label className="text-sm text-ink/60">
+            <label className="text-sm text-ink-muted">
               Hora
               <input
                 type="time"
@@ -1399,7 +1490,7 @@ export default function ConversacionPage() {
               />
             </label>
 
-            <label className="text-sm text-ink/60">
+            <label className="text-sm text-ink-muted">
               Duración estimada
               <select
                 className="border border-ink/20 rounded p-2 w-full mt-1 bg-paper"
@@ -1436,7 +1527,7 @@ export default function ConversacionPage() {
               <button
                 type="submit"
                 disabled={enviandoVisita || !tituloVisita.trim() || !fechaVisita || !horaVisita}
-                className="flex-1 bg-copper text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+                className="flex-1 bg-copper-accion text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
               >
                 {enviandoVisita ? "Agendando..." : "Agendar visita"}
               </button>
@@ -1452,24 +1543,28 @@ export default function ConversacionPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 backdrop-blur-sm p-4">
           <div className="bg-surface rounded-xl shadow-xl border border-ink/10 w-full max-w-sm p-6 flex flex-col items-center text-center gap-4">
             <div className="w-12 h-12 rounded-full bg-copper/10 flex items-center justify-center">
-              <ShieldCheck size={26} className="text-copper" />
+              <ShieldCheck size={26} className="text-copper-text" />
             </div>
             <div>
               <h2 className="font-display text-lg text-ink mb-1">
-                {esCliente ? "Coordiná y pagá todo dentro de Oficy" : "Coordiná y cobrá todo dentro de Oficy"}
+                {modoDirecto
+                  ? esCliente ? AVISO_DIRECTO_TEXTO.cliente.titulo : AVISO_DIRECTO_TEXTO.prestador.titulo
+                  : esCliente ? "Coordiná y pagá todo dentro de Oficy" : "Coordiná y cobrá todo dentro de Oficy"}
               </h2>
-              <p className="text-sm text-ink/60">
-                {esCliente ? AVISO_PAGO_TEXTO.cliente.modal : AVISO_PAGO_TEXTO.prestador.modal}
+              <p className="text-sm text-ink-muted">
+                {modoDirecto
+                  ? esCliente ? AVISO_DIRECTO_TEXTO.cliente.modal : AVISO_DIRECTO_TEXTO.prestador.modal
+                  : esCliente ? AVISO_PAGO_TEXTO.cliente.modal : AVISO_PAGO_TEXTO.prestador.modal}
               </p>
             </div>
-            <Link href="/terminos" className="text-xs text-copper hover:underline">
-              Ver cómo funciona la garantía de Oficy
+            <Link href="/terminos" className="text-xs text-copper-text hover:underline">
+              {modoDirecto ? "Ver los términos de uso" : "Ver cómo funciona la garantía de Oficy"}
             </Link>
             <button
               type="button"
               onClick={handleConfirmarAvisoPago}
               disabled={confirmandoAvisoPago}
-              className="w-full bg-copper text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+              className="w-full bg-copper-accion text-paper rounded-lg py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
             >
               {confirmandoAvisoPago ? "Confirmando..." : "Entendido, ir al chat"}
             </button>
@@ -1593,7 +1688,7 @@ function BurbujaAudio({
             </button>
           ))}
         </div>
-        <span className={`font-mono text-[10.5px] ${esMio ? "text-paper/50" : "text-ink/40"}`}>
+        <span className={`font-mono text-[10.5px] ${esMio ? "text-paper/70" : "text-ink-muted"}`}>
           {mensaje.duracionSegundos != null ? formatoTiempoAudio(mensaje.duracionSegundos) : ""}
         </span>
       </div>

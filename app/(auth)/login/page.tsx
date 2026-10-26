@@ -135,9 +135,9 @@ export default function LoginPage() {
   if (pendienteDeRol) {
     return (
       <div className="max-w-md mx-auto mt-16 p-6 w-full">
-        <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Un paso más</p>
+        <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Un paso más</p>
         <h1 className="font-display text-2xl text-ink mb-2">Hola, {pendienteDeRol.nombre}</h1>
-        <p className="text-ink/60 mb-6">Contanos qué querés hacer en Oficy.</p>
+        <p className="text-ink-muted mb-6">Contanos qué querés hacer en Oficy.</p>
 
         <form onSubmit={handleCompletarRegistro} className="flex flex-col gap-4 bg-surface border border-ink/10 rounded-lg p-5">
           <select
@@ -154,7 +154,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={cargando}
-            className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+            className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
           >
             {cargando ? "Creando cuenta..." : "Continuar"}
           </button>
@@ -165,7 +165,7 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Bienvenido de vuelta</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Bienvenido de vuelta</p>
       <h1 className="font-display text-2xl text-ink mb-6">Iniciar sesión</h1>
 
       {mensajeExito && (
@@ -186,7 +186,7 @@ export default function LoginPage() {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-ink/40 mb-4">
+        <div className="flex items-center gap-2 text-xs text-ink-muted mb-4">
           <div className="flex-1 border-t border-ink/10" />
           O CON TU EMAIL
           <div className="flex-1 border-t border-ink/10" />
@@ -210,7 +210,7 @@ export default function LoginPage() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
 
-          <a href="/recuperar-password" className="text-copper text-sm hover:underline -mt-2 self-end">
+          <a href="/recuperar-password" className="text-copper-text text-sm hover:underline -mt-2 self-end">
             ¿Olvidaste tu contraseña?
           </a>
 
@@ -220,7 +220,7 @@ export default function LoginPage() {
               {error.toLowerCase().includes("confirm") && (
                 <a
                   href={`/confirmar-email?email=${encodeURIComponent(form.email)}`}
-                  className="text-copper hover:underline"
+                  className="text-copper-text hover:underline"
                 >
                   Ir a confirmar mi email
                 </a>
@@ -231,15 +231,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={cargando}
-            className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+            className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
           >
             {cargando ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
       </div>
 
-      <p className="text-sm text-ink/50 mt-4 text-center">
-        ¿No tenés cuenta? <a href="/registro" className="text-copper hover:underline">Registrate</a>
+      <p className="text-sm text-ink-muted mt-4 text-center">
+        ¿No tenés cuenta? <a href="/registro" className="text-copper-text hover:underline">Registrate</a>
       </p>
     </div>
   );

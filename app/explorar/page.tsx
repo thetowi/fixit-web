@@ -16,11 +16,11 @@ export default function ExplorarPage() {
       .finally(() => setCargando(false));
   }, []);
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
 
   return (
     <div className="max-w-2xl mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Explorar</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Explorar</p>
       <h1 className="font-display text-2xl text-ink mb-6">¿Qué necesitás arreglar?</h1>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -30,7 +30,7 @@ export default function ExplorarPage() {
             href={`/explorar/${c.id}`}
             className="bg-surface border border-ink/10 rounded-lg p-5 flex flex-col items-center gap-2 hover:border-copper transition-colors"
           >
-            <IconoLucide nombre={c.icono} size={26} strokeWidth={1.75} className="text-copper" />
+            <IconoLucide nombre={c.icono} size={26} strokeWidth={1.75} className="text-copper-text" />
             <span className="font-medium text-ink text-sm text-center">{c.nombre}</span>
           </Link>
         ))}

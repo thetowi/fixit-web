@@ -23,16 +23,16 @@ export default function ExplorarCategoriaPage() {
       .finally(() => setCargando(false));
   }, [categoriaId]);
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
   if (error) return <p className="p-6 text-red-700 dark:text-red-400">{error}</p>;
 
   return (
     <div className="max-w-lg mx-auto mt-16 p-6 w-full">
-      <Link href="/explorar" className="text-sm text-copper hover:underline">← Todas las categorías</Link>
+      <Link href="/explorar" className="text-sm text-copper-text hover:underline">← Todas las categorías</Link>
       <h1 className="font-display text-2xl text-ink mt-2 mb-6">Prestadores disponibles</h1>
 
       {resultados.length === 0 && (
-        <p className="text-ink/50 text-sm">Todavía no hay prestadores en esta categoría.</p>
+        <p className="text-ink-muted text-sm">Todavía no hay prestadores en esta categoría.</p>
       )}
 
       <ul className="flex flex-col gap-3">
@@ -51,7 +51,7 @@ export default function ExplorarCategoriaPage() {
                     {p.nombre} {p.apellido}
                     {p.verificado && <InsigniaVerificado size={14} className="ml-2" />}
                   </p>
-                  {p.descripcion && <p className="text-sm text-ink/60">{p.descripcion}</p>}
+                  {p.descripcion && <p className="text-sm text-ink-muted">{p.descripcion}</p>}
                   {p.precioReferencia && (
                     <p className="font-mono text-sm text-ink/80 mt-1">
                       Desde ${p.precioReferencia.toLocaleString("es-AR")} /hora
@@ -62,10 +62,10 @@ export default function ExplorarCategoriaPage() {
               {p.cantidadCalificaciones > 0 ? (
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   <Estrellas valor={p.promedioCalificacion!} tamaño="text-xs" />
-                  <span className="text-xs text-ink/40">({p.cantidadCalificaciones})</span>
+                  <span className="text-xs text-ink-muted">({p.cantidadCalificaciones})</span>
                 </div>
               ) : (
-                <span className="text-xs text-ink/40 shrink-0">Sin reseñas</span>
+                <span className="text-xs text-ink-muted shrink-0">Sin reseñas</span>
               )}
             </Link>
           </li>

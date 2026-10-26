@@ -5,7 +5,7 @@ export const metadata = {
 export default function QuienesSomosPage() {
   return (
     <div className="max-w-2xl mx-auto mt-16 p-6 w-full pb-24">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Nuestra historia</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Nuestra historia</p>
       <h1 className="font-display text-2xl text-ink mb-8">Quiénes somos</h1>
 
       <div className="flex flex-col gap-5 text-sm text-ink/80 leading-relaxed">

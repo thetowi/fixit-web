@@ -55,7 +55,7 @@ export default function RegistroPage() {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Unite a Oficy</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Unite a Oficy</p>
       <h1 className="font-display text-2xl text-ink mb-6">Crear cuenta</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 bg-surface border border-ink/10 rounded-lg p-5">
@@ -119,9 +119,9 @@ export default function RegistroPage() {
           />
           <span>
             Acepto los{" "}
-            <a href="/terminos" target="_blank" className="text-copper hover:underline">Términos y Condiciones</a>
+            <a href="/terminos" target="_blank" className="text-copper-text hover:underline">Términos y Condiciones</a>
             {" "}y la{" "}
-            <a href="/privacidad" target="_blank" className="text-copper hover:underline">Política de Privacidad</a>
+            <a href="/privacidad" target="_blank" className="text-copper-text hover:underline">Política de Privacidad</a>
             {" "}de Oficy.
           </span>
         </label>
@@ -131,14 +131,14 @@ export default function RegistroPage() {
         <button
           type="submit"
           disabled={cargando || !aceptaTerminos}
-          className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+          className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
         >
           {cargando ? "Creando cuenta..." : "Crear cuenta"}
         </button>
       </form>
 
-      <p className="text-sm text-ink/50 mt-4 text-center">
-        ¿Ya tenés cuenta? <a href="/login" className="text-copper hover:underline">Iniciá sesión</a>
+      <p className="text-sm text-ink-muted mt-4 text-center">
+        ¿Ya tenés cuenta? <a href="/login" className="text-copper-text hover:underline">Iniciá sesión</a>
       </p>
     </div>
   );

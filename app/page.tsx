@@ -48,16 +48,21 @@ const RUBROS_EYEBROW_POR_DEFECTO = ["Plomería", "Electricidad", "Gas", "Jardine
 const URL_APP_STORE = "https://apps.apple.com/app/TODO-reemplazar-cuando-este-publicada";
 const URL_PLAY_STORE = "https://play.google.com/store/apps/details?id=TODO-reemplazar-cuando-este-publicada";
 
+const MINIMO_TRABAJOS_PARA_MOSTRAR_NUMEROS = 20;
+
 const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
+  // Textos del nuevo sistema de cobros (26/10): el cliente le paga directo al profesional y Oficy le
+  // cobra al profesional un fijo por trabajo confirmado. Si cambia la tarifa (se carga desde Admin >
+  // Cobros), actualizar también los montos de la pregunta de prestadores de abajo.
   {
-    pregunta: "¿Cómo funciona el pago? ¿Es seguro?",
+    pregunta: "¿Cómo se paga el trabajo?",
     respuesta:
-      "Vos pagás desde la app con Mercado Pago y esa plata queda retenida en Oficy, no en la cuenta del prestador. Recién se libera cuando marcás el trabajo como completado, así que nunca pagás por un trabajo que no se hizo.",
+      "Le pagás directo al profesional, como acuerden: efectivo, transferencia o Mercado Pago. Antes aceptás su oferta en la app con el precio acordado, y cuando termina confirmás el trabajo con tu código de cierre. Así queda registrado y podés calificarlo.",
   },
   {
-    pregunta: "¿Qué pasa si el prestador no se presenta?",
+    pregunta: "¿Qué pasa si el prestador no se presenta o el trabajo sale mal?",
     respuesta:
-      "Si programaste un turno y el prestador no lo inicia dentro de la hora, te reembolsamos el 100% de forma automática, sin que tengas que reclamar nada.",
+      "Lo reportás desde Mis órdenes. Revisamos el caso, hablamos con el profesional y, si corresponde, tomamos medidas sobre su cuenta. Además, las reseñas de trabajos confirmados son públicas: cada profesional cuida su reputación.",
   },
   {
     pregunta: "¿Cómo verifican a los prestadores?",
@@ -67,17 +72,17 @@ const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
   {
     pregunta: "¿Cuánto cuesta usar Oficy como cliente?",
     respuesta:
-      "Nada. Buscar, chatear y coordinar con un prestador es gratis. Solo pagás el trabajo que contratás, al precio que acuerdes con el profesional.",
+      "Nada. Buscar, chatear y coordinar con un prestador es gratis. Solo pagás el trabajo, directo al profesional, al precio que acuerden.",
   },
   {
-    pregunta: "¿Y si soy prestador, cuánto me cobran de comisión?",
+    pregunta: "¿Y si soy prestador, cuánto me cobra Oficy?",
     respuesta:
-      "Tus primeros 5 trabajos cobrados no tienen ninguna comisión de Oficy. Después de eso, se descuenta una comisión chica sobre cada trabajo, siempre transparente antes de aceptar.",
+      "Cobrás el total del trabajo, directo al cliente. Oficy te cobra $3.000 por cada trabajo confirmado en la app, con un tope de $30.000 por mes: pasado el tope, el resto del mes no pagás nada. Para el lanzamiento, los profesionales fundadores (2 por rubro) no pagan nada durante un año.",
   },
   {
     pregunta: "¿Puedo coordinar todo por chat antes de contratar?",
     respuesta:
-      "Sí. Podés escribirle directo al prestador, mandar fotos del problema y acordar precio y horario antes de pagar nada.",
+      "Sí. Podés escribirle directo al prestador, mandar fotos del problema y acordar precio y horario antes de aceptar nada.",
   },
 ];
 
@@ -130,20 +135,20 @@ export default function LandingPage() {
               palabras={
                 categorias.length > 0 ? categorias.map((c) => c.nombre) : RUBROS_EYEBROW_POR_DEFECTO
               }
-              className="font-mono text-xs tracking-widest text-copper uppercase mb-3 min-h-[1.2em] inline-block"
+              className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3 min-h-[1.2em] inline-block"
             />
             <h1 className="font-display text-4xl sm:text-5xl text-ink tracking-tight mb-4 max-w-xl">
               El oficio que necesitás, a la vuelta de la esquina
             </h1>
             <p className="text-ink/70 mb-8 max-w-lg">
-              Contanos qué necesitás arreglar, elegí un profesional verificado cerca tuyo y pagá con
-              confianza desde la app. Sin llamadas eternas ni presupuestos a ciegas.
+              Contanos qué necesitás arreglar, elegí un profesional verificado cerca tuyo y acordá el
+              precio antes, por chat. Sin llamadas eternas ni presupuestos a ciegas.
             </p>
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
               <Link
                 href="/registro"
-                className="bg-copper text-paper rounded px-6 py-3 font-medium hover:bg-copper-dark transition-colors"
+                className="bg-copper-accion text-paper rounded px-6 py-3 font-medium hover:bg-copper-dark transition-colors"
               >
                 Crear cuenta gratis
               </Link>
@@ -154,20 +159,20 @@ export default function LandingPage() {
                 Ver rubros disponibles
               </Link>
             </div>
-            <p className="text-xs text-ink/45 mt-4">
-              ¿Ya tenés cuenta? <Link href="/login" className="text-copper hover:underline">Iniciá sesión</Link>
+            <p className="text-xs text-ink-muted mt-4">
+              ¿Ya tenés cuenta? <Link href="/login" className="text-copper-text hover:underline">Iniciá sesión</Link>
             </p>
 
             {/* Insignias de confianza (25/09) */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 mt-9 pt-6 border-t border-ink/10 w-full">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-9 pt-6 border-t border-ink/10 w-full max-w-md mx-auto lg:mx-0 text-left">
               {[
-                { Icono: ShieldCheck, texto: "Pago protegido" },
+                { Icono: ShieldCheck, texto: "Precio acordado antes" },
                 { Icono: BadgeCheck, texto: "Prestadores verificados" },
                 { Icono: MessageCircle, texto: "Chat directo" },
                 { Icono: CircleDollarSign, texto: "Buscar es gratis" },
               ].map(({ Icono, texto }) => (
-                <div key={texto} className="flex items-center gap-2 text-ink/55">
-                  <Icono size={16} strokeWidth={1.9} className="text-copper shrink-0" />
+                <div key={texto} className="flex items-center gap-2 text-ink-muted">
+                  <Icono size={16} strokeWidth={1.9} className={`${Icono === BadgeCheck ? "text-stamp" : "text-copper-text"} shrink-0`} />
                   <span className="text-xs font-medium">{texto}</span>
                 </div>
               ))}
@@ -193,43 +198,43 @@ export default function LandingPage() {
         {/* Tagline de origen (25/09, a pedido del usuario: destacar que Oficy es de Paraná).
             "Paraná" resaltado en cobre a propósito. */}
         <p className="text-center font-display text-2xl sm:text-3xl text-paper tracking-tight">
-          Desde <span className="text-copper">Paraná</span>, hacia toda Argentina
+          Desde <span className="text-copper-sobre-ink">Paraná</span>, hacia toda Argentina
         </p>
 
         {/* Botones de tienda + "Continuar en web" (03/10, a pedido del usuario) — debajo del
             tagline de origen, cerrando el hero. Los dos de tienda usan un link placeholder (ver
             URL_APP_STORE/URL_PLAY_STORE arriba) hasta que la app esté publicada de verdad. */}
         <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
-          <a
-            href={URL_APP_STORE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2.5 border border-paper/25 rounded-xl px-5 py-2.5 hover:border-paper/50 transition-colors"
+          {/* Audit 26/10 (/impeccable clarify): sin link hasta que la app esté publicada
+              (antes llevaba a una URL provisoria rota). */}
+          <span
+            aria-disabled="true"
+            className="flex items-center gap-2 border border-dashed border-paper/25 rounded-xl px-3.5 sm:px-5 py-2.5 cursor-default"
           >
-            <SiApple size={20} className="text-paper/85" />
+            <SiApple size={20} className="text-paper/65" />
             <span className="flex flex-col items-start leading-tight">
-              <span className="text-[10px] text-paper/55">Disponible en</span>
-              <span className="text-sm font-medium text-paper">App Store</span>
+              <span className="text-[11px] text-paper/70">Próximamente en</span>
+              <span className="text-sm font-medium text-paper/85">App Store</span>
             </span>
-          </a>
-          <a
-            href={URL_PLAY_STORE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2.5 border border-paper/25 rounded-xl px-5 py-2.5 hover:border-paper/50 transition-colors"
+          </span>
+          {/* Audit 26/10 (/impeccable clarify): sin link hasta que la app esté publicada
+              (antes llevaba a una URL provisoria rota). */}
+          <span
+            aria-disabled="true"
+            className="flex items-center gap-2 border border-dashed border-paper/25 rounded-xl px-3.5 sm:px-5 py-2.5 cursor-default"
           >
-            <SiGoogleplay size={18} className="text-paper/85" />
+            <SiGoogleplay size={18} className="text-paper/65" />
             <span className="flex flex-col items-start leading-tight">
-              <span className="text-[10px] text-paper/55">Disponible en</span>
-              <span className="text-sm font-medium text-paper">Play Store</span>
+              <span className="text-[11px] text-paper/70">Próximamente en</span>
+              <span className="text-sm font-medium text-paper/85">Play Store</span>
             </span>
-          </a>
+          </span>
           {/* Va al subdominio operativo (app.oficy.ar), no a una ruta interna de "/" — por eso es
               un <a> normal y no un <Link> (mismo split de dominios que el resto del sitio, ver
               claude/backlog.md). */}
           <a
             href="https://app.oficy.ar/login"
-            className="flex items-center gap-2 bg-copper text-paper rounded-xl px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors"
+            className="flex items-center gap-2 bg-copper-accion text-paper rounded-xl px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors"
           >
             <Globe size={18} />
             Continuar en web
@@ -244,7 +249,9 @@ export default function LandingPage() {
 
       {/* Barra de estadísticas reales (25/09, animada 25/09 a pedido del usuario: "que vaya de 0
           hasta donde llegue el numero" apenas la sección entra en pantalla — ver ContadorAnimado). */}
-      {estadisticas && (
+      {/* Audit 26/10 (/impeccable harden): la franja se muestra recién cuando los números
+          ayudan (en el lanzamiento, "2 trabajos completados" juega en contra). */}
+      {estadisticas && estadisticas.trabajosCompletados >= MINIMO_TRABAJOS_PARA_MOSTRAR_NUMEROS && (
         <div className="w-full bg-ink px-6 py-8">
           <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4 text-center">
             <div>
@@ -282,7 +289,7 @@ export default function LandingPage() {
       <div className="w-full px-6 py-16">
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="flex flex-col items-center md:items-start text-center md:text-left order-2 md:order-1">
-            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">
+            <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">
               Mientras el trabajo pasa
             </p>
             <h2 className="font-display text-2xl sm:text-3xl text-ink tracking-tight mb-4 max-w-sm">
@@ -340,7 +347,7 @@ export default function LandingPage() {
                   {borrosa && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-paper/40 text-center px-4">
                       <span className="font-display text-lg text-ink">Ver más trabajos en la app</span>
-                      <span className="text-xs font-medium text-copper">Registrate gratis →</span>
+                      <span className="text-xs font-medium text-copper-text">Registrate gratis →</span>
                     </div>
                   )}
                   <div className={`flex flex-col flex-1 ${borrosa ? "blur-sm pointer-events-none" : ""}`}>
@@ -374,7 +381,7 @@ export default function LandingPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="h-28 bg-copper/10 flex items-center justify-center text-copper">
+                    <div className="h-28 bg-copper/10 flex items-center justify-center text-copper-text">
                       <IconoLucide nombre={t.categoriaIcono} size={28} strokeWidth={1.5} />
                     </div>
                   )}
@@ -382,7 +389,7 @@ export default function LandingPage() {
                   <div className="p-5 flex flex-col gap-3 flex-1">
                     <div className="min-w-0">
                       <p className="font-medium text-ink text-sm truncate">{t.categoriaNombre}</p>
-                      <p className="text-xs text-ink/50 truncate">{t.descripcion}</p>
+                      <p className="text-xs text-ink-muted truncate">{t.descripcion}</p>
                     </div>
                     <p className="text-sm text-ink/75 leading-snug">&ldquo;{t.comentario}&rdquo;</p>
 
@@ -399,7 +406,7 @@ export default function LandingPage() {
                       {t.prestadorPromedioGeneral != null && (
                         <span className="flex items-center gap-1 shrink-0">
                           <Estrellas valor={t.prestadorPromedioGeneral} tamaño="text-xs" />
-                          <span className="text-xs text-ink/50">
+                          <span className="text-xs text-ink-muted">
                             {t.prestadorPromedioGeneral.toFixed(1)} ({t.prestadorCantidadCalificaciones})
                           </span>
                         </span>
@@ -417,18 +424,18 @@ export default function LandingPage() {
 
       {/* Sección prestadores */}
       <div className="w-full px-6 py-16">
-        <div className="max-w-3xl mx-auto bg-ink text-paper rounded-2xl p-10 flex flex-col items-center text-center gap-4">
+        <div className="max-w-3xl mx-auto banda-verde rounded-2xl p-10 flex flex-col items-center text-center gap-4">
           <span className="w-12 h-12 rounded-full bg-paper/10 flex items-center justify-center">
             <Wrench size={22} strokeWidth={1.8} />
           </span>
-          <h2 className="font-display text-2xl">¿Sos un profesional del oficio?</h2>
+          <h2 className="font-display text-2xl">¿Sos un profesional <span className="text-safety">del oficio?</span></h2>
           <p className="text-paper/70 max-w-md">
-            Sumate como prestador, recibí pedidos de clientes cerca tuyo y cobrá tus primeros 5
-            trabajos sin comisión de Oficy.
+            Sumate como prestador, recibí pedidos de clientes cerca tuyo y cobrá el total de cada
+            trabajo. Para el lanzamiento buscamos 2 profesionales fundadores por rubro: 1 año sin cargo.
           </p>
           <Link
             href="/registro?rol=prestador"
-            className="bg-safety text-ink rounded px-6 py-3 font-medium hover:brightness-95 transition mt-2"
+            className="bg-safety text-on-safety rounded px-6 py-3 font-medium hover:brightness-95 transition mt-2"
           >
             Quiero ofrecer mis servicios
           </Link>
@@ -445,13 +452,13 @@ export default function LandingPage() {
           seguros, garantías, premios y transparencia. Ojo: todo en tiempo futuro ("va a", "vas a")
           a propósito, porque son mejoras en camino, no algo activo hoy — no queremos que se lea
           como una promesa vigente que todavía no podemos cumplir. */}
-      <div className="w-full bg-ink text-paper px-6 py-16">
+      <div className="w-full banda-verde px-6 py-16">
         <div className="max-w-4xl mx-auto">
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3 text-center">
+          <p className="font-mono text-xs tracking-widest text-paper/75 uppercase mb-3 text-center">
             Hacia dónde vamos
           </p>
           <h2 className="font-display text-2xl sm:text-3xl tracking-tight mb-4 text-center">
-            La visión de Oficy
+            La visión de <span className="text-safety">Oficy</span>
           </h2>
           <p className="text-paper/70 max-w-lg mx-auto text-center mb-10">
             Esto recién empieza. Así seguimos construyendo una plataforma en la que prestadores y
@@ -465,8 +472,8 @@ export default function LandingPage() {
               <div>
                 <p className="font-medium mb-1">Seguros</p>
                 <p className="text-sm text-paper/65">
-                  Todos los prestadores van a estar cubiertos por un seguro de trabajo estilo ART
-                  mientras estén haciendo un servicio, para que trabajen tranquilos y vos también.
+                  Estamos trabajando para que los prestadores puedan contar con un seguro de trabajo
+                  mientras hacen un servicio, para que trabajen tranquilos y vos también.
                 </p>
               </div>
             </div>
@@ -475,10 +482,10 @@ export default function LandingPage() {
                 <ShieldCheck size={20} strokeWidth={1.8} className="text-safety" />
               </span>
               <div>
-                <p className="font-medium mb-1">Garantías</p>
+                <p className="font-medium mb-1">Reputación que se gana</p>
                 <p className="text-sm text-paper/65">
-                  Si el arreglo no resolvió tu problema como esperabas, vas a contar con una
-                  garantía sobre el trabajo realizado, sin vueltas.
+                  Cada trabajo confirmado en la app suma una reseña real. Vamos a destacar a los
+                  profesionales que cumplen, para que elegir bien sea cada vez más fácil.
                 </p>
               </div>
             </div>
@@ -502,15 +509,14 @@ export default function LandingPage() {
               <div>
                 <p className="font-medium mb-1">Transparencia</p>
                 <p className="text-sm text-paper/65">
-                  Clientes y prestadores van a poder ver todo el proceso en todo momento: Oficy
-                  funciona como mediador de confianza entre las partes, para que el prestador
-                  trabaje seguro y con la indumentaria correcta, y vos valores su trabajo sabiendo
-                  que estás cubierto ante cualquier imprevisto.
+                  Clientes y prestadores van a poder ver todo el proceso en todo momento, desde que
+                  se acepta la oferta hasta que se confirma el trabajo. Si algo sale mal, Oficy
+                  media entre las partes.
                 </p>
               </div>
             </div>
           </div>
-          <p className="text-xs text-paper/40 text-center mt-10">
+          <p className="text-xs text-paper/65 text-center mt-10">
             Estas mejoras están en camino y se van a ir sumando a la plataforma.
           </p>
         </div>
@@ -536,7 +542,7 @@ export default function LandingPage() {
           <p className="text-ink/70">Recibí atención de profesionales verificados. Gratis y sin compromiso.</p>
           <Link
             href="/registro"
-            className="bg-copper text-paper rounded px-6 py-3 font-medium hover:bg-copper-dark transition-colors"
+            className="bg-copper-accion text-paper rounded px-6 py-3 font-medium hover:bg-copper-dark transition-colors"
           >
             Crear cuenta gratis
           </Link>

@@ -16,7 +16,7 @@ export default function SelectorEstrellas({
           key={n}
           type="button"
           onClick={() => onChange(n)}
-          className={`leading-none transition-colors ${n <= valor ? "text-copper" : "text-ink/20 hover:text-ink/40"}`}
+          className={`leading-none transition-colors ${n <= valor ? "text-copper-text" : "text-ink/20 hover:text-ink/40"}`}
           aria-label={`${n} de 5 estrellas`}
         >
           ★

@@ -139,7 +139,7 @@ export default function AdminOrdenesPage() {
     });
   }, [pendientesTransferencia]);
 
-  if (cargando) return <p className="text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="text-ink-muted">Cargando...</p>;
 
   const hoy = new Date().getDay();
 
@@ -161,7 +161,7 @@ export default function AdminOrdenesPage() {
       {resumenTransferencias.length > 0 && (
         <div className="bg-surface border border-copper/30 rounded-lg p-4 mb-4">
           <p className="font-medium text-ink mb-3">
-            Pagos pendientes de transferir <span className="text-ink/40 font-normal">({pendientesTransferencia.length})</span>
+            Pagos pendientes de transferir <span className="text-ink-muted font-normal">({pendientesTransferencia.length})</span>
           </p>
           <ul className="flex flex-col gap-2">
             {resumenTransferencias.map((g) => (
@@ -173,15 +173,15 @@ export default function AdminOrdenesPage() {
               >
                 <div>
                   <p className="text-sm text-ink font-medium">
-                    {g.nombre} {g.dia === hoy && <span className="text-copper text-xs font-semibold ml-1">· Hoy</span>}
+                    {g.nombre} {g.dia === hoy && <span className="text-copper-text text-xs font-semibold ml-1">· Hoy</span>}
                   </p>
-                  <p className="text-xs text-ink/60">
+                  <p className="text-xs text-ink-muted">
                     {g.cbu && g.alias ? (
                       <>
                         CBU <span className="font-mono">{g.cbu}</span> · alias <span className="font-mono">{g.alias}</span> ({g.titular})
                       </>
                     ) : (
-                      <span className="text-safety">Todavía no cargó sus datos de cobro completos</span>
+                      <span className="text-safety-text">Todavía no cargó sus datos de cobro completos</span>
                     )}
                     {g.dia !== null && <> · Prefiere cobrar los {DIAS_SEMANA[g.dia]}</>}
                   </p>
@@ -214,7 +214,7 @@ export default function AdminOrdenesPage() {
             </option>
           ))}
         </select>
-        <span className="text-xs text-ink/40">
+        <span className="text-xs text-ink-muted">
           {ordenesFiltradas.length} de {ordenes.length}
         </span>
       </div>
@@ -222,7 +222,7 @@ export default function AdminOrdenesPage() {
       <div className="bg-surface border border-ink/10 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left bg-ink/5 text-ink/60 text-xs uppercase tracking-wide">
+            <tr className="text-left bg-ink/5 text-ink-muted text-xs uppercase tracking-wide">
               <th className="p-3 font-medium">Rubro</th>
               <th className="p-3 font-medium">Prestador</th>
               <th className="p-3 font-medium">Monto</th>
@@ -235,7 +235,7 @@ export default function AdminOrdenesPage() {
           <tbody>
             {ordenesFiltradas.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-3 text-ink/50 text-center">
+                <td colSpan={7} className="p-3 text-ink-muted text-center">
                   No hay órdenes que coincidan con esa búsqueda.
                 </td>
               </tr>
@@ -264,14 +264,14 @@ export default function AdminOrdenesPage() {
                             ? "bg-red-700/10 dark:bg-red-400/10 text-red-700 dark:text-red-400"
                             : o.estado === "Completado"
                             ? "bg-stamp/15 text-stamp"
-                            : "bg-ink/10 text-ink/60"
+                            : "bg-ink/10 text-ink-muted"
                         }`}
                       >
                         {ESTADO_LABELS[o.estado] ?? o.estado}
                       </span>
                     </td>
-                    <td className="p-3 text-xs font-mono text-ink/60 uppercase">{o.pagoEstado ?? "—"}</td>
-                    <td className="p-3 text-ink/50 text-xs whitespace-nowrap">
+                    <td className="p-3 text-xs font-mono text-ink-muted uppercase">{o.pagoEstado ?? "—"}</td>
+                    <td className="p-3 text-ink-muted text-xs whitespace-nowrap">
                       {new Date(o.creadoEn).toLocaleDateString("es-AR")}
                     </td>
                     <td className="p-3 text-right">
@@ -296,11 +296,11 @@ export default function AdminOrdenesPage() {
                         {o.estado === "EnDisputa" && o.inasistenciaClienteReportadaEn && !o.inasistenciaResueltaEn && (
                           <div className="bg-safety/5 border border-safety/30 rounded-lg p-3 flex flex-col gap-2 mb-2">
                             <p className="text-xs text-ink/70">
-                              <span className="font-medium text-safety">Disputa por inasistencia del cliente</span> — reportada el{" "}
+                              <span className="font-medium text-safety-text">Disputa por inasistencia del cliente</span> — reportada el{" "}
                               {new Date(o.inasistenciaClienteReportadaEn).toLocaleString("es-AR")}.
                               {o.inasistenciaClienteComentario && <> Comentario del prestador: “{o.inasistenciaClienteComentario}”.</>}
                             </p>
-                            <p className="text-xs text-ink/50">
+                            <p className="text-xs text-ink-muted">
                               No hay forma de verificar desde el sistema si el prestador realmente se presentó o no — elegí a
                               quién le das la razón según lo que puedas averiguar por fuera (chat, llamada, etc.).
                             </p>
@@ -328,7 +328,7 @@ export default function AdminOrdenesPage() {
                         {/* Modelo de retención (23/09) */}
                         {o.pagoEstado && (
                           <div className="flex justify-between items-center gap-2 flex-wrap">
-                            <div className="text-xs text-ink/60">
+                            <div className="text-xs text-ink-muted">
                               <p>
                                 Pago: <span className="font-mono uppercase">{o.pagoEstado}</span>
                                 {o.pagoEstado !== "Reembolsado" && (
@@ -352,7 +352,7 @@ export default function AdminOrdenesPage() {
                                       )}
                                     </>
                                   ) : (
-                                    <span className="text-safety">Este prestador todavía no cargó sus datos de cobro completos (CBU + alias).</span>
+                                    <span className="text-safety-text">Este prestador todavía no cargó sus datos de cobro completos (CBU + alias).</span>
                                   )}
                                 </p>
                               )}

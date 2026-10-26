@@ -16,10 +16,10 @@ function formatoPorcentaje(valor: number | null): string {
 }
 
 function colorCrecimiento(valor: number | null): string {
-  if (valor === null) return "text-ink/40";
+  if (valor === null) return "text-ink-muted";
   if (valor > 0) return "text-stamp";
   if (valor < 0) return "text-red-700 dark:text-red-400";
-  return "text-ink/50";
+  return "text-ink-muted";
 }
 
 // Tile de estadística simple (no es un gráfico — ver skill de dataviz, "a veces la respuesta no
@@ -38,13 +38,13 @@ function StatTile({
 }) {
   return (
     <div className="bg-surface border border-ink/10 rounded-lg p-4 flex flex-col gap-1">
-      <p className="text-xs text-ink/50 uppercase tracking-wide font-mono">{titulo}</p>
+      <p className="text-xs text-ink-muted uppercase tracking-wide font-mono">{titulo}</p>
       <p className="font-display text-2xl text-ink">{valor}</p>
       <div className="flex items-center gap-2 text-xs">
         {crecimiento !== undefined && (
           <span className={colorCrecimiento(crecimiento)}>{formatoPorcentaje(crecimiento)} vs. mes anterior</span>
         )}
-        {detalle && <span className="text-ink/40">{detalle}</span>}
+        {detalle && <span className="text-ink-muted">{detalle}</span>}
       </div>
     </div>
   );
@@ -65,16 +65,16 @@ function BarraCriterio({
   const porcentaje = valor !== null ? Math.max(0, Math.min(100, (valor / 5) * 100)) : 0;
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs text-ink/60 w-24 shrink-0">{etiqueta}</span>
+      <span className="text-xs text-ink-muted w-24 shrink-0">{etiqueta}</span>
       <div className="flex-1 h-2 rounded-full bg-ink/10 overflow-hidden">
         <div
-          className={`h-full rounded-full ${esElMasBajo ? "bg-safety" : "bg-copper"}`}
+          className={`h-full rounded-full ${esElMasBajo ? "bg-safety" : "bg-copper-accion"}`}
           style={{ width: `${porcentaje}%` }}
         />
       </div>
       <span className="text-xs font-mono text-ink/70 w-10 text-right">{valor !== null ? valor.toFixed(2) : "—"}</span>
       {esElMasBajo && valor !== null && (
-        <span className="text-xs text-safety whitespace-nowrap">⚠ más bajo</span>
+        <span className="text-xs text-safety-text whitespace-nowrap">⚠ más bajo</span>
       )}
     </div>
   );
@@ -162,7 +162,7 @@ export default function AdminReportesPage() {
       <div className="flex items-center gap-3 mb-5">
         <button
           onClick={irAlMesAnterior}
-          className="text-sm border border-ink/20 rounded px-2 py-1 text-ink/60 hover:text-ink hover:border-ink/40 transition-colors"
+          className="text-sm border border-ink/20 rounded px-2 py-1 text-ink-muted hover:text-ink hover:border-ink/40 transition-colors"
         >
           ← Anterior
         </button>
@@ -172,14 +172,14 @@ export default function AdminReportesPage() {
         <button
           onClick={irAlMesSiguiente}
           disabled={esMesActual}
-          className="text-sm border border-ink/20 rounded px-2 py-1 text-ink/60 hover:text-ink hover:border-ink/40 transition-colors disabled:opacity-30 disabled:hover:border-ink/20"
+          className="text-sm border border-ink/20 rounded px-2 py-1 text-ink-muted hover:text-ink hover:border-ink/40 transition-colors disabled:opacity-30 disabled:hover:border-ink/20"
         >
           Siguiente →
         </button>
       </div>
 
       {cargando || !reporte ? (
-        <p className="text-ink/60">Cargando...</p>
+        <p className="text-ink-muted">Cargando...</p>
       ) : (
         <div className="flex flex-col gap-6">
           {/* Crecimiento del mes elegido contra el anterior */}
@@ -205,7 +205,7 @@ export default function AdminReportesPage() {
 
           {/* Estadísticas generales — acumulado histórico, no depende del mes elegido */}
           <div>
-            <p className="text-xs text-ink/50 uppercase tracking-wide font-mono mb-2">Estadísticas generales</p>
+            <p className="text-xs text-ink-muted uppercase tracking-wide font-mono mb-2">Estadísticas generales</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatTile titulo="Total usuarios" valor={reporte.totalUsuarios.toLocaleString("es-AR")} />
               <StatTile titulo="Clientes" valor={reporte.totalClientes.toLocaleString("es-AR")} />
@@ -227,19 +227,19 @@ export default function AdminReportesPage() {
             <div className="bg-surface border border-ink/10 rounded-lg p-4">
               <div className="flex justify-between items-baseline mb-3">
                 <p className="font-medium text-ink text-sm">Valoraciones a prestadores</p>
-                <p className="text-xs text-ink/40">
+                <p className="text-xs text-ink-muted">
                   {reporte.valoracionesPrestador.cantidad} reseña{reporte.valoracionesPrestador.cantidad === 1 ? "" : "s"} este mes
                 </p>
               </div>
               {reporte.valoracionesPrestador.cantidad === 0 ? (
-                <p className="text-ink/40 text-sm">No hubo reseñas de clientes a prestadores este mes.</p>
+                <p className="text-ink-muted text-sm">No hubo reseñas de clientes a prestadores este mes.</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-baseline gap-2 mb-1">
                     <span className="font-display text-xl text-ink">
                       {reporte.valoracionesPrestador.promedioGeneral?.toFixed(2)}
                     </span>
-                    <span className="text-xs text-ink/50">promedio general (ponderado)</span>
+                    <span className="text-xs text-ink-muted">promedio general (ponderado)</span>
                   </div>
                   <BarraCriterio etiqueta="Puntualidad" valor={reporte.valoracionesPrestador.puntualidad} esElMasBajo={criterioMasBajoPrestador === "puntualidad"} />
                   <BarraCriterio etiqueta="Calidad" valor={reporte.valoracionesPrestador.calidad} esElMasBajo={criterioMasBajoPrestador === "calidad"} />
@@ -254,19 +254,19 @@ export default function AdminReportesPage() {
             <div className="bg-surface border border-ink/10 rounded-lg p-4">
               <div className="flex justify-between items-baseline mb-3">
                 <p className="font-medium text-ink text-sm">Valoraciones a clientes</p>
-                <p className="text-xs text-ink/40">
+                <p className="text-xs text-ink-muted">
                   {reporte.valoracionesCliente.cantidad} reseña{reporte.valoracionesCliente.cantidad === 1 ? "" : "s"} este mes
                 </p>
               </div>
               {reporte.valoracionesCliente.cantidad === 0 ? (
-                <p className="text-ink/40 text-sm">No hubo reseñas de prestadores a clientes este mes.</p>
+                <p className="text-ink-muted text-sm">No hubo reseñas de prestadores a clientes este mes.</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-baseline gap-2 mb-1">
                     <span className="font-display text-xl text-ink">
                       {reporte.valoracionesCliente.promedioGeneral?.toFixed(2)}
                     </span>
-                    <span className="text-xs text-ink/50">promedio general</span>
+                    <span className="text-xs text-ink-muted">promedio general</span>
                   </div>
                   <BarraCriterio etiqueta="Puntualidad" valor={reporte.valoracionesCliente.puntualidad} esElMasBajo={criterioMasBajoCliente === "puntualidad"} />
                   <BarraCriterio etiqueta="Comunicación" valor={reporte.valoracionesCliente.comunicacion} esElMasBajo={criterioMasBajoCliente === "comunicacion"} />

@@ -273,16 +273,16 @@ export default function EncuestaPage() {
             aria-valuemax={100}
             aria-valuenow={Math.round(progreso * 100)}
           >
-            <div className="h-full bg-copper transition-all duration-500" style={{ width: `${progreso * 100}%` }} />
+            <div className="h-full bg-copper-accion transition-all duration-500" style={{ width: `${progreso * 100}%` }} />
           </div>
           <div className="flex justify-between items-center mt-2 min-h-6">
-            <p className="font-mono text-[11px] tracking-widest text-copper uppercase">
+            <p className="font-mono text-[11px] tracking-widest text-copper-text uppercase">
               {pregunta ? `${pregunta.seccion}  -  ${paso + 1} de ${TOTAL}` : "Último paso"}
             </p>
             <button
               type="button"
               onClick={() => ir(paso === 0 ? PASO_PORTADA : paso - 1, "atras")}
-              className="text-sm text-ink/60 hover:text-ink py-1"
+              className="text-sm text-ink-muted hover:text-ink py-1"
             >
               Atrás
             </button>
@@ -293,7 +293,7 @@ export default function EncuestaPage() {
       {/* ---- Portada ---- */}
       {paso === PASO_PORTADA && (
         <div key="portada" className={animacion}>
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Encuesta para profesionales de oficio</p>
+          <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">Encuesta para profesionales de oficio</p>
           <h1 className="font-display text-3xl text-ink mb-4">Ayudanos a construir Oficy</h1>
           <p className="text-ink/70 leading-relaxed mb-3">
             Somos una plataforma de Paraná que conecta profesionales de oficio con personas que necesitan hacer trabajos.
@@ -304,7 +304,7 @@ export default function EncuestaPage() {
           <button
             type="button"
             onClick={() => ir(0)}
-            className="bg-safety text-ink rounded px-6 py-3 font-medium hover:brightness-95 transition"
+            className="bg-safety text-on-safety rounded px-6 py-3 font-medium hover:brightness-95 transition"
           >
             Empezar
           </button>
@@ -315,12 +315,12 @@ export default function EncuestaPage() {
       {pregunta && (
         <div key={pregunta.id} className={animacion}>
           {pregunta.nota && (
-            <p className="border border-dashed border-ink/20 rounded-lg px-3 py-2.5 text-xs text-ink/60 leading-relaxed mb-4">
+            <p className="border border-dashed border-ink/20 rounded-lg px-3 py-2.5 text-xs text-ink-muted leading-relaxed mb-4">
               {pregunta.nota}
             </p>
           )}
           <h2 className="font-display text-2xl text-ink leading-snug">{pregunta.titulo}</h2>
-          {pregunta.ayuda && <p className="text-sm text-ink/60 mt-2 leading-relaxed">{pregunta.ayuda}</p>}
+          {pregunta.ayuda && <p className="text-sm text-ink-muted mt-2 leading-relaxed">{pregunta.ayuda}</p>}
 
           {pregunta.tipo === "texto" ? (
             <>
@@ -336,7 +336,7 @@ export default function EncuestaPage() {
                 <button
                   type="button"
                   onClick={() => ir(paso + 1)}
-                  className="bg-safety text-ink rounded px-6 py-3 font-medium hover:brightness-95 transition"
+                  className="bg-safety text-on-safety rounded px-6 py-3 font-medium hover:brightness-95 transition"
                 >
                   Continuar
                 </button>
@@ -346,7 +346,7 @@ export default function EncuestaPage() {
                     setResp((prev) => ({ ...prev, [pregunta.id]: "" }));
                     ir(paso + 1);
                   }}
-                  className="text-sm text-ink/60 underline underline-offset-4 hover:text-ink"
+                  className="text-sm text-ink-muted underline underline-offset-4 hover:text-ink"
                 >
                   Omitir
                 </button>
@@ -378,7 +378,7 @@ export default function EncuestaPage() {
                     >
                       <span
                         className={`shrink-0 w-6 h-6 rounded-[5px] border flex items-center justify-center font-mono text-[11px] ${
-                          seleccionada ? "bg-copper border-copper text-paper" : "border-ink/20 text-ink/60"
+                          seleccionada ? "bg-copper-accion border-copper text-paper" : "border-ink/20 text-ink-muted"
                         }`}
                       >
                         {idx < 9 ? idx + 1 : ""}
@@ -400,7 +400,7 @@ export default function EncuestaPage() {
                     onChange={(e) => setOtros((prev) => ({ ...prev, [pregunta.id]: e.target.value }))}
                   />
                   {pregunta.max && (
-                    <p className="font-mono text-xs text-ink/60 mt-2.5">
+                    <p className="font-mono text-xs text-ink-muted mt-2.5">
                       {((resp[pregunta.id] as string[] | undefined) ?? []).length} de {pregunta.max} elegidas
                     </p>
                   )}
@@ -409,7 +409,7 @@ export default function EncuestaPage() {
                       type="button"
                       disabled={!multiValida(pregunta)}
                       onClick={() => ir(paso + 1)}
-                      className="bg-safety text-ink rounded px-6 py-3 font-medium hover:brightness-95 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="bg-safety text-on-safety rounded px-6 py-3 font-medium hover:brightness-95 transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Continuar
                     </button>
@@ -420,7 +420,7 @@ export default function EncuestaPage() {
                           setResp((prev) => ({ ...prev, [pregunta.id]: [] }));
                           ir(paso + 1);
                         }}
-                        className="text-sm text-ink/60 underline underline-offset-4 hover:text-ink"
+                        className="text-sm text-ink-muted underline underline-offset-4 hover:text-ink"
                       >
                         Omitir
                       </button>
@@ -446,14 +446,14 @@ export default function EncuestaPage() {
           {resp.interesProbar === NO_POR_AHORA ? (
             <>
               <h2 className="font-display text-2xl text-ink leading-snug">Dejanos tus datos por si más adelante querés saber más</h2>
-              <p className="text-sm text-ink/60 mt-2 leading-relaxed">
+              <p className="text-sm text-ink-muted mt-2 leading-relaxed">
                 Te avisamos cuando Oficy esté disponible, sin compromiso. Usamos estos datos solo para eso.
               </p>
             </>
           ) : (
             <>
               <h2 className="font-display text-2xl text-ink leading-snug">Dejanos tus datos y te escribimos antes del lanzamiento</h2>
-              <p className="text-sm text-ink/60 mt-2 leading-relaxed">
+              <p className="text-sm text-ink-muted mt-2 leading-relaxed">
                 Vas a ser de los primeros profesionales en formar parte de Oficy. Usamos estos datos solo para contactarte por esto.
               </p>
             </>
@@ -482,7 +482,7 @@ export default function EncuestaPage() {
             <button
               type="submit"
               disabled={!contactoValido || enviando}
-              className="bg-safety text-ink rounded px-6 py-3 font-medium hover:brightness-95 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="bg-safety text-on-safety rounded px-6 py-3 font-medium hover:brightness-95 transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {enviando ? "Enviando..." : "Enviar respuestas"}
             </button>
@@ -507,7 +507,7 @@ export default function EncuestaPage() {
               ? "Te vamos a avisar por WhatsApp cuando Oficy esté disponible."
               : "Te vamos a escribir por WhatsApp antes del lanzamiento."}
           </p>
-          <Link href="/" className="text-copper font-medium hover:underline">
+          <Link href="/" className="text-copper-text font-medium hover:underline">
             Conocer más sobre Oficy
           </Link>
         </div>

@@ -37,7 +37,7 @@ function fechaHoyEsIgual(a: Date, b: Date): boolean {
 const FRASES_HERO_CLIENTE: { titulo: string; subtitulo: string }[] = [
   {
     titulo: "Encontrá el profesional justo para lo que necesitás",
-    subtitulo: "Buscá por categoría y ubicación, chateá con el prestador y pagá con confianza.",
+    subtitulo: "Buscá por categoría y ubicación, chateá con el prestador y acordá el precio antes.",
   },
   {
     titulo: "Tu problema, resuelto por alguien de confianza",
@@ -52,7 +52,7 @@ const FRASES_HERO_CLIENTE: { titulo: string; subtitulo: string }[] = [
 const FRASES_HERO_PRESTADOR: { titulo: string; subtitulo: string }[] = [
   {
     titulo: "Encontrá tu próximo trabajo, a la vuelta de la esquina",
-    subtitulo: "Gestioná tus servicios, recibí pedidos de clientes cerca tuyo y cobrá con confianza.",
+    subtitulo: "Gestioná tus servicios, recibí pedidos de clientes cerca tuyo y cobrá el total de cada trabajo.",
   },
   {
     titulo: "Tu oficio, más pedidos",
@@ -60,7 +60,7 @@ const FRASES_HERO_PRESTADOR: { titulo: string; subtitulo: string }[] = [
   },
   {
     titulo: "Convertí tu experiencia en tu próximo trabajo",
-    subtitulo: "Mostrá tus servicios, coordiná por chat y cobrá seguro con cada trabajo completado.",
+    subtitulo: "Mostrá tus servicios, coordiná por chat y cobrá directo cada trabajo.",
   },
 ];
 
@@ -75,7 +75,7 @@ function AvisoHoy({ titulo, subtitulo, href }: { titulo: string; subtitulo: stri
   return (
     <Link
       href={href}
-      className="w-full flex items-center gap-3 bg-safety text-ink rounded-xl px-4 py-3.5 shadow-lg shadow-safety/20 hover:brightness-95 transition"
+      className="w-full flex items-center gap-3 bg-safety text-on-safety rounded-xl px-4 py-3.5 shadow-lg shadow-safety/20 hover:brightness-95 transition"
     >
       <span className="w-10 h-10 rounded-lg bg-black/10 flex items-center justify-center shrink-0">
         <Bell size={20} strokeWidth={2.2} />
@@ -258,7 +258,7 @@ export default function AppHome() {
   return (
     <div className="flex-1 flex flex-col items-center px-6">
       <div className="flex flex-col items-center text-center pt-20 pb-14">
-        <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">
+        <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">
           Plomería · Electricidad · Gas · Jardinería
         </p>
         <h1 className="font-display text-4xl sm:text-5xl text-ink tracking-tight mb-4 max-w-xl">
@@ -281,14 +281,14 @@ export default function AppHome() {
                 href="/ordenes"
               />
             )}
-            <Link href="/buscar" className="bg-copper text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors">
+            <Link href="/buscar" className="bg-copper-accion text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors">
               Buscar un servicio
             </Link>
           </div>
         )}
 
         {usuario.rol === "Prestador" && (
-          <Link href="/prestador/servicios" className="bg-copper text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors">
+          <Link href="/prestador/servicios" className="bg-copper-accion text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors">
             Gestionar mis servicios
           </Link>
         )}
@@ -316,26 +316,26 @@ export default function AppHome() {
               en vez de esperar a los tres a la vez. */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-surface border border-ink/10 rounded-lg p-4">
-              <p className="font-mono text-xs tracking-wider uppercase text-ink/45">Trabajos este mes</p>
+              <p className="font-mono text-xs tracking-wider uppercase text-ink-muted">Trabajos este mes</p>
               <p className="text-2xl font-display text-ink mt-1">
                 {gananciasMes ? gananciasMes.trabajosCompletados : "..."}
               </p>
             </div>
             <div className="bg-surface border border-ink/10 rounded-lg p-4">
-              <p className="font-mono text-xs tracking-wider uppercase text-ink/45">Ganancias del mes</p>
+              <p className="font-mono text-xs tracking-wider uppercase text-ink-muted">Ganancias del mes</p>
               <p className="text-2xl font-display text-ink mt-1">
                 {gananciasMes ? `$${Math.round(gananciasMes.totalGanado).toLocaleString("es-AR")}` : "..."}
               </p>
             </div>
             <div className="bg-surface border border-ink/10 rounded-lg p-4">
-              <p className="font-mono text-xs tracking-wider uppercase text-ink/45">Calificación</p>
+              <p className="font-mono text-xs tracking-wider uppercase text-ink-muted">Calificación</p>
               {perfilPropio && perfilPropio.cantidadCalificaciones > 0 ? (
                 <div className="flex items-baseline gap-1.5 mt-1">
                   <span className="text-2xl font-display text-ink">{perfilPropio.promedioCalificacion!.toFixed(1)}</span>
-                  <span className="text-xs text-ink/45">★ ({perfilPropio.cantidadCalificaciones})</span>
+                  <span className="text-xs text-ink-muted">★ ({perfilPropio.cantidadCalificaciones})</span>
                 </div>
               ) : (
-                <p className="text-sm text-ink/40 mt-2">
+                <p className="text-sm text-ink-muted mt-2">
                   {perfilPropio ? "Sin reseñas todavía" : "..."}
                 </p>
               )}
@@ -347,11 +347,11 @@ export default function AppHome() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-surface border border-ink/10 rounded-lg p-5">
-              <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Hoy</p>
+              <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">Hoy</p>
               {cargandoTrabajos ? (
-                <p className="text-sm text-ink/40">Cargando...</p>
+                <p className="text-sm text-ink-muted">Cargando...</p>
               ) : trabajosHoy.length === 0 ? (
-                <p className="text-sm text-ink/50">No tenés trabajos programados para hoy.</p>
+                <p className="text-sm text-ink-muted">No tenés trabajos programados para hoy.</p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {trabajosHoy.map((o) => (
@@ -360,7 +360,7 @@ export default function AppHome() {
                       className="flex items-center justify-between gap-3 bg-paper rounded p-3 flex-wrap"
                     >
                       <div className="min-w-0">
-                        <p className="font-mono text-xs text-ink/45">
+                        <p className="font-mono text-xs text-ink-muted">
                           {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -368,13 +368,13 @@ export default function AppHome() {
                           {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
                         </p>
                         <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
-                        <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
+                        <p className="text-sm text-ink-muted truncate">{o.categoriaNombre}</p>
                       </div>
                       {o.estado === "Pagado" ? (
                         <button
                           onClick={() => iniciarTrabajo(o.id)}
                           disabled={iniciandoId === o.id}
-                          className="bg-safety text-ink rounded px-3 py-1.5 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 whitespace-nowrap"
+                          className="bg-safety text-on-safety rounded px-3 py-1.5 text-sm font-medium hover:brightness-95 transition disabled:opacity-50 whitespace-nowrap"
                         >
                           {iniciandoId === o.id ? "Iniciando..." : "Iniciar trabajo"}
                         </button>
@@ -391,21 +391,21 @@ export default function AppHome() {
 
             <div className="bg-surface border border-ink/10 rounded-lg p-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="font-mono text-xs tracking-widest text-copper uppercase">Esta semana</p>
-                <Link href="/prestador/agenda" className="text-xs text-copper hover:underline whitespace-nowrap">
+                <p className="font-mono text-xs tracking-widest text-copper-text uppercase">Esta semana</p>
+                <Link href="/prestador/agenda" className="text-xs text-copper-text hover:underline whitespace-nowrap">
                   Ver agenda completa →
                 </Link>
               </div>
               {cargandoTrabajos ? (
-                <p className="text-sm text-ink/40">Cargando...</p>
+                <p className="text-sm text-ink-muted">Cargando...</p>
               ) : trabajosSemana.length === 0 ? (
-                <p className="text-sm text-ink/50">No tenés más trabajos programados esta semana.</p>
+                <p className="text-sm text-ink-muted">No tenés más trabajos programados esta semana.</p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {trabajosSemana.map((o) => (
                     <li key={o.id} className="flex items-center justify-between gap-3 bg-paper rounded p-3">
                       <div className="min-w-0">
-                        <p className="font-mono text-xs text-ink/45">
+                        <p className="font-mono text-xs text-ink-muted">
                           {new Date(o.fechaHoraProgramada!).toLocaleDateString("es-AR", {
                             weekday: "short",
                             day: "numeric",
@@ -419,7 +419,7 @@ export default function AppHome() {
                           {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
                         </p>
                         <p className="font-medium text-ink truncate">{o.clienteNombreCompleto}</p>
-                        <p className="text-sm text-ink/55 truncate">{o.categoriaNombre}</p>
+                        <p className="text-sm text-ink-muted truncate">{o.categoriaNombre}</p>
                       </div>
                     </li>
                   ))}
@@ -432,7 +432,7 @@ export default function AppHome() {
 
       {usuario.rol !== "Prestador" && !cargandoDestacados && destacados.length > 0 && (
         <div className="w-full max-w-4xl pb-20">
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-4 text-center">
+          <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-4 text-center">
             Los mejor calificados
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -456,20 +456,20 @@ export default function AppHome() {
                       {p.nombre} {p.apellido}
                       {p.verificado && <InsigniaVerificado size={14} className="ml-1" />}
                     </p>
-                    <p className="text-xs text-ink/50 truncate">{p.categorias.join(" · ")}</p>
+                    <p className="text-xs text-ink-muted truncate">{p.categorias.join(" · ")}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   {p.cantidadCalificaciones > 0 ? (
                     <div className="flex items-center gap-1">
                       <Estrellas valor={p.promedioCalificacion!} tamaño="text-xs" />
-                      <span className="text-xs text-ink/50">({p.cantidadCalificaciones})</span>
+                      <span className="text-xs text-ink-muted">({p.cantidadCalificaciones})</span>
                     </div>
                   ) : (
-                    <span className="text-xs text-ink/40">Sin reseñas todavía</span>
+                    <span className="text-xs text-ink-muted">Sin reseñas todavía</span>
                   )}
                   {p.distanciaKm != null && (
-                    <span className="font-mono text-xs text-copper">{p.distanciaKm.toFixed(1)} km</span>
+                    <span className="font-mono text-xs text-copper-text">{p.distanciaKm.toFixed(1)} km</span>
                   )}
                 </div>
               </Link>

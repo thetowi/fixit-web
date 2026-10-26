@@ -15,7 +15,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { BadgeCheck, Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 type Perfil = "cliente" | "prestador";
 
@@ -40,8 +40,8 @@ const CONTENIDO: Record<
     posterCuadrado: "/videos/oficy-clientes-cuadrado.jpg",
     puntos: [
       ["Profesionales verificados", "DNI, antecedentes y matrícula revisados."],
-      ["Pago protegido", "La plata queda en Oficy hasta que confirmás el trabajo."],
-      ["Si algo sale mal", "Reembolso si no se presenta o el trabajo no se corrige."],
+      ["Precio claro", "Lo acordás por chat y aceptás la oferta en la app. Le pagás directo al profesional."],
+      ["Si algo sale mal", "Lo reportás desde la app y mediamos con el profesional."],
     ],
     cta: "Crear cuenta gratis",
     href: "/registro",
@@ -54,8 +54,8 @@ const CONTENIDO: Record<
     posterCuadrado: "/videos/oficy-profesionales-cuadrado.jpg",
     puntos: [
       ["Clientes de tu zona", "Pedidos nuevos cerca tuyo, con chat directo."],
-      ["Cobro asegurado", "El cliente paga antes de que arranques."],
-      ["5 trabajos sin comisión", "Para que pruebes Oficy sin riesgo."],
+      ["Cobrás el total", "El cliente te paga directo a vos, sin retenciones."],
+      ["Pagás solo si trabajás", "Un fijo por trabajo confirmado, con tope mensual. Fundadores: 1 año gratis."],
     ],
     cta: "Quiero ofrecer mis servicios",
     href: "/registro?rol=prestador",
@@ -130,13 +130,13 @@ export default function QueEsOficy() {
   return (
     <section aria-labelledby="que-es-oficy" className="w-full px-4 sm:px-6 py-16 sm:py-20 border-t border-ink/10">
       <div className="max-w-5xl mx-auto text-center">
-        <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Qué es Oficy</p>
+        <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">Qué es Oficy</p>
         <h2 id="que-es-oficy" className="font-display text-3xl sm:text-4xl text-ink tracking-tight max-w-3xl mx-auto">
           Contratar un oficio, con la confianza de comprar online
         </h2>
         <p className="text-ink/70 leading-relaxed max-w-2xl mx-auto mt-4">
           Conectamos a quien necesita un arreglo con profesionales verificados de su zona. El precio se acuerda
-          antes y la plata queda protegida hasta que el trabajo está hecho.
+          antes por chat, el pago es directo al profesional y cada trabajo confirmado suma una reseña real.
         </p>
 
         <div role="tablist" aria-label="Elegí tu perfil" className="inline-flex bg-ink/5 rounded-xl p-1 mt-8">
@@ -148,7 +148,7 @@ export default function QueEsOficy() {
               aria-selected={perfil === p}
               onClick={() => setPerfil(p)}
               className={`px-4 sm:px-5 py-2.5 rounded-lg text-sm sm:text-[15px] font-medium transition-colors ${
-                perfil === p ? "bg-surface text-ink shadow-sm" : "text-ink/55 hover:text-ink"
+                perfil === p ? "bg-surface text-ink shadow-sm" : "text-ink-muted hover:text-ink"
               }`}
             >
               {CONTENIDO[p].etiqueta}
@@ -194,15 +194,18 @@ export default function QueEsOficy() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-4xl mx-auto mt-5 text-left">
           {c.puntos.map(([titulo, texto]) => (
             <div key={titulo} className="bg-surface border border-ink/10 rounded-xl p-4">
-              <p className="font-medium text-ink text-sm">{titulo}</p>
-              <p className="text-sm text-ink/60 leading-relaxed mt-1">{texto}</p>
+              <p className="font-medium text-ink text-sm flex items-center gap-1.5">
+                {/verificad/i.test(titulo) && <BadgeCheck size={16} strokeWidth={2} className="text-stamp shrink-0" />}
+                {titulo}
+              </p>
+              <p className="text-sm text-ink-muted leading-relaxed mt-1">{texto}</p>
             </div>
           ))}
         </div>
 
         <Link
           href={c.href}
-          className="inline-block mt-7 bg-copper text-paper rounded px-6 py-3 font-medium hover:bg-copper-dark transition-colors"
+          className="inline-block mt-7 bg-copper-accion text-paper rounded px-6 py-3 font-medium hover:bg-copper-dark transition-colors"
         >
           {c.cta}
         </Link>

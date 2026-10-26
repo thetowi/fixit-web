@@ -14,6 +14,8 @@ function useTimerDemo() {
   // marcha desde hace un rato, no uno que recién empieza.
   const [segundos, setSegundos] = useState(37);
   useEffect(() => {
+    // Audit 26/10: con "reducir movimiento" el timer de muestra queda quieto.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const intervalo = setInterval(() => setSegundos((s) => s + 1), 1000);
     return () => clearInterval(intervalo);
   }, []);
@@ -67,7 +69,7 @@ export default function TrabajoEnCursoPreview() {
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-[10px] font-semibold tracking-wider opacity-85">EN VIVO</span>
         </div>
-        <span className="text-[10px] text-paper/40">Vista previa</span>
+        <span className="text-[10px] text-paper/65">Vista previa</span>
       </div>
 
       <div className="flex flex-col items-center gap-5 px-6 py-8">
@@ -89,7 +91,7 @@ export default function TrabajoEnCursoPreview() {
 
         <div className="flex flex-col items-center gap-0.5">
           <span className="font-mono text-3xl font-semibold tabular-nums">{tiempo}</span>
-          <span className="text-[10px] tracking-wider text-paper/45 uppercase">Tiempo transcurrido</span>
+          <span className="text-[10px] tracking-wider text-paper/65 uppercase">Tiempo transcurrido</span>
         </div>
       </div>
     </div>

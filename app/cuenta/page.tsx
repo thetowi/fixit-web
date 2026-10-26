@@ -16,13 +16,14 @@ import { activarPush, desactivarPush, pushSoportado, yaSuscriptoPush } from "@/l
 import { buscarDirecciones, SugerenciaDireccion } from "@/lib/geocodificacion";
 import InsigniaVerificado from "@/components/InsigniaVerificado";
 import GananciasSeccion from "@/components/GananciasSeccion";
+import { useConfigCobros } from "@/lib/cobros";
 
 // Leaflet toca "window" en el momento de importarse, así que no puede renderizarse en el
 // servidor: lo cargamos solo del lado del cliente.
 const MapaCobertura = dynamic(() => import("@/components/MapaCobertura"), {
   ssr: false,
   loading: () => (
-    <div className="rounded-lg border border-ink/10 bg-paper flex items-center justify-center text-sm text-ink/40" style={{ height: 320 }}>
+    <div className="rounded-lg border border-ink/10 bg-paper flex items-center justify-center text-sm text-ink-muted" style={{ height: 320 }}>
       Cargando mapa...
     </div>
   ),
@@ -63,15 +64,15 @@ function CampoDocumento({
 }) {
   return (
     <div>
-      <p className="text-sm text-ink/60 mb-1">{label}</p>
+      <p className="text-sm text-ink-muted mb-1">{label}</p>
       <div className="border border-dashed border-ink/25 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3 bg-paper">
-        <span className={`text-sm truncate ${archivo ? "text-ink" : "text-ink/40"}`}>
+        <span className={`text-sm truncate ${archivo ? "text-ink" : "text-ink-muted"}`}>
           {archivo ? archivo.name : "Ningún archivo seleccionado"}
         </span>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="text-sm text-copper hover:underline whitespace-nowrap shrink-0"
+          className="text-sm text-copper-text hover:underline whitespace-nowrap shrink-0"
         >
           {archivo ? "Cambiar" : "Elegir archivo"}
         </button>
@@ -89,7 +90,7 @@ function CampoDocumento({
 
 export default function CuentaPage() {
   return (
-    <Suspense fallback={<p className="p-6 text-ink/60">Cargando...</p>}>
+    <Suspense fallback={<p className="p-6 text-ink-muted">Cargando...</p>}>
       <CuentaContenido />
     </Suspense>
   );
@@ -98,6 +99,11 @@ export default function CuentaPage() {
 function CuentaContenido() {
   const router = useRouter();
   const [seccion, setSeccion] = useState<Seccion>("perfil");
+  // 26/10 (nuevo sistema de cobros): en modo Directo el cliente le paga directo al prestador, así
+  // que la pestaña "Cobros" (CBU/alias para que Oficy le transfiera) no tiene sentido y se oculta.
+  // El código queda por si se vuelve al modo Retenido.
+  const configCobros = useConfigCobros();
+  const ocultarCobros = configCobros?.modoCobro !== "Retenido";
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputRefTrabajo = useRef<HTMLInputElement>(null);
   const fileInputRefDni = useRef<HTMLInputElement>(null);
@@ -728,7 +734,7 @@ function CuentaContenido() {
     router.push("/login");
   }
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
   if (!perfil) return null;
 
   const categoriasParaAgregar = categoriasDisponibles.filter(
@@ -737,7 +743,7 @@ function CuentaContenido() {
 
   return (
     <div className="max-w-2xl mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Mi cuenta</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Mi cuenta</p>
       <h1 className="font-display text-2xl text-ink mb-1">
         {perfil.nombre} {perfil.apellido}
       </h1>
@@ -746,21 +752,21 @@ function CuentaContenido() {
           la reseña que le dejó su cliente" — las reseñas viven en /prestador/{id}, pero no había
           ningún link desde la app hacia el propio perfil). */}
       {perfil.rol === "Prestador" && (
-        <Link href={`/prestador/${perfil.id}`} className="text-sm text-copper hover:underline mb-6 inline-block">
+        <Link href={`/prestador/${perfil.id}`} className="text-sm text-copper-text hover:underline mb-6 inline-block">
           Ver mi perfil público →
         </Link>
       )}
 
       {perfil.rol === "Prestador" && (
         <div className="flex gap-2 mb-6 flex-wrap">
-          {SECCIONES.map((s) => (
+          {SECCIONES.filter((s) => !(s.id === "cobros" && ocultarCobros)).map((s) => (
             <button
               key={s.id}
               onClick={() => setSeccion(s.id)}
               className={`text-sm rounded-lg px-3 py-1.5 border border-dashed transition-colors ${
                 seccion === s.id
-                  ? "bg-copper text-paper border-copper"
-                  : "border-ink/20 text-ink/60 hover:border-ink/40"
+                  ? "bg-copper-accion text-paper border-copper"
+                  : "border-ink/20 text-ink-muted hover:border-ink/40"
               }`}
             >
               {s.label}
@@ -780,7 +786,7 @@ function CuentaContenido() {
           </p>
           <button
             onClick={() => setSeccion("verificacion")}
-            className="text-sm font-medium text-copper hover:underline whitespace-nowrap"
+            className="text-sm font-medium text-copper-text hover:underline whitespace-nowrap"
           >
             Verificar ahora →
           </button>
@@ -806,7 +812,7 @@ function CuentaContenido() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={subiendoFoto}
-              className="text-sm text-copper hover:underline disabled:opacity-40"
+              className="text-sm text-copper-text hover:underline disabled:opacity-40"
             >
               {subiendoFoto ? "Subiendo..." : "Cambiar foto"}
             </button>
@@ -817,7 +823,7 @@ function CuentaContenido() {
               className="hidden"
               onChange={handleCambiarFoto}
             />
-            <p className="text-xs text-ink/50 mt-1">
+            <p className="text-xs text-ink-muted mt-1">
               {perfil.email} · <span className="uppercase">{perfil.rol}</span>
               {perfil.verificado && <InsigniaVerificado size={14} className="ml-1" />}
             </p>
@@ -825,7 +831,7 @@ function CuentaContenido() {
         </div>
 
         <form onSubmit={handleGuardar} className="flex flex-col gap-3">
-          <label className="text-sm text-ink/60">
+          <label className="text-sm text-ink-muted">
             Nombre
             <input
               type="text"
@@ -835,7 +841,7 @@ function CuentaContenido() {
               onChange={(e) => setForm({ ...form, nombre: e.target.value })}
             />
           </label>
-          <label className="text-sm text-ink/60">
+          <label className="text-sm text-ink-muted">
             Apellido
             <input
               type="text"
@@ -845,7 +851,7 @@ function CuentaContenido() {
               onChange={(e) => setForm({ ...form, apellido: e.target.value })}
             />
           </label>
-          <label className="text-sm text-ink/60">
+          <label className="text-sm text-ink-muted">
             Teléfono
             <input
               type="tel"
@@ -854,7 +860,7 @@ function CuentaContenido() {
               onChange={(e) => setForm({ ...form, telefono: e.target.value })}
             />
           </label>
-          <label className="text-sm text-ink/60 relative">
+          <label className="text-sm text-ink-muted relative">
             Dirección
             <div className="flex gap-2 mt-1">
               <input
@@ -878,7 +884,7 @@ function CuentaContenido() {
               />
             </div>
 
-            <label className="flex items-center gap-1.5 mt-1.5 text-xs text-ink/50 font-normal">
+            <label className="flex items-center gap-1.5 mt-1.5 text-xs text-ink-muted font-normal">
               <input
                 type="checkbox"
                 checked={sinNumeroDireccion}
@@ -890,7 +896,7 @@ function CuentaContenido() {
             {mostrarSugerencias && (buscandoDireccion || sugerenciasDireccion.length > 0) && (
               <ul className="absolute z-20 left-0 right-0 mt-1 bg-surface border border-ink/15 rounded-lg shadow-lg overflow-hidden">
                 {buscandoDireccion && (
-                  <li className="px-3 py-2 text-xs text-ink/40">Buscando...</li>
+                  <li className="px-3 py-2 text-xs text-ink-muted">Buscando...</li>
                 )}
                 {!buscandoDireccion &&
                   sugerenciasDireccion.map((s, i) => (
@@ -912,13 +918,13 @@ function CuentaContenido() {
               perfil.direccionVerificada ? (
                 <span className="text-xs text-stamp flex items-center gap-1 mt-1">✓ Dirección verificada</span>
               ) : (
-                <span className="text-xs text-ink/40 block mt-1">
+                <span className="text-xs text-ink-muted block mt-1">
                   Sin verificar — elegí una sugerencia de la lista para verificarla.
                 </span>
               )
             )}
             {perfil.rol === "Cliente" && (
-              <span className="text-xs text-ink/40 block mt-1">
+              <span className="text-xs text-ink-muted block mt-1">
                 El prestador la va a ver al programar el turno de un trabajo tuyo.
               </span>
             )}
@@ -930,7 +936,7 @@ function CuentaContenido() {
           <button
             type="submit"
             disabled={guardando}
-            className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 mt-1"
+            className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 mt-1"
           >
             {guardando ? "Guardando..." : "Guardar cambios"}
           </button>
@@ -941,7 +947,7 @@ function CuentaContenido() {
       {perfil.rol === "Cliente" && pendientesRepost.length > 0 && (
         <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6">
           <p className="font-medium text-ink mb-1">Te pidieron mostrar una foto tuya</p>
-          <p className="text-xs text-ink/50 mb-3">
+          <p className="text-xs text-ink-muted mb-3">
             Un prestador quiere mostrar, como trabajo propio en su perfil, una foto que subiste en
             una reseña. Vos decidís si se la das.
           </p>
@@ -957,7 +963,7 @@ function CuentaContenido() {
                     <span className="font-medium">{p.prestadorNombreCompleto}</span> · {p.categoriaNombre}
                   </p>
                   {p.comentarioCalificacion && (
-                    <p className="text-xs text-ink/50 truncate">&ldquo;{p.comentarioCalificacion}&rdquo;</p>
+                    <p className="text-xs text-ink-muted truncate">&ldquo;{p.comentarioCalificacion}&rdquo;</p>
                   )}
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -973,7 +979,7 @@ function CuentaContenido() {
                     type="button"
                     onClick={() => handleResponderRepost(p.calificacionFotoId, true)}
                     disabled={respondiendoRepost === p.calificacionFotoId}
-                    className="text-xs bg-copper text-paper rounded px-2 py-1.5 hover:bg-copper-dark disabled:opacity-40"
+                    className="text-xs bg-copper-accion text-paper rounded px-2 py-1.5 hover:bg-copper-dark disabled:opacity-40"
                   >
                     Permitir
                   </button>
@@ -987,13 +993,13 @@ function CuentaContenido() {
       {(perfil.rol !== "Prestador" || seccion === "perfil") && (
       <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6">
         <p className="font-medium text-ink mb-1">Notificaciones</p>
-        <p className="text-xs text-ink/50 mb-3">
+        <p className="text-xs text-ink-muted mb-3">
           Activá los avisos de este navegador para enterarte de mensajes y ofertas nuevas aunque
           no tengas FixIt abierto en una pestaña.
         </p>
 
         {!pushSoportado() ? (
-          <p className="text-xs text-ink/40">Este navegador no soporta notificaciones push.</p>
+          <p className="text-xs text-ink-muted">Este navegador no soporta notificaciones push.</p>
         ) : (
           <>
             {errorPush && <p className="text-red-700 dark:text-red-400 text-sm mb-2">{errorPush}</p>}
@@ -1001,7 +1007,7 @@ function CuentaContenido() {
               onClick={handleTogglePush}
               disabled={cambiandoPush || pushActivo === null}
               className={`text-sm rounded-lg px-4 py-2 font-medium transition-colors disabled:opacity-40 ${
-                pushActivo ? "border border-ink/20 text-ink/60 hover:border-ink/40" : "bg-copper text-paper hover:bg-copper-dark"
+                pushActivo ? "border border-ink/20 text-ink-muted hover:border-ink/40" : "bg-copper-accion text-paper hover:bg-copper-dark"
               }`}
             >
               {cambiandoPush
@@ -1048,20 +1054,20 @@ function CuentaContenido() {
                 value={precioServicio}
                 onChange={(e) => setPrecioServicio(e.target.value)}
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink/40 pointer-events-none">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted pointer-events-none">
                 /hora
               </span>
             </div>
 
             {errorServicios && <p className="text-red-700 dark:text-red-400 text-sm">{errorServicios}</p>}
 
-            <button type="submit" className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors">
+            <button type="submit" className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors">
               Agregar
             </button>
           </form>
 
           {misCategorias.length === 0 ? (
-            <p className="text-ink/50 text-sm">Todavía no agregaste ningún servicio.</p>
+            <p className="text-ink-muted text-sm">Todavía no agregaste ningún servicio.</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {misCategorias.map((mc) => (
@@ -1090,7 +1096,7 @@ function CuentaContenido() {
                         </button>
                       )}
                     </div>
-                    {mc.descripcion && <p className="text-ink/60">{mc.descripcion}</p>}
+                    {mc.descripcion && <p className="text-ink-muted">{mc.descripcion}</p>}
                     {mc.precioReferencia && (
                       <p className="font-mono text-ink/70 mt-1">
                         Desde ${mc.precioReferencia.toLocaleString("es-AR")} /hora
@@ -1115,7 +1121,7 @@ function CuentaContenido() {
           <p className="font-medium text-ink mb-3">Acerca de mí</p>
 
           <form onSubmit={handleGuardarAcercaDeMi} className="flex flex-col gap-3 mb-5">
-            <label className="text-sm text-ink/60">
+            <label className="text-sm text-ink-muted">
               Contanos sobre vos
               <textarea
                 placeholder="Edad, años de experiencia, a qué te dedicás dentro del oficio..."
@@ -1132,7 +1138,7 @@ function CuentaContenido() {
             <button
               type="submit"
               disabled={guardandoAcerca}
-              className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+              className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
             >
               {guardandoAcerca ? "Guardando..." : "Guardar cambios"}
             </button>
@@ -1144,7 +1150,7 @@ function CuentaContenido() {
               <button
                 onClick={() => fileInputRefTrabajo.current?.click()}
                 disabled={subiendoFotoTrabajo}
-                className="text-sm text-copper hover:underline disabled:opacity-40"
+                className="text-sm text-copper-text hover:underline disabled:opacity-40"
               >
                 {subiendoFotoTrabajo ? "Subiendo..." : "+ Agregar foto"}
               </button>
@@ -1158,7 +1164,7 @@ function CuentaContenido() {
             </div>
 
             {fotosTrabajo.length === 0 ? (
-              <p className="text-ink/50 text-sm">Todavía no subiste fotos de trabajos.</p>
+              <p className="text-ink-muted text-sm">Todavía no subiste fotos de trabajos.</p>
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {fotosTrabajo.map((f) => (
@@ -1182,7 +1188,7 @@ function CuentaContenido() {
       {perfil.rol === "Prestador" && seccion === "cobertura" && (
         <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-cobertura">
           <p className="font-medium text-ink mb-1">Cobertura</p>
-          <p className="text-xs text-ink/50 mb-4">
+          <p className="text-xs text-ink-muted mb-4">
             Marcá desde dónde vas a prestar tus servicios y hasta qué distancia estás dispuesto a moverte.
             Solo vas a aparecer en las búsquedas de clientes que estén dentro de ese radio.
           </p>
@@ -1198,7 +1204,7 @@ function CuentaContenido() {
           />
 
           <div className="flex items-center justify-between mt-3">
-            <p className="text-xs text-ink/50">
+            <p className="text-xs text-ink-muted">
               {coberturaLat !== null && coberturaLng !== null
                 ? "Tocá el mapa o arrastrá el pin para ajustar tu ubicación."
                 : "Todavía no marcaste tu ubicación."}
@@ -1207,14 +1213,14 @@ function CuentaContenido() {
               type="button"
               onClick={() => obtenerUbicacionActual()}
               disabled={buscandoUbicacion}
-              className="text-xs text-copper hover:underline disabled:opacity-40 whitespace-nowrap ml-3"
+              className="text-xs text-copper-text hover:underline disabled:opacity-40 whitespace-nowrap ml-3"
             >
               {buscandoUbicacion ? "Buscando..." : "Usar mi ubicación actual"}
             </button>
           </div>
 
           <div className="mt-5">
-            <label className="text-sm text-ink/60 flex items-center justify-between">
+            <label className="text-sm text-ink-muted flex items-center justify-between">
               <span>Radio de cobertura</span>
               <span className="font-mono text-ink text-sm">{coberturaRadioKm} km</span>
             </label>
@@ -1235,7 +1241,7 @@ function CuentaContenido() {
             type="button"
             onClick={handleGuardarCobertura}
             disabled={guardandoCobertura}
-            className="w-full mt-4 bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+            className="w-full mt-4 bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
           >
             {guardandoCobertura ? "Guardando..." : "Guardar cobertura"}
           </button>
@@ -1245,13 +1251,13 @@ function CuentaContenido() {
       {perfil.rol === "Prestador" && seccion === "horarios" && (
         <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-horarios">
           <p className="font-medium text-ink mb-1">Horarios en los que trabajo</p>
-          <p className="text-xs text-ink/50 mb-3">
+          <p className="text-xs text-ink-muted mb-3">
             Definí los días y horarios en los que estás disponible. Esto es lo que ven tus clientes y lo que se usa en tu agenda para saber cuándo podés recibir turnos.
           </p>
 
           <ul className="flex flex-col gap-2 mb-4">
             {bloques.length === 0 && (
-              <p className="text-ink/50 text-sm">Todavía no cargaste tus horarios.</p>
+              <p className="text-ink-muted text-sm">Todavía no cargaste tus horarios.</p>
             )}
             {bloques.map((b) => (
               <li key={b.id} className="flex justify-between items-center text-sm bg-paper rounded p-2">
@@ -1266,7 +1272,7 @@ function CuentaContenido() {
           </ul>
 
           <form onSubmit={handleAgregarBloque} className="flex gap-2 items-end flex-wrap">
-            <label className="text-xs text-ink/60">
+            <label className="text-xs text-ink-muted">
               Día
               <select
                 className="border border-ink/20 rounded p-2 bg-paper block mt-1"
@@ -1278,7 +1284,7 @@ function CuentaContenido() {
                 ))}
               </select>
             </label>
-            <label className="text-xs text-ink/60">
+            <label className="text-xs text-ink-muted">
               Desde
               <input
                 type="time"
@@ -1287,7 +1293,7 @@ function CuentaContenido() {
                 onChange={(e) => setHoraInicioNueva(e.target.value)}
               />
             </label>
-            <label className="text-xs text-ink/60">
+            <label className="text-xs text-ink-muted">
               Hasta
               <input
                 type="time"
@@ -1296,7 +1302,7 @@ function CuentaContenido() {
                 onChange={(e) => setHoraFinNueva(e.target.value)}
               />
             </label>
-            <button type="submit" className="bg-copper text-paper rounded px-4 py-2 text-sm hover:bg-copper-dark transition-colors">
+            <button type="submit" className="bg-copper-accion text-paper rounded px-4 py-2 text-sm hover:bg-copper-dark transition-colors">
               Agregar
             </button>
           </form>
@@ -1306,7 +1312,7 @@ function CuentaContenido() {
       {perfil.rol === "Prestador" && seccion === "verificacion" && (
         <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-verificacion">
           <p className="font-medium text-ink mb-1">Verificación de identidad</p>
-          <p className="text-xs text-ink/50 mb-4">
+          <p className="text-xs text-ink-muted mb-4">
             Verificar tu identidad le muestra a los clientes que presentaste tu DNI y un certificado de
             antecedentes penales. Un admin revisa los documentos antes de aprobarlos. La matrícula (o
             comprobante equivalente) se pide por separado, una vez por cada rubro que ofrezcas — ver más abajo.
@@ -1322,7 +1328,7 @@ function CuentaContenido() {
           {verifEstado?.estado === "Pendiente" && (
             <div className="border border-copper/30 bg-copper/5 rounded-lg p-4">
               <p className="text-sm text-ink font-medium mb-1">Verificación en revisión</p>
-              <p className="text-xs text-ink/60">
+              <p className="text-xs text-ink-muted">
                 Enviaste tus documentos
                 {verifEstado.enviadaEn ? ` el ${new Date(verifEstado.enviadaEn).toLocaleDateString("es-AR")}` : ""}.
                 Te avisamos apenas los revisemos.
@@ -1338,12 +1344,12 @@ function CuentaContenido() {
                   {verifEstado.motivoRechazo && (
                     <p className="text-xs text-red-700/80 dark:text-red-400/80 mt-1">{verifEstado.motivoRechazo}</p>
                   )}
-                  <p className="text-xs text-ink/50 mt-1">Podés corregir y volver a enviar tus documentos.</p>
+                  <p className="text-xs text-ink-muted mt-1">Podés corregir y volver a enviar tus documentos.</p>
                 </div>
               )}
 
               <form onSubmit={handleEnviarVerificacion} className="flex flex-col gap-3">
-                <label className="text-sm text-ink/60">
+                <label className="text-sm text-ink-muted">
                   Número de DNI
                   <input
                     type="text"
@@ -1369,27 +1375,27 @@ function CuentaContenido() {
                 {/* 02/10, a pedido del usuario: ayuda para quien todavía no tiene el certificado
                     tramitado — el link se muestra corto ("argentina.gob") en vez de la URL completa,
                     que es larga y arruinaría el diseño del formulario. */}
-                <p className="text-[11px] text-ink/50 -mt-1.5">
+                <p className="text-[11px] text-ink-muted -mt-1.5">
                   Si no lo tenés todavía, podés tramitarlo ingresando a{" "}
                   <a
                     href="https://www.argentina.gob.ar/justicia/reincidencia/antecedentespenales"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-copper hover:underline"
+                    className="text-copper-text hover:underline"
                   >
                     argentina.gob
                   </a>
                   .
                 </p>
 
-                <p className="text-[11px] text-ink/40">Imagen o PDF, hasta 8 MB cada uno.</p>
+                <p className="text-[11px] text-ink-muted">Imagen o PDF, hasta 8 MB cada uno.</p>
 
                 {errorVerif && <p className="text-red-700 dark:text-red-400 text-sm">{errorVerif}</p>}
 
                 <button
                   type="submit"
                   disabled={enviandoVerif}
-                  className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 mt-1"
+                  className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 mt-1"
                 >
                   {enviandoVerif ? "Enviando..." : "Enviar para revisión"}
                 </button>
@@ -1402,7 +1408,7 @@ function CuentaContenido() {
               una vez que hay al menos un servicio cargado en "Mis servicios". */}
           <div className="pt-4 mt-4 border-t border-ink/10">
             <p className="font-medium text-ink mb-1">Matrícula por rubro</p>
-            <p className="text-xs text-ink/50 mb-4">
+            <p className="text-xs text-ink-muted mb-4">
               Cada rubro que ofrecés necesita su propia matrícula (o comprobante equivalente) aprobada para
               aparecer en las búsquedas de esa categoría.
             </p>
@@ -1410,7 +1416,7 @@ function CuentaContenido() {
             {errorMatricula && <p className="text-red-700 dark:text-red-400 text-sm mb-3">{errorMatricula}</p>}
 
             {(!verifEstado || verifEstado.categorias.length === 0) ? (
-              <p className="text-ink/50 text-sm">
+              <p className="text-ink-muted text-sm">
                 Todavía no cargaste ningún servicio — agregá uno en la pestaña &quot;Mis servicios&quot; para
                 poder enviar su matrícula.
               </p>
@@ -1428,7 +1434,7 @@ function CuentaContenido() {
                             ? "bg-stamp/15 text-stamp"
                             : vc.estado === "Rechazado"
                             ? "bg-red-700/10 dark:bg-red-400/10 text-red-700 dark:text-red-400"
-                            : "bg-ink/10 text-ink/50"
+                            : "bg-ink/10 text-ink-muted"
                         }`}
                       >
                         {vc.estado === "SinEnviar" ? "sin enviar" : vc.estado}
@@ -1436,11 +1442,11 @@ function CuentaContenido() {
                     </div>
 
                     {vc.estado === "Aprobado" && (
-                      <p className="text-xs text-ink/50">Este rubro ya aparece en las búsquedas.</p>
+                      <p className="text-xs text-ink-muted">Este rubro ya aparece en las búsquedas.</p>
                     )}
 
                     {vc.estado === "Pendiente" && (
-                      <p className="text-xs text-ink/50">Enviaste la matrícula, te avisamos apenas la revisemos.</p>
+                      <p className="text-xs text-ink-muted">Enviaste la matrícula, te avisamos apenas la revisemos.</p>
                     )}
 
                     {(vc.estado === "SinEnviar" || vc.estado === "Rechazado") && (
@@ -1449,7 +1455,7 @@ function CuentaContenido() {
                           <p className="text-xs text-red-700/80 dark:text-red-400/80">{vc.motivoRechazo}</p>
                         )}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <label className="text-xs text-copper hover:underline cursor-pointer">
+                          <label className="text-xs text-copper-text hover:underline cursor-pointer">
                             {archivosMatricula[vc.prestadorCategoriaId] ? "Cambiar archivo" : "Elegir archivo"}
                             <input
                               type="file"
@@ -1464,14 +1470,14 @@ function CuentaContenido() {
                             />
                           </label>
                           {archivosMatricula[vc.prestadorCategoriaId] && (
-                            <span className="text-xs text-ink/60 truncate max-w-[160px]">
+                            <span className="text-xs text-ink-muted truncate max-w-[160px]">
                               {archivosMatricula[vc.prestadorCategoriaId]!.name}
                             </span>
                           )}
                           <button
                             onClick={() => handleEnviarMatricula(vc.prestadorCategoriaId)}
                             disabled={enviandoMatricula === vc.prestadorCategoriaId}
-                            className="text-xs bg-copper text-paper rounded px-2 py-1 hover:bg-copper-dark transition-colors disabled:opacity-40 ml-auto"
+                            className="text-xs bg-copper-accion text-paper rounded px-2 py-1 hover:bg-copper-dark transition-colors disabled:opacity-40 ml-auto"
                           >
                             {enviandoMatricula === vc.prestadorCategoriaId ? "Enviando..." : "Enviar"}
                           </button>
@@ -1486,10 +1492,10 @@ function CuentaContenido() {
         </div>
       )}
 
-      {perfil.rol === "Prestador" && seccion === "cobros" && (
+      {perfil.rol === "Prestador" && seccion === "cobros" && !ocultarCobros && (
         <div className="bg-surface border border-ink/10 rounded-lg p-5 mb-6" data-tour="cuenta-cobros">
           <p className="font-medium text-ink mb-1">Cobros</p>
-          <p className="text-xs text-ink/50 mb-4">
+          <p className="text-xs text-ink-muted mb-4">
             Cargá el CBU y el alias de la cuenta donde querés que te transfiramos tu parte de cada
             trabajo, una vez que el cliente lo marca como completado — la transferencia la hace un
             Admin de Oficy a mano. Pedimos los dos datos (no uno u otro) para poder verificar que
@@ -1499,7 +1505,7 @@ function CuentaContenido() {
 
           <form onSubmit={handleGuardarCobros} className="flex flex-col gap-4 max-w-sm">
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1">CBU (o CVU de Mercado Pago)</label>
+              <label className="text-xs font-medium text-ink-muted block mb-1">CBU (o CVU de Mercado Pago)</label>
               <input
                 type="text"
                 value={cbu}
@@ -1510,7 +1516,7 @@ function CuentaContenido() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1">Alias</label>
+              <label className="text-xs font-medium text-ink-muted block mb-1">Alias</label>
               <input
                 type="text"
                 value={alias}
@@ -1521,7 +1527,7 @@ function CuentaContenido() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1">Titular de la cuenta</label>
+              <label className="text-xs font-medium text-ink-muted block mb-1">Titular de la cuenta</label>
               <input
                 type="text"
                 value={titularCuentaCobro}
@@ -1532,7 +1538,7 @@ function CuentaContenido() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-ink/60 block mb-1">Día preferido para cobrar</label>
+              <label className="text-xs font-medium text-ink-muted block mb-1">Día preferido para cobrar</label>
               <select
                 value={diaPreferidoDeCobro}
                 onChange={(e) => setDiaPreferidoDeCobro(e.target.value === "" ? "" : Number(e.target.value))}
@@ -1545,7 +1551,7 @@ function CuentaContenido() {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-ink/40 mt-1">
+              <p className="text-xs text-ink-muted mt-1">
                 Solo días hábiles — es una referencia para que Oficy organice las transferencias, no
                 cambia cuándo se libera tu pago, eso sigue dependiendo de cuándo el cliente confirma
                 el trabajo.
@@ -1555,7 +1561,7 @@ function CuentaContenido() {
             <button
               type="submit"
               disabled={guardandoCobros}
-              className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 self-start px-4"
+              className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40 self-start px-4"
             >
               {guardandoCobros ? "Guardando..." : "Guardar"}
             </button>
@@ -1568,7 +1574,7 @@ function CuentaContenido() {
 
       {perfil.rol === "Prestador" && seccion === "ganancias" && <GananciasSeccion />}
 
-      <button onClick={handleLogout} className="text-sm text-ink/40 hover:text-ink/70 transition-colors">
+      <button onClick={handleLogout} className="text-sm text-ink-muted hover:text-ink/70 transition-colors">
         Cerrar sesión
       </button>
     </div>

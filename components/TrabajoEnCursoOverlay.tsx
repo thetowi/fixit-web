@@ -29,6 +29,10 @@ export default function TrabajoEnCursoOverlay() {
   const [ordenEnCurso, setOrdenEnCurso] = useState<OrdenEnCurso | null>(null);
   const [minimizado, setMinimizado] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
+  // Nuevo sistema de cobros (26/10): el prestador avisa "Terminé" desde acá; el cliente puede
+  // reportar un problema (pasa la orden a revisión).
+  const [marcandoTerminado, setMarcandoTerminado] = useState(false);
+  const [terminadoMarcado, setTerminadoMarcado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tiempo, setTiempo] = useState("00:00");
   const ordenIdAnteriorRef = useRef<string | null>(null);
@@ -140,6 +144,36 @@ export default function TrabajoEnCursoOverlay() {
     }
   }
 
+  async function marcarTerminado() {
+    if (!ordenEnCurso) return;
+    setMarcandoTerminado(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/ordenes/${ordenEnCurso.ordenId}/terminado`, { method: "PUT" });
+      setTerminadoMarcado(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No pudimos marcar el trabajo como terminado.");
+    } finally {
+      setMarcandoTerminado(false);
+    }
+  }
+
+  async function reportarProblema() {
+    if (!ordenEnCurso) return;
+    const comentario = window.prompt("Contanos qué pasó con el trabajo. Lo revisamos con el profesional.");
+    if (comentario === null) return;
+    setError(null);
+    try {
+      await apiFetch(`/api/ordenes/${ordenEnCurso.ordenId}/reportar-problema`, {
+        method: "PUT",
+        body: JSON.stringify({ comentario: comentario.trim() || undefined }),
+      });
+      setOrdenEnCurso(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No pudimos reportar el problema.");
+    }
+  }
+
   if (!ordenEnCurso || !usuario) return null;
 
   const Icono = iconoCategoria(ordenEnCurso.categoriaIcono);
@@ -150,7 +184,7 @@ export default function TrabajoEnCursoOverlay() {
     return (
       <button
         onClick={() => setMinimizado(false)}
-        className="sticky top-0 z-40 w-full flex items-center gap-3 px-4 py-3 bg-copper text-left"
+        className="sticky top-0 z-40 w-full flex items-center gap-3 px-4 py-3 bg-copper-accion text-left"
       >
         <span className="w-8 h-8 rounded-full bg-ink/20 flex items-center justify-center shrink-0">
           <Icono size={16} className="text-ink" style={{ animation: "fixitRockTool 2.4s ease-in-out infinite" }} />
@@ -256,14 +290,12 @@ export default function TrabajoEnCursoOverlay() {
               <button
                 onClick={finalizarTrabajo}
                 disabled={finalizando}
-                className="w-full h-[54px] rounded-2xl bg-safety text-ink font-bold text-base disabled:opacity-60 transition-opacity"
+                className="w-full h-[54px] rounded-2xl bg-safety text-on-safety font-bold text-base disabled:opacity-60 transition-opacity"
               >
                 {finalizando ? "Finalizando..." : "Finalizar trabajo"}
               </button>
               <button
-                onClick={() =>
-                  alert("Pronto vas a poder reportar un problema desde acá. Mientras tanto, contactanos por el chat.")
-                }
+                onClick={reportarProblema}
                 className="text-sm opacity-55 hover:opacity-80 transition-opacity"
               >
                 Reportar un problema
@@ -279,7 +311,7 @@ export default function TrabajoEnCursoOverlay() {
             <button
               onClick={reanudarTrabajo}
               disabled={reanudando}
-              className="w-full h-[54px] rounded-2xl bg-safety text-ink font-bold text-base disabled:opacity-60 transition-opacity"
+              className="w-full h-[54px] rounded-2xl bg-safety text-on-safety font-bold text-base disabled:opacity-60 transition-opacity"
             >
               {reanudando ? "Reanudando..." : "Reanudar trabajo"}
             </button>
@@ -306,7 +338,7 @@ export default function TrabajoEnCursoOverlay() {
               <button
                 onClick={pausarTrabajo}
                 disabled={pausando}
-                className="flex-1 h-10 rounded-lg bg-copper text-paper text-sm font-medium disabled:opacity-60"
+                className="flex-1 h-10 rounded-lg bg-copper-accion text-paper text-sm font-medium disabled:opacity-60"
               >
                 {pausando ? "Pausando..." : "Confirmar pausa"}
               </button>
@@ -314,6 +346,15 @@ export default function TrabajoEnCursoOverlay() {
           </div>
         ) : (
           <>
+            {!terminadoMarcado && (
+              <button
+                onClick={marcarTerminado}
+                disabled={marcandoTerminado}
+                className="w-full h-[54px] rounded-2xl bg-safety text-on-safety font-bold text-base disabled:opacity-60 transition-opacity"
+              >
+                {marcandoTerminado ? "Avisando..." : "Terminé"}
+              </button>
+            )}
             <button
               onClick={() => setMostrarFormPausa(true)}
               className="w-full h-[54px] rounded-2xl border border-white/20 text-paper font-bold text-base hover:bg-white/5 transition-colors"
@@ -326,7 +367,11 @@ export default function TrabajoEnCursoOverlay() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[#F4F1EA] animate-bounce [animation-delay:150ms]" />
                 <span className="w-1.5 h-1.5 rounded-full bg-[#F4F1EA] animate-bounce [animation-delay:300ms]" />
               </span>
-              <span className="text-sm opacity-75">Esperando que el cliente confirme la finalización</span>
+              <span className="text-sm opacity-75">
+                {terminadoMarcado
+                  ? "Le avisamos al cliente. Si no responde en 72 h, se confirma solo. También podés cargar su código en Mis órdenes."
+                  : "Cuando termines, tocá «Terminé» o cargá el código del cliente en Mis órdenes."}
+              </span>
             </div>
           </>
         )}

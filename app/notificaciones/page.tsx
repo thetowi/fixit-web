@@ -66,7 +66,7 @@ export default function NotificacionesPage() {
     }
   }
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
 
   const hayNoLeidas = notificaciones.some((n) => !n.leida);
 
@@ -78,7 +78,7 @@ export default function NotificacionesPage() {
           <button
             onClick={marcarTodasLeidas}
             disabled={marcandoTodas}
-            className="text-sm text-copper hover:underline disabled:opacity-50"
+            className="text-sm text-copper-text hover:underline disabled:opacity-50"
           >
             {marcandoTodas ? "Marcando..." : "Marcar todas como leídas"}
           </button>
@@ -88,7 +88,7 @@ export default function NotificacionesPage() {
       {error && <p className="text-red-700 dark:text-red-400 text-sm mb-4">{error}</p>}
 
       {notificaciones.length === 0 && !error && (
-        <p className="text-ink/50 text-sm">Todavía no tenés notificaciones.</p>
+        <p className="text-ink-muted text-sm">Todavía no tenés notificaciones.</p>
       )}
 
       <ul className="flex flex-col gap-2">
@@ -101,11 +101,11 @@ export default function NotificacionesPage() {
               }`}
             >
               <div className="flex items-start gap-2.5">
-                {!n.leida && <span className="w-2 h-2 rounded-full bg-copper mt-1.5 shrink-0" />}
+                {!n.leida && <span className="w-2 h-2 rounded-full bg-copper-accion mt-1.5 shrink-0" />}
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm text-ink ${n.leida ? "" : "font-semibold"}`}>{n.titulo}</p>
-                  <p className="text-sm text-ink/60 mt-0.5">{n.cuerpo}</p>
-                  <p className="text-xs text-ink/40 mt-1.5">{tiempoRelativo(n.creadoEn)}</p>
+                  <p className="text-sm text-ink-muted mt-0.5">{n.cuerpo}</p>
+                  <p className="text-xs text-ink-muted mt-1.5">{tiempoRelativo(n.creadoEn)}</p>
                 </div>
               </div>
             </button>

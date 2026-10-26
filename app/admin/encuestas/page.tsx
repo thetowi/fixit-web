@@ -50,7 +50,7 @@ function Grafico({ titulo, datos, total }: { titulo: string; datos: [string, num
   return (
     <div className="bg-surface border border-ink/10 rounded-lg p-4">
       <p className="font-medium text-ink text-sm mb-3">{titulo}</p>
-      {datos.length === 0 && <p className="text-xs text-ink/50">Sin respuestas todavía.</p>}
+      {datos.length === 0 && <p className="text-xs text-ink-muted">Sin respuestas todavía.</p>}
       <ul className="flex flex-col gap-2">
         {datos.map(([etiqueta, n]) => (
           <li key={etiqueta}>
@@ -61,7 +61,7 @@ function Grafico({ titulo, datos, total }: { titulo: string; datos: [string, num
               </span>
             </div>
             <div className="h-2 bg-ink/10 rounded-full overflow-hidden">
-              <div className="h-full bg-copper" style={{ width: `${(n / max) * 100}%` }} />
+              <div className="h-full bg-copper-accion" style={{ width: `${(n / max) * 100}%` }} />
             </div>
           </li>
         ))}
@@ -99,11 +99,11 @@ function FichaRespuesta({ r }: { r: RespuestaEncuesta }) {
     <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 pt-3 mt-3 border-t border-ink/10">
       {filas.map(([pregunta, respuesta]) => (
         <div key={pregunta} className={pregunta === "Dudas o comentarios" ? "sm:col-span-2" : ""}>
-          <dt className="text-xs text-ink/50">{pregunta}</dt>
-          <dd className={`text-sm mt-0.5 ${respuesta ? "text-ink" : "text-ink/35 italic"}`}>{respuesta ?? "Sin responder"}</dd>
+          <dt className="text-xs text-ink-muted">{pregunta}</dt>
+          <dd className={`text-sm mt-0.5 ${respuesta ? "text-ink" : "text-ink-muted italic"}`}>{respuesta ?? "Sin responder"}</dd>
         </div>
       ))}
-      <div className="sm:col-span-2 text-xs text-ink/40">
+      <div className="sm:col-span-2 text-xs text-ink-muted">
         Respondió el {new Date(r.creadoEn).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
       </div>
     </dl>
@@ -201,7 +201,7 @@ export default function AdminEncuestasPage() {
     URL.revokeObjectURL(url);
   }
 
-  if (cargando) return <p className="text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="text-ink-muted">Cargando...</p>;
   if (error) return <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>;
 
   return (
@@ -210,24 +210,24 @@ export default function AdminEncuestasPage() {
         <div className="flex gap-6">
           <div>
             <p className="font-display text-3xl text-ink">{total}</p>
-            <p className="text-xs text-ink/50">respuestas</p>
+            <p className="text-xs text-ink-muted">respuestas</p>
           </div>
           <div>
             <p className="font-display text-3xl text-ink">{interesados.length}</p>
-            <p className="text-xs text-ink/50">quieren probarla</p>
+            <p className="text-xs text-ink-muted">quieren probarla</p>
           </div>
         </div>
         <button
           onClick={descargarCsv}
           disabled={total === 0}
-          className="text-sm border border-copper/30 text-copper rounded px-3 py-1.5 hover:bg-copper/5 transition-colors disabled:opacity-40"
+          className="text-sm border border-copper/30 text-copper-text rounded px-3 py-1.5 hover:bg-copper/5 transition-colors disabled:opacity-40"
         >
           Descargar CSV
         </button>
       </div>
 
       {total === 0 ? (
-        <p className="text-ink/50 text-sm">Todavía no hay respuestas. El link para compartir es /encuesta.</p>
+        <p className="text-ink-muted text-sm">Todavía no hay respuestas. El link para compartir es /encuesta.</p>
       ) : (
         <>
           <section className="grid gap-4 md:grid-cols-2">
@@ -256,11 +256,11 @@ export default function AdminEncuestasPage() {
           <section>
             <h2 className="font-display text-lg text-ink mb-3">Dudas y comentarios ({dudas.length})</h2>
             <ul className="flex flex-col gap-2">
-              {dudas.length === 0 && <p className="text-ink/50 text-sm">Nadie escribió comentarios todavía.</p>}
+              {dudas.length === 0 && <p className="text-ink-muted text-sm">Nadie escribió comentarios todavía.</p>}
               {dudas.map((r) => (
                 <li key={r.id} className="bg-surface border border-ink/10 rounded-lg p-3 text-sm text-ink/80">
                   {r.dudas}
-                  <span className="block text-xs text-ink/40 mt-1">
+                  <span className="block text-xs text-ink-muted mt-1">
                     {r.nombre ?? "Sin nombre"} · {r.rubros.join(", ")} · {new Date(r.creadoEn).toLocaleDateString("es-AR")}
                   </span>
                 </li>
@@ -284,7 +284,7 @@ export default function AdminEncuestasPage() {
                     type="button"
                     onClick={() => setFiltroContactos(valor)}
                     className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                      filtroContactos === valor ? "bg-surface text-ink shadow-sm" : "text-ink/50 hover:text-ink"
+                      filtroContactos === valor ? "bg-surface text-ink shadow-sm" : "text-ink-muted hover:text-ink"
                     }`}
                   >
                     {etiqueta}
@@ -315,9 +315,9 @@ export default function AdminEncuestasPage() {
                 <option value="__otro">Otro rubro (escrito a mano)</option>
               </select>
             </div>
-            <p className="text-xs text-ink/50 mb-2">Tocá a una persona para ver todas sus respuestas.</p>
+            <p className="text-xs text-ink-muted mb-2">Tocá a una persona para ver todas sus respuestas.</p>
             <ul className="flex flex-col gap-2">
-              {contactos.length === 0 && <p className="text-ink/50 text-sm">No hay contactos que coincidan.</p>}
+              {contactos.length === 0 && <p className="text-ink-muted text-sm">No hay contactos que coincidan.</p>}
               {contactos.map((r) => (
                 <li
                   key={r.id}
@@ -330,14 +330,14 @@ export default function AdminEncuestasPage() {
                       aria-expanded={abierta === r.id}
                       className="text-left flex-1 min-w-0 group"
                     >
-                      <p className="font-medium text-ink text-sm group-hover:text-copper transition-colors">
-                        <span className="inline-block w-4 text-ink/40">{abierta === r.id ? "−" : "+"}</span>
+                      <p className="font-medium text-ink text-sm group-hover:text-copper-text transition-colors">
+                        <span className="inline-block w-4 text-ink-muted">{abierta === r.id ? "−" : "+"}</span>
                         {r.nombre}{" "}
-                        <span className="text-ink/50 font-normal">
+                        <span className="text-ink-muted font-normal">
                           · {[...r.rubros.filter((x) => x !== "Otro" || !r.rubroOtro), ...(r.rubroOtro ? [r.rubroOtro] : [])].join(", ")}
                         </span>
                       </p>
-                      <p className="text-xs text-ink/50 pl-4">
+                      <p className="text-xs text-ink-muted pl-4">
                         {r.interesProbar} · {r.localidad ?? "—"} · {new Date(r.creadoEn).toLocaleDateString("es-AR")}
                       </p>
                     </button>
@@ -345,7 +345,7 @@ export default function AdminEncuestasPage() {
                       href={`https://wa.me/${(r.whatsApp ?? "").replace(/\D/g, "")}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-copper hover:underline border border-copper/30 rounded px-2 py-1"
+                      className="text-sm text-copper-text hover:underline border border-copper/30 rounded px-2 py-1"
                     >
                       {r.whatsApp}
                     </a>

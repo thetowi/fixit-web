@@ -5,13 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { obtenerUsuario } from "@/lib/auth";
 import { Orden } from "@/types/ordenes";
+import { obtenerUbicacionActual } from "@/lib/geolocation";
 import { CrearCalificacionRequest, CRITERIOS_CALIFICACION } from "@/types/calificaciones";
 import OrdenTicket, { ESTADO_LABELS } from "@/components/OrdenTicket";
 import SelectorEstrellas from "@/components/SelectorEstrellas";
 
 // Orden fijo (sigue el flujo real de una orden) para que el filtro de estado no salte de forma
 // arbitraria según qué estados haya en los datos.
-const ORDEN_ESTADOS = ["PendientePago", "Pagado", "EnCurso", "Completado", "Cancelado", "EnDisputa"];
+const ORDEN_ESTADOS = ["PendientePago", "Pagado", "Aceptada", "EnCurso", "Completado", "Cancelado", "EnDisputa"];
+
+// Nuevo sistema de cobros (26/10): estados en los que el trabajo está acordado y todavía no se
+// confirmó. "Aceptada" es el modo Directo (el cliente le paga directo al profesional).
+const ESTADOS_ABIERTOS = ["Aceptada", "EnCurso"];
+const HORAS_AUTO_CONFIRMACION = 72; // mismo valor que ReglasNegocio.HorasAutoConfirmacion
 
 const CALIFICACION_INICIAL: Omit<CrearCalificacionRequest, "comentario"> = {
   puntualidad: 0,
@@ -48,7 +54,7 @@ function etiquetaMes(clave: string): string {
 
 export default function OrdenesPage() {
   return (
-    <Suspense fallback={<p className="p-6 text-ink/60">Cargando...</p>}>
+    <Suspense fallback={<p className="p-6 text-ink-muted">Cargando...</p>}>
       <OrdenesContenido />
     </Suspense>
   );
@@ -84,6 +90,10 @@ function OrdenesContenido() {
   const [comentarioCliente, setComentarioCliente] = useState("");
   const [filtroMes, setFiltroMes] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  // Cierre con código (26/10): orden en la que el prestador está cargando el código del cliente.
+  const [ordenCodigo, setOrdenCodigo] = useState<string | null>(null);
+  const [codigo, setCodigo] = useState("");
+  const [procesandoId, setProcesandoId] = useState<string | null>(null);
 
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -149,6 +159,86 @@ function OrdenesContenido() {
       await cargarOrdenes();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al actualizar la orden");
+    }
+  }
+
+  // ===== Nuevo sistema de cobros (26/10) =====
+  // El prestador avisa que terminó: el cliente tiene 72 h para confirmar o reportar un problema;
+  // si no responde, se confirma solo.
+  async function handleTermine(ordenId: string) {
+    if (!window.confirm("¿Terminaste el trabajo? Le vamos a pedir al cliente que lo confirme. Si no responde en 72 horas, se confirma solo.")) return;
+    setError(null);
+    setProcesandoId(ordenId);
+    try {
+      await apiFetch(`/api/ordenes/${ordenId}/terminado`, { method: "PUT" });
+      await cargarOrdenes();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No pudimos marcar el trabajo como terminado");
+    } finally {
+      setProcesandoId(null);
+    }
+  }
+
+  // El prestador carga el código de 4 dígitos que le dicta el cliente: confirma el trabajo al toque.
+  async function handleCerrarConCodigo(e: React.FormEvent, ordenId: string) {
+    e.preventDefault();
+    setError(null);
+    setProcesandoId(ordenId);
+    try {
+      await apiFetch(`/api/ordenes/${ordenId}/cerrar-con-codigo`, {
+        method: "PUT",
+        body: JSON.stringify({ codigo }),
+      });
+      setOrdenCodigo(null);
+      setCodigo("");
+      await cargarOrdenes();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No pudimos confirmar el código");
+      await cargarOrdenes(); // por si se bloqueó el código
+    } finally {
+      setProcesandoId(null);
+    }
+  }
+
+  // Check-in "Llegué" (fase 4): el prestador manda su ubicación al llegar al domicilio. Le
+  // avisamos al cliente y queda como respaldo de que el trabajo se hizo.
+  async function handleLlegue(ordenId: string) {
+    setError(null);
+    setProcesandoId(ordenId);
+    try {
+      const { latitud, longitud } = await obtenerUbicacionActual();
+      await apiFetch(`/api/ordenes/${ordenId}/check-in`, {
+        method: "PUT",
+        body: JSON.stringify({ latitud, longitud }),
+      });
+      await cargarOrdenes();
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Necesitamos tu ubicación para avisarle al cliente que llegaste. Habilitá el permiso en tu navegador."
+      );
+    } finally {
+      setProcesandoId(null);
+    }
+  }
+
+  // El cliente avisa que el trabajo no quedó bien: la orden pasa a revisión y no se confirma sola.
+  async function handleReportarProblema(ordenId: string) {
+    const comentario = window.prompt("Contanos qué pasó con el trabajo. Lo revisamos con el profesional.");
+    if (comentario === null) return;
+    setError(null);
+    setProcesandoId(ordenId);
+    try {
+      await apiFetch(`/api/ordenes/${ordenId}/reportar-problema`, {
+        method: "PUT",
+        body: JSON.stringify({ comentario: comentario.trim() || undefined }),
+      });
+      await cargarOrdenes();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No pudimos reportar el problema");
+    } finally {
+      setProcesandoId(null);
     }
   }
 
@@ -283,7 +373,7 @@ function OrdenesContenido() {
     }
   }
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
 
   const esCliente = usuario?.rol === "Cliente";
 
@@ -345,7 +435,7 @@ function OrdenesContenido() {
       )}
 
       {estadoPago === "pendiente" && (
-        <p className="bg-safety/10 text-safety text-sm rounded p-3 mb-4 border border-safety/30">
+        <p className="bg-safety/10 text-safety-text text-sm rounded p-3 mb-4 border border-safety/30">
           Tu pago quedó pendiente de aprobación en Mercado Pago. Te va a figurar acá apenas se confirme.
         </p>
       )}
@@ -359,11 +449,11 @@ function OrdenesContenido() {
       {error && <p className="text-red-700 dark:text-red-400 text-sm mb-4">{error}</p>}
 
       {ordenes.length === 0 && !error && (
-        <p className="text-ink/50 text-sm">Todavía no tenés órdenes.</p>
+        <p className="text-ink-muted text-sm">Todavía no tenés órdenes.</p>
       )}
 
       {ordenes.length > 0 && ordenesFiltradas.length === 0 && (
-        <p className="text-ink/50 text-sm">
+        <p className="text-ink-muted text-sm">
           {hayFiltrosActivos ? "No tenés órdenes con ese filtro." : "No tenés órdenes."}
         </p>
       )}
@@ -381,7 +471,7 @@ function OrdenesContenido() {
                 linkPerfilClienteId={esPrestador ? o.clienteId : undefined}
               >
                 <div className="flex items-center gap-3 flex-wrap">
-                  {esPrestador && o.estado === "Pagado" && (
+                  {esPrestador && (o.estado === "Pagado" || o.estado === "Aceptada") && (
                     <button
                       onClick={() => handleAccion(o.id, "iniciar")}
                       className="text-sm bg-ink text-paper rounded px-3 py-1 hover:bg-ink/80 transition-colors"
@@ -390,7 +480,7 @@ function OrdenesContenido() {
                     </button>
                   )}
 
-                  {esCliente && o.estado === "EnCurso" && (
+                  {esCliente && ESTADOS_ABIERTOS.includes(o.estado) && (
                     <button
                       onClick={() => handleAccion(o.id, "completar")}
                       className="text-sm bg-ink text-paper rounded px-3 py-1 hover:bg-ink/80 transition-colors"
@@ -399,7 +489,55 @@ function OrdenesContenido() {
                     </button>
                   )}
 
-                  {esPrestador && o.estado === "Pagado" && o.fechaHoraProgramada && (
+                  {/* Nuevo sistema de cobros (26/10): el cliente puede frenar la confirmación
+                      automática si el profesional marcó "Terminé" pero el trabajo no quedó bien. */}
+                  {esCliente && ESTADOS_ABIERTOS.includes(o.estado) && o.terminadoPorPrestadorEn && (
+                    <button
+                      onClick={() => handleReportarProblema(o.id)}
+                      disabled={procesandoId === o.id}
+                      className="text-sm border border-red-700/40 text-red-700 dark:text-red-400 rounded px-3 py-1 hover:border-red-700 transition-colors disabled:opacity-40"
+                    >
+                      Hubo un problema
+                    </button>
+                  )}
+
+                  {esPrestador && (o.estado === "Aceptada" || o.estado === "Pagado" || o.estado === "EnCurso") && !o.checkInEn && (
+                    <button
+                      onClick={() => handleLlegue(o.id)}
+                      disabled={procesandoId === o.id}
+                      className="text-sm border border-copper text-copper-text rounded px-3 py-1 hover:bg-copper/5 transition-colors disabled:opacity-40"
+                    >
+                      Llegué
+                    </button>
+                  )}
+
+                  {esPrestador && ESTADOS_ABIERTOS.includes(o.estado) && (
+                    <>
+                      {!o.codigoCierreBloqueado && ordenCodigo !== o.id && (
+                        <button
+                          onClick={() => {
+                            setError(null);
+                            setCodigo("");
+                            setOrdenCodigo(o.id);
+                          }}
+                          className="text-sm bg-copper-accion text-paper rounded px-3 py-1 hover:bg-copper-dark transition-colors"
+                        >
+                          Ingresar código del cliente
+                        </button>
+                      )}
+                      {!o.terminadoPorPrestadorEn && (
+                        <button
+                          onClick={() => handleTermine(o.id)}
+                          disabled={procesandoId === o.id}
+                          className="text-sm border border-ink/30 text-ink rounded px-3 py-1 hover:border-ink transition-colors disabled:opacity-40"
+                        >
+                          Terminé
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {esPrestador && (o.estado === "Pagado" || o.estado === "Aceptada") && o.fechaHoraProgramada && (
                     <button
                       onClick={() => handleReportarInasistencia(o.id)}
                       className="text-sm border border-red-700/40 text-red-700 dark:text-red-400 rounded px-3 py-1 hover:border-red-700 transition-colors"
@@ -408,14 +546,21 @@ function OrdenesContenido() {
                     </button>
                   )}
 
+                  {o.estado === "EnDisputa" && o.problemaClienteReportadoEn && (
+                    <span className="text-sm text-safety-text">
+                      En revisión: {esCliente ? "reportaste" : "el cliente reportó"} un problema con el trabajo
+                      {o.problemaClienteComentario ? ` («${o.problemaClienteComentario}»)` : ""}.
+                    </span>
+                  )}
+
                   {o.estado === "EnDisputa" && o.inasistenciaClienteReportadaEn && !o.inasistenciaResueltaEn && (
-                    <span className="text-sm text-safety">
+                    <span className="text-sm text-safety-text">
                       En revisión por un Admin: se reportó que el cliente no estaba en el domicilio.
                     </span>
                   )}
 
                   {o.estado !== "EnDisputa" && o.inasistenciaResueltaEn && (
-                    <span className="text-sm text-ink/40">
+                    <span className="text-sm text-ink-muted">
                       Disputa por inasistencia resuelta{o.inasistenciaResolucion === "PagoPrestador" ? " a favor del prestador" : ""}.
                     </span>
                   )}
@@ -433,7 +578,7 @@ function OrdenesContenido() {
                   )}
 
                   {o.yaCalificada && (
-                    <span className="text-sm text-ink/40">Ya calificaste este trabajo</span>
+                    <span className="text-sm text-ink-muted">Ya calificaste este trabajo</span>
                   )}
 
                   {esPrestador && o.estado === "Completado" && !o.yaCalificadaComoCliente && (
@@ -449,13 +594,97 @@ function OrdenesContenido() {
                   )}
 
                   {o.yaCalificadaComoCliente && (
-                    <span className="text-sm text-ink/40">Ya calificaste a este cliente</span>
+                    <span className="text-sm text-ink-muted">Ya calificaste a este cliente</span>
                   )}
                 </div>
 
+                {/* Nuevo sistema de cobros (26/10): código de cierre que el cliente le dicta al
+                    profesional cuando termina. Es lo que confirma que el trabajo se hizo por Oficy. */}
+                {esCliente && ESTADOS_ABIERTOS.includes(o.estado) && o.codigoCierre && (
+                  <div className="mt-3 rounded-lg border border-copper/30 bg-copper/5 p-3 flex items-center gap-3">
+                    <span className="font-mono text-2xl tracking-[0.3em] text-ink">{o.codigoCierre}</span>
+                    <span className="text-xs text-ink-muted leading-snug">
+                      Tu código de cierre. Dictáselo al profesional solo cuando el trabajo esté terminado y conforme.
+                    </span>
+                  </div>
+                )}
+
+                {o.checkInEn && ESTADOS_ABIERTOS.includes(o.estado) && (
+                  <p className="mt-2 text-xs text-ink-muted">
+                    {esCliente ? "El profesional avisó que llegó" : "Avisaste que llegaste"} a las{" "}
+                    {new Date(o.checkInEn).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                    {esPrestador && o.checkInDistanciaMetros != null && o.checkInDistanciaMetros > 500
+                      ? ` (a ${(o.checkInDistanciaMetros / 1000).toLocaleString("es-AR", { maximumFractionDigits: 1 })} km de la dirección del cliente)`
+                      : ""}
+                    .
+                  </p>
+                )}
+
+                {esCliente && ESTADOS_ABIERTOS.includes(o.estado) && o.terminadoPorPrestadorEn && (
+                  <p className="mt-2 text-xs text-ink-muted">
+                    El profesional marcó el trabajo como terminado. Si no lo confirmás ni reportás un problema, se
+                    confirma solo el{" "}
+                    {new Date(new Date(o.terminadoPorPrestadorEn).getTime() + HORAS_AUTO_CONFIRMACION * 3600_000).toLocaleString(
+                      "es-AR",
+                      { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }
+                    )}
+                    .
+                  </p>
+                )}
+
+                {esPrestador && ESTADOS_ABIERTOS.includes(o.estado) && o.terminadoPorPrestadorEn && (
+                  <p className="mt-2 text-xs text-ink-muted">
+                    Esperando que el cliente confirme. Si no responde, se confirma solo a las {HORAS_AUTO_CONFIRMACION} horas.
+                  </p>
+                )}
+
+                {esPrestador && ESTADOS_ABIERTOS.includes(o.estado) && o.codigoCierreBloqueado && (
+                  <p className="mt-2 text-xs text-red-700 dark:text-red-400">
+                    El código se bloqueó por demasiados intentos. Marcá el trabajo como terminado y pedile al cliente que lo
+                    confirme desde la app.
+                  </p>
+                )}
+
+                {esPrestador && ordenCodigo === o.id && (
+                  <form
+                    onSubmit={(e) => handleCerrarConCodigo(e, o.id)}
+                    className="mt-3 pt-3 border-t border-ink/10 flex flex-col gap-2"
+                  >
+                    <label className="text-xs text-ink-muted">
+                      Pedile al cliente el código de 4 dígitos que ve en su orden.
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={4}
+                        autoFocus
+                        placeholder="0000"
+                        value={codigo}
+                        onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        className="w-28 border border-ink/20 rounded p-2 bg-paper font-mono text-lg tracking-[0.3em] text-center"
+                      />
+                      <button
+                        type="submit"
+                        disabled={codigo.length !== 4 || procesandoId === o.id}
+                        className="text-sm bg-copper-accion text-paper rounded px-4 hover:bg-copper-dark transition-colors disabled:opacity-40"
+                      >
+                        {procesandoId === o.id ? "Confirmando..." : "Confirmar trabajo"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOrdenCodigo(null)}
+                        className="text-sm text-ink-muted hover:text-ink px-2"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
+
                 {ordenCalificando === o.id && (
                   <form onSubmit={handleEnviarCalificacion} className="mt-3 pt-3 border-t border-ink/10 flex flex-col gap-3">
-                    <p className="text-xs text-ink/50">
+                    <p className="text-xs text-ink-muted">
                       Calificá cada aspecto del trabajo. Con esto armamos la calificación general del prestador.
                     </p>
 
@@ -468,7 +697,7 @@ function OrdenesContenido() {
                             onClick={() =>
                               setCriterioExpandido((prev) => (prev === criterio.key ? null : criterio.key))
                             }
-                            className="text-ink/40 hover:text-ink/70 text-xs w-4 h-4 rounded-full border border-ink/30 flex items-center justify-center leading-none shrink-0"
+                            className="text-ink-muted hover:text-ink/70 text-xs w-4 h-4 rounded-full border border-ink/30 flex items-center justify-center leading-none shrink-0"
                             aria-label={`Qué significa ${criterio.label}`}
                           >
                             i
@@ -550,7 +779,7 @@ function OrdenesContenido() {
                       <button
                         type="submit"
                         disabled={subiendoFotos}
-                        className="bg-copper text-paper rounded p-2 flex-1 text-sm disabled:opacity-60"
+                        className="bg-copper-accion text-paper rounded p-2 flex-1 text-sm disabled:opacity-60"
                       >
                         {subiendoFotos ? "Enviando..." : "Enviar calificación"}
                       </button>
@@ -560,7 +789,7 @@ function OrdenesContenido() {
 
                 {ordenCalificandoCliente === o.id && (
                   <form onSubmit={handleEnviarCalificacionCliente} className="mt-3 pt-3 border-t border-ink/10 flex flex-col gap-3">
-                    <p className="text-xs text-ink/50">Calificá cómo fue trabajar con este cliente.</p>
+                    <p className="text-xs text-ink-muted">Calificá cómo fue trabajar con este cliente.</p>
 
                     {CRITERIOS_CALIFICACION_CLIENTE.map((criterio) => (
                       <div key={criterio.key} className="flex items-center justify-between gap-2">
@@ -593,7 +822,7 @@ function OrdenesContenido() {
                       >
                         Cancelar
                       </button>
-                      <button type="submit" className="bg-copper text-paper rounded p-2 flex-1 text-sm">
+                      <button type="submit" className="bg-copper-accion text-paper rounded p-2 flex-1 text-sm">
                         Enviar calificación
                       </button>
                     </div>

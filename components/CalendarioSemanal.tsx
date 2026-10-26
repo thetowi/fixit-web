@@ -173,7 +173,7 @@ export default function CalendarioSemanal({
               : "bg-paper border-transparent hover:border-ink/8 hover:shadow-sm"
         }`}
       >
-        <p className="font-mono text-[10px] text-ink/40 leading-none">
+        <p className="font-mono text-[10px] text-ink-muted leading-none">
           {formatoHora(minutosDelDia(new Date(orden.fechaHoraProgramada!)))}
           {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
         </p>
@@ -181,7 +181,7 @@ export default function CalendarioSemanal({
           {orden.clienteNombreCompleto}
         </p>
         {orden.descripcion && (
-          <p className={`text-[11.5px] text-ink/55 leading-snug truncate mt-0.5 ${visitaCancelada ? "line-through" : ""}`}>
+          <p className={`text-[11.5px] text-ink-muted leading-snug truncate mt-0.5 ${visitaCancelada ? "line-through" : ""}`}>
             {orden.descripcion}
           </p>
         )}
@@ -195,7 +195,7 @@ export default function CalendarioSemanal({
           // un elemento de ancho acotado.
           <span
             className={`block w-fit max-w-full truncate mx-auto mt-2 text-[8.5px] font-semibold px-1.5 py-0.5 rounded-full ${
-              visitaCancelada ? "bg-ink/15 text-ink/50" : visitaRealizada ? "bg-green-600 text-paper" : "bg-copper text-paper"
+              visitaCancelada ? "bg-ink/15 text-ink-muted" : visitaRealizada ? "bg-green-600 text-paper" : "bg-copper-accion text-paper"
             }`}
           >
             {visitaCancelada ? "Cancelada" : visitaRealizada ? "✓ Realizada" : "📍 Visita"}
@@ -227,11 +227,11 @@ export default function CalendarioSemanal({
                   className={`flex flex-col gap-2 rounded-2xl ${esHoy ? "bg-copper/[0.055] p-2" : "p-0"}`}
                 >
                   <div className="text-center pb-1">
-                    <p className={`font-mono text-[10px] uppercase tracking-wide font-semibold ${esHoy ? "text-copper" : "text-ink/40"}`}>
+                    <p className={`font-mono text-[10px] uppercase tracking-wide font-semibold ${esHoy ? "text-copper-text" : "text-ink-muted"}`}>
                       {DIAS_CORTOS[dia.getDay()]}
                     </p>
                     {esHoy ? (
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full mt-1 text-sm font-bold bg-copper text-paper">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full mt-1 text-sm font-bold bg-copper-accion text-paper">
                         {dia.getDate()}
                       </span>
                     ) : (
@@ -245,7 +245,7 @@ export default function CalendarioSemanal({
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
                         <span className="w-7 h-7 rounded-full border-[1.5px] border-dashed border-ink/20 mb-2" />
-                        <span className="text-[10px] text-ink/35">Día libre</span>
+                        <span className="text-[10px] text-ink-muted">Día libre</span>
                       </div>
                     )}
                   </div>
@@ -253,7 +253,7 @@ export default function CalendarioSemanal({
                   {onCeldaDisponibleClick && (
                     <button
                       onClick={() => agregarTurno(dia)}
-                      className="text-[11px] font-medium text-ink/35 hover:text-copper py-1.5 rounded-lg hover:bg-copper/[0.06] transition-colors"
+                      className="text-[11px] font-medium text-ink-muted hover:text-copper-text py-1.5 rounded-lg hover:bg-copper/[0.06] transition-colors"
                     >
                       + Agregar turno
                     </button>
@@ -277,17 +277,17 @@ export default function CalendarioSemanal({
                 onClick={() => setDiaMovilIndex(i)}
                 className={`flex flex-col items-center rounded-lg px-1 py-1.5 border ${
                   seleccionado
-                    ? "bg-copper text-paper border-copper"
+                    ? "bg-copper-accion text-paper border-copper"
                     : fechaHoyEsIgual(d, hoy)
-                    ? "border-copper/40 text-copper"
-                    : "border-ink/10 text-ink/60"
+                    ? "border-copper/40 text-copper-text"
+                    : "border-ink/10 text-ink-muted"
                 }`}
               >
                 <span className="font-mono text-[10px] uppercase">{DIAS_CORTOS[d.getDay()]}</span>
                 <span className="font-mono text-sm">{d.getDate()}</span>
                 <span
                   className={`w-1 h-1 rounded-full mt-0.5 ${
-                    tieneTrabajos ? (seleccionado ? "bg-paper" : "bg-copper") : "bg-transparent"
+                    tieneTrabajos ? (seleccionado ? "bg-paper" : "bg-copper-accion") : "bg-transparent"
                   }`}
                 />
               </button>
@@ -302,9 +302,9 @@ export default function CalendarioSemanal({
 
           return (
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-2">Turnos de hoy</p>
+              <p className="font-mono text-[10px] uppercase tracking-wide text-ink-muted mb-2">Turnos de hoy</p>
               {turnosDia.length === 0 ? (
-                <p className="text-sm text-ink/40 mb-5">No tenés turnos agendados este día.</p>
+                <p className="text-sm text-ink-muted mb-5">No tenés turnos agendados este día.</p>
               ) : (
                 <div className="space-y-2 mb-5">
                   {turnosDia.map((orden, i) => {
@@ -323,7 +323,7 @@ export default function CalendarioSemanal({
                         }`}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="font-mono text-xs text-ink/45 mb-0.5">
+                          <p className="font-mono text-xs text-ink-muted mb-0.5">
                             {new Date(orden.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -333,21 +333,21 @@ export default function CalendarioSemanal({
                             {visitaCancelada ? "Visita cancelada" : visitaRealizada ? "✓ Visita realizada" : esVisita ? "📍 Visita" : orden.categoriaNombre}
                           </p>
                           <p className={`font-medium text-ink ${visitaCancelada ? "line-through" : ""}`}>{orden.clienteNombreCompleto}</p>
-                          <p className={`text-sm text-ink/55 ${visitaCancelada ? "line-through" : ""}`}>{orden.descripcion || orden.categoriaNombre}</p>
+                          <p className={`text-sm text-ink-muted ${visitaCancelada ? "line-through" : ""}`}>{orden.descripcion || orden.categoriaNombre}</p>
                           {orden.clienteDireccion && (
-                            <p className="text-xs text-ink/40 mt-0.5">
+                            <p className="text-xs text-ink-muted mt-0.5">
                               <a
                                 href={linkGoogleMaps(orden.clienteDireccion, orden.clienteDireccionLat, orden.clienteDireccionLon)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()} // no abrir el modal de detalle al tocar el link
-                                className="underline decoration-dotted hover:text-copper"
+                                className="underline decoration-dotted hover:text-copper-text"
                               >
                                 📍 {orden.clienteDireccion}
                               </a>
                               {orden.clienteDireccionVerificada && <span className="text-stamp"> ✓</span>}
                               {orden.clienteDistanciaKm != null && (
-                                <span className="block text-ink/35">{formatoDistancia(orden.clienteDistanciaKm)}</span>
+                                <span className="block text-ink-muted">{formatoDistancia(orden.clienteDistanciaKm)}</span>
                               )}
                             </p>
                           )}
@@ -358,9 +358,9 @@ export default function CalendarioSemanal({
                 </div>
               )}
 
-              <p className="font-mono text-[10px] uppercase tracking-wide text-ink/40 mb-2">Horarios libres</p>
+              <p className="font-mono text-[10px] uppercase tracking-wide text-ink-muted mb-2">Horarios libres</p>
               {libresDia.length === 0 ? (
-                <p className="text-sm text-ink/40">No hay horarios libres cargados para este día.</p>
+                <p className="text-sm text-ink-muted">No hay horarios libres cargados para este día.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {libresDia.map((franja, i) => (
@@ -380,7 +380,7 @@ export default function CalendarioSemanal({
                 </div>
               )}
               {onCeldaDisponibleClick && libresDia.length > 0 && (
-                <p className="text-xs text-ink/40 mt-2">Tocá un horario libre para agendar un turno pendiente ahí</p>
+                <p className="text-xs text-ink-muted mt-2">Tocá un horario libre para agendar un turno pendiente ahí</p>
               )}
             </div>
           );
@@ -402,7 +402,7 @@ export default function CalendarioSemanal({
               </p>
               <button
                 onClick={() => setOrdenSeleccionada(null)}
-                className="text-ink/40 hover:text-ink shrink-0"
+                className="text-ink-muted hover:text-ink shrink-0"
                 aria-label="Cerrar"
               >
                 ✕
@@ -411,23 +411,23 @@ export default function CalendarioSemanal({
 
             <dl className="text-sm space-y-2">
               <div>
-                <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Cliente</dt>
+                <dt className="text-[10px] uppercase tracking-wide text-ink-muted font-mono">Cliente</dt>
                 <dd className="text-ink flex items-center gap-2 flex-wrap">
                   <span>{ordenSeleccionada.clienteNombreCompleto}</span>
                   <Link
                     href={`/prestador/clientes/${ordenSeleccionada.clienteId}`}
-                    className="text-xs text-copper hover:underline"
+                    className="text-xs text-copper-text hover:underline"
                   >
                     Ver perfil
                   </Link>
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Rubro</dt>
+                <dt className="text-[10px] uppercase tracking-wide text-ink-muted font-mono">Rubro</dt>
                 <dd className="text-ink">{ordenSeleccionada.categoriaNombre}</dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Dirección</dt>
+                <dt className="text-[10px] uppercase tracking-wide text-ink-muted font-mono">Dirección</dt>
                 <dd className="text-ink flex items-center gap-1 flex-wrap">
                   {ordenSeleccionada.clienteDireccion ? (
                     <a
@@ -438,7 +438,7 @@ export default function CalendarioSemanal({
                       )}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-copper underline decoration-dotted hover:text-copper-dark"
+                      className="text-copper-text underline decoration-dotted hover:text-copper-dark"
                     >
                       {ordenSeleccionada.clienteDireccion}
                     </a>
@@ -450,16 +450,16 @@ export default function CalendarioSemanal({
                   )}
                 </dd>
                 {ordenSeleccionada.clienteDistanciaKm != null && (
-                  <dd className="text-xs text-ink/50">{formatoDistancia(ordenSeleccionada.clienteDistanciaKm)}</dd>
+                  <dd className="text-xs text-ink-muted">{formatoDistancia(ordenSeleccionada.clienteDistanciaKm)}</dd>
                 )}
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Teléfono</dt>
+                <dt className="text-[10px] uppercase tracking-wide text-ink-muted font-mono">Teléfono</dt>
                 <dd className="text-ink">{ordenSeleccionada.clienteTelefono || "Sin teléfono cargado"}</dd>
               </div>
               {ordenSeleccionada.fechaHoraProgramada && (
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">
+                  <dt className="text-[10px] uppercase tracking-wide text-ink-muted font-mono">
                     {ordenSeleccionada.tipo === "Visita" ? "Visita" : "Turno"}
                   </dt>
                   <dd className="text-ink">
@@ -476,8 +476,8 @@ export default function CalendarioSemanal({
               )}
               {ordenSeleccionada.tipo === "Visita" && ordenSeleccionada.estado !== "Programada" && (
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wide text-ink/40 font-mono">Estado</dt>
-                  <dd className={ordenSeleccionada.estado === "Realizada" ? "text-green-700 font-medium" : "text-ink/50"}>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink-muted font-mono">Estado</dt>
+                  <dd className={ordenSeleccionada.estado === "Realizada" ? "text-green-700 font-medium" : "text-ink-muted"}>
                     {ordenSeleccionada.estado === "Realizada" ? "✓ Realizada" : "Cancelada"}
                   </dd>
                 </div>
@@ -491,7 +491,7 @@ export default function CalendarioSemanal({
                   setOrdenSeleccionada(null);
                   onReprogramar(orden);
                 }}
-                className="mt-4 w-full text-center text-sm text-copper hover:underline"
+                className="mt-4 w-full text-center text-sm text-copper-text hover:underline"
               >
                 Reprogramar este turno
               </button>
@@ -505,7 +505,7 @@ export default function CalendarioSemanal({
                   onCancelarVisita(orden);
                 }}
                 disabled={cancelandoVisitaId === ordenSeleccionada.id}
-                className="mt-4 w-full text-center text-sm text-ink/50 hover:text-ink hover:underline disabled:opacity-40"
+                className="mt-4 w-full text-center text-sm text-ink-muted hover:text-ink hover:underline disabled:opacity-40"
               >
                 {cancelandoVisitaId === ordenSeleccionada.id ? "Cancelando..." : "Cancelar visita"}
               </button>

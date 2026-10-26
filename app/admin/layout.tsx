@@ -30,6 +30,7 @@ const TABS: readonly TabAdmin[] = [
   { href: "/admin/verificaciones", label: "Identidad", contador: "verificaciones" },
   { href: "/admin/matriculas", label: "Matrículas", contador: "matriculas" },
   { href: "/admin/encuestas", label: "Encuesta" }, // resultados de la encuesta de prestadores (16/10)
+  { href: "/admin/cobros", label: "Cobros" }, // nuevo sistema de cobros (26/10): resúmenes, fundadores, tarifa
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -63,11 +64,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     });
   }, [router]);
 
-  if (!autorizado) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (!autorizado) return <p className="p-6 text-ink-muted">Cargando...</p>;
 
   return (
     <div className="max-w-5xl mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Panel</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Panel</p>
       <h1 className="font-display text-2xl text-ink mb-6">Administración</h1>
 
       <div className="flex gap-1 mb-6 bg-ink/5 rounded-lg p-1 w-fit flex-wrap">
@@ -84,7 +85,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               key={tab.href}
               href={tab.href}
               className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                activo ? "bg-surface text-ink shadow-sm" : "text-ink/50 hover:text-ink"
+                activo ? "bg-surface text-ink shadow-sm" : "text-ink-muted hover:text-ink"
               }`}
             >
               {contador > 0 ? `${tab.label} (${contador})` : tab.label}

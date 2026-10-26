@@ -85,22 +85,22 @@ export default function ObjetivoIngresoCard() {
   if (!objetivo.tieneObjetivo || editando) {
     return (
       <div className="w-full bg-surface border border-ink/10 rounded-lg p-6 flex flex-col items-center text-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-copper flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl bg-copper-accion flex items-center justify-center">
           <Target size={22} className="text-paper" />
         </div>
         <div className="flex flex-col gap-1">
           <p className="font-display text-lg text-ink">¿Cuánto querés ganar este mes?</p>
-          <p className="text-sm text-ink/60 max-w-sm">
+          <p className="text-sm text-ink-muted max-w-sm">
             Contanos tu objetivo y te mostramos el camino: cuántos trabajos más te faltan según tu ticket promedio.
           </p>
         </div>
 
         <div className="w-full max-w-xs flex flex-col gap-1.5 text-left mt-2">
-          <label htmlFor="objetivo-monto" className="font-mono text-xs uppercase tracking-wider text-ink/50">
+          <label htmlFor="objetivo-monto" className="font-mono text-xs uppercase tracking-wider text-ink-muted">
             Sueldo pretendido este mes
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/50 font-medium">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted font-medium">$</span>
             <input
               id="objetivo-monto"
               type="text"
@@ -114,11 +114,11 @@ export default function ObjetivoIngresoCard() {
         </div>
 
         <div className="w-full max-w-xs flex flex-col gap-1.5 text-left">
-          <label htmlFor="objetivo-ticket" className="font-mono text-xs uppercase tracking-wider text-ink/50">
+          <label htmlFor="objetivo-ticket" className="font-mono text-xs uppercase tracking-wider text-ink-muted">
             Tu ticket promedio (opcional)
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/50 font-medium">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted font-medium">$</span>
             <input
               id="objetivo-ticket"
               type="text"
@@ -129,7 +129,7 @@ export default function ObjetivoIngresoCard() {
               className="w-full pl-7 pr-3 py-2.5 rounded-md border border-ink/15 bg-paper text-ink focus:outline-none focus:ring-2 focus:ring-copper"
             />
           </div>
-          <span className="text-xs text-ink/45">
+          <span className="text-xs text-ink-muted">
             {objetivo.ticketDisponible
               ? "Si no lo completás, usamos el promedio real de tus trabajos."
               : "Todavía no tenés trabajos completados — sin este dato no podemos calcular el camino."}
@@ -142,7 +142,7 @@ export default function ObjetivoIngresoCard() {
           {editando && objetivo.tieneObjetivo && (
             <button
               onClick={() => setEditando(false)}
-              className="text-sm text-ink/50 hover:underline px-2"
+              className="text-sm text-ink-muted hover:underline px-2"
             >
               Cancelar
             </button>
@@ -150,7 +150,7 @@ export default function ObjetivoIngresoCard() {
           <button
             onClick={guardarObjetivo}
             disabled={guardando}
-            className="bg-copper text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-50"
+            className="bg-copper-accion text-paper rounded px-5 py-2.5 font-medium hover:bg-copper-dark transition-colors disabled:opacity-50"
           >
             {guardando ? "Guardando..." : "Establecer objetivo"}
           </button>
@@ -173,7 +173,7 @@ export default function ObjetivoIngresoCard() {
             </div>
             <p className="text-2xl font-display text-ink">{formatoMonto(objetivo.montoMensual ?? 0)}</p>
           </div>
-          <button onClick={abrirEdicion} className="text-xs font-medium text-ink/50 hover:underline whitespace-nowrap">
+          <button onClick={abrirEdicion} className="text-xs font-medium text-ink-muted hover:underline whitespace-nowrap">
             Nuevo objetivo
           </button>
         </div>
@@ -195,7 +195,7 @@ export default function ObjetivoIngresoCard() {
             <Sparkles size={18} className="text-paper" />
           </div>
           <p className="font-medium text-ink">¡Llegaste a tu objetivo!</p>
-          <p className="text-sm text-ink/60 max-w-sm">
+          <p className="text-sm text-ink-muted max-w-sm">
             Completaste {objetivo.trabajosCompletadosDelMes} trabajos este mes. Es un buen momento para pensar tu próxima meta.
           </p>
         </div>
@@ -209,14 +209,14 @@ export default function ObjetivoIngresoCard() {
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <Target size={16} className="text-copper" />
-            <span className="font-mono text-xs uppercase tracking-wider text-copper">
+            <Target size={16} className="text-copper-text" />
+            <span className="font-mono text-xs uppercase tracking-wider text-copper-text">
               Tu objetivo de {mesActual}
             </span>
           </div>
           <p className="text-2xl font-display text-ink">{formatoMonto(objetivo.montoMensual ?? 0)}</p>
         </div>
-        <button onClick={abrirEdicion} className="text-xs font-medium text-ink/50 hover:underline whitespace-nowrap">
+        <button onClick={abrirEdicion} className="text-xs font-medium text-ink-muted hover:underline whitespace-nowrap">
           Cambiar objetivo
         </button>
       </div>
@@ -226,11 +226,11 @@ export default function ObjetivoIngresoCard() {
           <span className="text-ink/70">
             Llevás <strong className="text-ink">{formatoMonto(objetivo.gananciaDelMes)}</strong> este mes
           </span>
-          <span className="font-bold text-copper">{Math.round(objetivo.porcentajeProgreso)}%</span>
+          <span className="font-bold text-copper-text">{Math.round(objetivo.porcentajeProgreso)}%</span>
         </div>
         <div className="w-full h-3 bg-ink/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-copper rounded-full transition-all"
+            className="h-full bg-copper-accion rounded-full transition-all"
             style={{ width: `${Math.min(100, Math.max(0, objetivo.porcentajeProgreso))}%` }}
           />
         </div>
@@ -238,7 +238,7 @@ export default function ObjetivoIngresoCard() {
 
       {objetivo.ticketDisponible && objetivo.trabajosFaltantes !== null ? (
         <div className="flex items-start gap-3 bg-copper/10 border border-copper/25 rounded-lg p-4">
-          <div className="w-8 h-8 rounded-md bg-copper flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-md bg-copper-accion flex items-center justify-center shrink-0">
             <ArrowRight size={16} className="text-paper" />
           </div>
           <p className="text-sm text-ink/75">
@@ -248,9 +248,9 @@ export default function ObjetivoIngresoCard() {
         </div>
       ) : (
         <div className="flex items-start gap-3 bg-ink/5 rounded-lg p-4">
-          <p className="text-sm text-ink/60">
+          <p className="text-sm text-ink-muted">
             Todavía no tenemos suficientes datos para calcular tu camino — completá tu ticket promedio en{" "}
-            <button onClick={abrirEdicion} className="text-copper underline">
+            <button onClick={abrirEdicion} className="text-copper-text underline">
               tu objetivo
             </button>{" "}
             para verlo.

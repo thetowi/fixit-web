@@ -8,15 +8,17 @@ export const ESTADO_LABELS: Record<string, string> = {
   Completado: "Completado",
   Cancelado: "Cancelado",
   EnDisputa: "En disputa",
+  Aceptada: "Aceptada", // nuevo sistema de cobros (26/10): el cliente aceptó la oferta, paga directo
 };
 
 export const ESTADO_COLOR: Record<string, string> = {
-  PendientePago: "border-ink/30 text-ink/50",
-  Pagado: "border-copper text-copper",
-  EnCurso: "border-safety text-safety",
+  PendientePago: "border-ink/30 text-ink-muted",
+  Pagado: "border-copper text-copper-text",
+  EnCurso: "border-safety text-safety-text",
   Completado: "border-stamp text-stamp",
-  Cancelado: "border-ink/30 text-ink/40",
+  Cancelado: "border-ink/30 text-ink-muted",
   EnDisputa: "border-ink text-ink",
+  Aceptada: "border-copper text-copper-text",
 };
 
 function formatearFecha(fechaISO: string): string {
@@ -40,7 +42,7 @@ export default function OrdenTicket({
   linkPerfilClienteId?: string;
   children?: React.ReactNode;
 }) {
-  const colorClase = ESTADO_COLOR[orden.estado] ?? "border-ink/30 text-ink/50";
+  const colorClase = ESTADO_COLOR[orden.estado] ?? "border-ink/30 text-ink-muted";
 
   return (
     <div className="relative bg-paper border border-dashed border-ink/40 rounded-lg p-4">
@@ -50,16 +52,16 @@ export default function OrdenTicket({
         {(ESTADO_LABELS[orden.estado] ?? orden.estado).toUpperCase()}
       </div>
 
-      <p className="font-mono text-[11px] text-ink/40 mb-1">
+      <p className="font-mono text-[11px] text-ink-muted mb-1">
         ORDEN #{orden.id.slice(0, 8).toUpperCase()} · {formatearFecha(orden.creadoEn)}
       </p>
       <p className="font-medium text-ink pr-28">{orden.descripcion || orden.categoriaNombre}</p>
-      <p className="text-sm text-ink/60 mb-3">
+      <p className="text-sm text-ink-muted mb-3">
         {orden.categoriaNombre} · Con {nombreContraparte}
         {linkPerfilClienteId && (
           <>
             {" · "}
-            <Link href={`/prestador/clientes/${linkPerfilClienteId}`} className="text-copper hover:underline">
+            <Link href={`/prestador/clientes/${linkPerfilClienteId}`} className="text-copper-text hover:underline">
               Ver perfil
             </Link>
           </>
@@ -68,7 +70,7 @@ export default function OrdenTicket({
 
       <div className="flex justify-between items-end">
         <span className="font-mono text-sm text-ink">${orden.montoTotal.toLocaleString("es-AR")}</span>
-        <Link href={`/conversaciones/${orden.conversacionId}`} className="text-xs text-copper hover:underline">
+        <Link href={`/conversaciones/${orden.conversacionId}`} className="text-xs text-copper-text hover:underline">
           Abrir chat
         </Link>
       </div>

@@ -58,7 +58,7 @@ export default function AdminVerificacionesPage() {
     }
   }
 
-  if (cargando) return <p className="text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="text-ink-muted">Cargando...</p>;
 
   return (
     <>
@@ -66,14 +66,14 @@ export default function AdminVerificacionesPage() {
 
       <ul className="flex flex-col gap-3">
         {verificaciones.length === 0 && (
-          <p className="text-ink/50 text-sm">No hay verificaciones enviadas todavía.</p>
+          <p className="text-ink-muted text-sm">No hay verificaciones enviadas todavía.</p>
         )}
         {verificaciones.map((v) => (
           <li key={v.usuarioId} className="bg-surface border border-ink/10 rounded-lg p-4">
             <div className="flex justify-between items-start gap-2 mb-3">
               <div>
                 <p className="font-medium text-ink">{v.nombreCompleto}</p>
-                <p className="text-xs text-ink/50">
+                <p className="text-xs text-ink-muted">
                   {v.email}
                   {v.dniNumero ? ` · DNI ${v.dniNumero}` : ""}
                 </p>
@@ -94,13 +94,13 @@ export default function AdminVerificacionesPage() {
             <div className="flex gap-2 mb-3 flex-wrap">
               <button
                 onClick={() => handleVerDocumento(v.usuarioId, "dni")}
-                className="text-xs text-copper hover:underline border border-copper/30 rounded px-2 py-1"
+                className="text-xs text-copper-text hover:underline border border-copper/30 rounded px-2 py-1"
               >
                 Ver DNI
               </button>
               <button
                 onClick={() => handleVerDocumento(v.usuarioId, "antecedentes")}
-                className="text-xs text-copper hover:underline border border-copper/30 rounded px-2 py-1"
+                className="text-xs text-copper-text hover:underline border border-copper/30 rounded px-2 py-1"
               >
                 Ver antecedentes
               </button>

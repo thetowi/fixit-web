@@ -32,6 +32,11 @@ export default function ContadorAnimado({
         yaAnimoRef.current = true;
         observador.disconnect();
 
+        // Audit 26/10: con "reducir movimiento" se muestra el número final sin contar.
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          setMostrado(valor);
+          return;
+        }
         const inicio = performance.now();
         const desde = 0;
         const hasta = valor;

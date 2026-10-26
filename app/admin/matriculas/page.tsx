@@ -58,7 +58,7 @@ export default function AdminMatriculasPage() {
     }
   }
 
-  if (cargando) return <p className="text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="text-ink-muted">Cargando...</p>;
 
   return (
     <>
@@ -66,16 +66,16 @@ export default function AdminMatriculasPage() {
 
       <ul className="flex flex-col gap-3">
         {matriculas.length === 0 && (
-          <p className="text-ink/50 text-sm">No hay matrículas enviadas todavía.</p>
+          <p className="text-ink-muted text-sm">No hay matrículas enviadas todavía.</p>
         )}
         {matriculas.map((m) => (
           <li key={m.prestadorCategoriaId} className="bg-surface border border-ink/10 rounded-lg p-4">
             <div className="flex justify-between items-start gap-2 mb-3">
               <div>
                 <p className="font-medium text-ink">
-                  {m.nombreCompleto} <span className="text-ink/50 font-normal">· {m.categoriaNombre}</span>
+                  {m.nombreCompleto} <span className="text-ink-muted font-normal">· {m.categoriaNombre}</span>
                 </p>
-                <p className="text-xs text-ink/50">{m.email}</p>
+                <p className="text-xs text-ink-muted">{m.email}</p>
               </div>
               <span
                 className={`text-xs font-mono uppercase rounded-full px-2 py-0.5 shrink-0 ${
@@ -93,7 +93,7 @@ export default function AdminMatriculasPage() {
             <div className="flex gap-2 mb-3 flex-wrap">
               <button
                 onClick={() => handleVerDocumentoMatricula(m.prestadorCategoriaId)}
-                className="text-xs text-copper hover:underline border border-copper/30 rounded px-2 py-1"
+                className="text-xs text-copper-text hover:underline border border-copper/30 rounded px-2 py-1"
               >
                 Ver matrícula
               </button>

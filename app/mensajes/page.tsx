@@ -58,13 +58,13 @@ export default function MensajesPage() {
     }
   }
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
 
   const esCliente = usuario?.rol === "Cliente";
 
   return (
     <div className="max-w-2xl mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">
         {esCliente ? "Cliente" : "Prestador"}
       </p>
       <h1 className="font-display text-2xl text-ink mb-6">Mensajes</h1>
@@ -73,7 +73,7 @@ export default function MensajesPage() {
 
       {conversaciones.length === 0 ? (
         <div className="bg-surface border border-ink/10 rounded-lg p-6 text-center">
-          <p className="text-ink/50 text-sm">Todavía no tenés conversaciones.</p>
+          <p className="text-ink-muted text-sm">Todavía no tenés conversaciones.</p>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -116,7 +116,7 @@ export default function MensajesPage() {
                         {otroNombre}
                       </p>
                       {c.ultimoMensajeEn && (
-                        <span className="font-mono text-[10px] text-ink/40 shrink-0">
+                        <span className="font-mono text-[10px] text-ink-muted shrink-0">
                           {tiempoRelativo(c.ultimoMensajeEn)}
                         </span>
                       )}
@@ -125,11 +125,11 @@ export default function MensajesPage() {
                       {c.categoriaNombre}
                     </p>
                     <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <p className={`text-xs truncate ${tieneNoLeidos ? "text-ink/80" : "text-ink/50"}`}>
+                      <p className={`text-xs truncate ${tieneNoLeidos ? "text-ink/80" : "text-ink-muted"}`}>
                         {c.ultimoMensaje ?? `${c.categoriaNombre} · sin mensajes todavía`}
                       </p>
                       {tieneNoLeidos && (
-                        <span className="bg-copper text-paper text-[10px] font-mono rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0">
+                        <span className="bg-copper-accion text-paper text-[10px] font-mono rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0">
                           {c.mensajesNoLeidos}
                         </span>
                       )}

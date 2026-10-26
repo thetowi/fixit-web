@@ -88,7 +88,7 @@ export default function AdminUsuariosPage() {
     }
   }
 
-  if (cargando) return <p className="text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="text-ink-muted">Cargando...</p>;
 
   const usuariosFiltrados = usuarios.filter((u) => {
     const coincideBusqueda =
@@ -141,7 +141,7 @@ export default function AdminUsuariosPage() {
               <button
                 type="submit"
                 disabled={creandoTesorero}
-                className="text-sm bg-copper text-paper rounded px-3 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-40"
+                className="text-sm bg-copper-accion text-paper rounded px-3 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-40"
               >
                 {creandoTesorero ? "Creando..." : "Crear cuenta"}
               </button>
@@ -149,7 +149,7 @@ export default function AdminUsuariosPage() {
                 type="button"
                 onClick={() => setMostrarFormTesorero(false)}
                 disabled={creandoTesorero}
-                className="text-sm border border-ink/20 text-ink/60 rounded px-3 py-1.5 hover:text-ink transition-colors disabled:opacity-40"
+                className="text-sm border border-ink/20 text-ink-muted rounded px-3 py-1.5 hover:text-ink transition-colors disabled:opacity-40"
               >
                 Cancelar
               </button>
@@ -158,7 +158,7 @@ export default function AdminUsuariosPage() {
         ) : (
           <button
             onClick={() => setMostrarFormTesorero(true)}
-            className="text-sm bg-copper text-paper rounded px-4 py-2 hover:bg-copper-dark transition-colors"
+            className="text-sm bg-copper-accion text-paper rounded px-4 py-2 hover:bg-copper-dark transition-colors"
           >
             Crear cuenta de Tesorero
           </button>
@@ -184,7 +184,7 @@ export default function AdminUsuariosPage() {
             </option>
           ))}
         </select>
-        <span className="text-xs text-ink/40">
+        <span className="text-xs text-ink-muted">
           {usuariosFiltrados.length} de {usuarios.length}
         </span>
       </div>
@@ -192,7 +192,7 @@ export default function AdminUsuariosPage() {
       <div className="bg-surface border border-ink/10 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left bg-ink/5 text-ink/60 text-xs uppercase tracking-wide">
+            <tr className="text-left bg-ink/5 text-ink-muted text-xs uppercase tracking-wide">
               <th className="p-3 font-medium">Nombre</th>
               <th className="p-3 font-medium">Email</th>
               <th className="p-3 font-medium">Rol</th>
@@ -204,7 +204,7 @@ export default function AdminUsuariosPage() {
           <tbody>
             {usuariosFiltrados.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-3 text-ink/50 text-center">
+                <td colSpan={6} className="p-3 text-ink-muted text-center">
                   No hay usuarios que coincidan con esa búsqueda.
                 </td>
               </tr>
@@ -225,7 +225,7 @@ export default function AdminUsuariosPage() {
                       {u.activo ? "Activo" : "Desactivado"}
                     </span>
                   </td>
-                  <td className="p-3 text-ink/50 text-xs">{new Date(u.creadoEn).toLocaleDateString("es-AR")}</td>
+                  <td className="p-3 text-ink-muted text-xs">{new Date(u.creadoEn).toLocaleDateString("es-AR")}</td>
                   <td className="p-3 text-right">
                     {puedeGestionar && (
                       <button

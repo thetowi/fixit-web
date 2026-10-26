@@ -81,10 +81,12 @@ const PASOS_CLIENTE: Step[] = [
   // Este paso va al final a propósito (pedido del usuario, 30/09): antes estaba en el medio del
   // tour (entre "Explorar" y "Mensajes"), y quedaba mejor como cierre — la última cosa que el
   // cliente se lleva del tutorial es la garantía de que su pago está protegido.
+  // 26/10 (nuevo sistema de cobros): el cliente le paga directo al profesional; lo que se lleva
+  // del tutorial es cómo confirmar el trabajo (código de cierre).
   pasoCentrado({
-    title: "Tu pago, protegido",
+    title: "Confirmá tus trabajos",
     content:
-      "Cuando contratás un trabajo, el pago queda retenido por Oficy. El prestador lo recibe recién cuando vos confirmás que el trabajo está terminado.",
+      "Cuando aceptás una oferta te damos un código de cierre. Dictáselo al profesional cuando el trabajo esté terminado y conforme: así queda registrado y podés calificarlo. El pago lo arreglás directo con él.",
   }),
 ];
 
@@ -97,10 +99,10 @@ const PASOS_PRESTADOR: Step[] = [
     title: "Mi cuenta",
     content: "Ahí organizás todo en pestañas: tus servicios, tu experiencia, zona de cobertura, horarios y verificación.",
   }),
-  pasoDeNav("nav-cuenta", {
-    title: "Cobrar tus trabajos",
+  pasoDeNav("nav-mi-plan", {
+    title: "Mi plan",
     content:
-      "En la pestaña Cobros conectás tu propia cuenta de Mercado Pago. Oficy deposita ahí tu parte y descuenta su comisión automáticamente — tus primeros 5 trabajos son sin comisión.",
+      "Cobrás el total de cada trabajo directo al cliente. Acá ves cuánto llevás del mes: Oficy cobra un fijo por trabajo confirmado, con tope mensual.",
   }),
   pasoDeNav("nav-agenda", {
     title: "Agenda",
@@ -113,7 +115,7 @@ const PASOS_PRESTADOR: Step[] = [
   pasoDeNav("nav-ordenes", {
     title: "Mis órdenes",
     content:
-      "Vas a ver los pedidos que te lleguen. El pago del cliente queda retenido hasta que el trabajo se marca como terminado — ahí se libera para vos.",
+      "Vas a ver los trabajos que te acepten. Al llegar tocá «Llegué», y al terminar pedile al cliente su código de cierre (o tocá «Terminé») para confirmarlo.",
   }),
 ];
 

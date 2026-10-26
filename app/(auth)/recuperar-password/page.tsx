@@ -37,23 +37,23 @@ export default function RecuperarPasswordPage() {
   if (enviado) {
     return (
       <div className="max-w-md mx-auto mt-16 p-6 w-full">
-        <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Revisá tu email</p>
+        <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Revisá tu email</p>
         <h1 className="font-display text-2xl text-ink mb-2">Te mandamos un código</h1>
-        <p className="text-ink/60 mb-6">
+        <p className="text-ink-muted mb-6">
           Si existe una cuenta con contraseña asociada a <span className="font-medium text-ink">{email}</span>, te
           va a llegar un código de 6 dígitos para elegir una contraseña nueva.
         </p>
 
         <a
           href={`/restablecer-password?email=${encodeURIComponent(email)}`}
-          className="block text-center bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors"
+          className="block text-center bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors"
         >
           Ya tengo el código
         </a>
 
-        <p className="text-sm text-ink/50 mt-4 text-center">
+        <p className="text-sm text-ink-muted mt-4 text-center">
           ¿No te llegó nada? Revisá la carpeta de spam, o{" "}
-          <button onClick={() => setEnviado(false)} className="text-copper hover:underline">
+          <button onClick={() => setEnviado(false)} className="text-copper-text hover:underline">
             probá de nuevo
           </button>
           .
@@ -64,9 +64,9 @@ export default function RecuperarPasswordPage() {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">¿Olvidaste tu contraseña?</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">¿Olvidaste tu contraseña?</p>
       <h1 className="font-display text-2xl text-ink mb-2">Recuperá tu cuenta</h1>
-      <p className="text-ink/60 mb-6">
+      <p className="text-ink-muted mb-6">
         Ingresá el email con el que te registraste en Oficy y te mandamos un código para elegir una contraseña nueva.
       </p>
 
@@ -85,14 +85,14 @@ export default function RecuperarPasswordPage() {
         <button
           type="submit"
           disabled={cargando}
-          className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+          className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
         >
           {cargando ? "Enviando..." : "Enviar código"}
         </button>
       </form>
 
-      <p className="text-sm text-ink/50 mt-4 text-center">
-        <a href="/login" className="text-copper hover:underline">Volver a iniciar sesión</a>
+      <p className="text-sm text-ink-muted mt-4 text-center">
+        <a href="/login" className="text-copper-text hover:underline">Volver a iniciar sesión</a>
       </p>
     </div>
   );

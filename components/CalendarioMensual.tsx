@@ -105,7 +105,7 @@ export default function CalendarioMensual({
     <div>
       <div className="grid grid-cols-7 gap-px bg-ink/8 border border-ink/8 rounded-lg overflow-hidden">
         {DIAS_CORTOS.map((d) => (
-          <div key={d} className="bg-paper text-center py-2 font-mono text-[10px] uppercase tracking-wide text-ink/40">
+          <div key={d} className="bg-paper text-center py-2 font-mono text-[10px] uppercase tracking-wide text-ink-muted">
             {d}
           </div>
         ))}
@@ -123,7 +123,7 @@ export default function CalendarioMensual({
               >
                 <span
                   className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold ${
-                    celda.esHoy ? "bg-copper text-paper" : "text-ink"
+                    celda.esHoy ? "bg-copper-accion text-paper" : "text-ink"
                   }`}
                 >
                   {celda.numero}
@@ -158,7 +158,7 @@ export default function CalendarioMensual({
                     </div>
                   ))}
                   {celda.restantes > 0 && (
-                    <span className="text-[9px] text-ink/40 pl-1.5">+{celda.restantes} más</span>
+                    <span className="text-[9px] text-ink-muted pl-1.5">+{celda.restantes} más</span>
                   )}
                 </div>
               </div>
@@ -167,7 +167,7 @@ export default function CalendarioMensual({
         )}
       </div>
       {onSeleccionarDia && (
-        <p className="text-xs text-ink/40 mt-3">Tocá un día para ver sus trabajos, o para programar uno nuevo si está libre.</p>
+        <p className="text-xs text-ink-muted mt-3">Tocá un día para ver sus trabajos, o para programar uno nuevo si está libre.</p>
       )}
 
       {diaDetalle && (
@@ -185,7 +185,7 @@ export default function CalendarioMensual({
               </p>
               <button
                 onClick={() => setDiaDetalle(null)}
-                className="text-ink/40 hover:text-ink shrink-0"
+                className="text-ink-muted hover:text-ink shrink-0"
                 aria-label="Cerrar"
               >
                 ✕
@@ -205,7 +205,7 @@ export default function CalendarioMensual({
                     style={{ borderLeftColor: color }}
                     className={`bg-paper border-l-4 rounded-lg p-3 ${visitaCancelada ? "opacity-60" : ""}`}
                   >
-                    <p className="font-mono text-xs text-ink/45 mb-0.5">
+                    <p className="font-mono text-xs text-ink-muted mb-0.5">
                       {new Date(orden.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -215,31 +215,31 @@ export default function CalendarioMensual({
                       {visitaCancelada ? "Visita cancelada" : visitaRealizada ? "✓ Visita realizada" : esVisita ? "📍 Visita" : orden.categoriaNombre}
                     </p>
                     <p className={`font-medium text-ink ${visitaCancelada ? "line-through" : ""}`}>{orden.clienteNombreCompleto}</p>
-                    <p className={`text-sm text-ink/55 ${visitaCancelada ? "line-through" : ""}`}>{orden.descripcion || orden.categoriaNombre}</p>
+                    <p className={`text-sm text-ink-muted ${visitaCancelada ? "line-through" : ""}`}>{orden.descripcion || orden.categoriaNombre}</p>
                     {orden.clienteDireccion && (
-                      <p className="text-xs text-ink/40 mt-0.5">
+                      <p className="text-xs text-ink-muted mt-0.5">
                         <a
                           href={linkGoogleMaps(orden.clienteDireccion, orden.clienteDireccionLat, orden.clienteDireccionLon)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline decoration-dotted hover:text-copper"
+                          className="underline decoration-dotted hover:text-copper-text"
                         >
                           📍 {orden.clienteDireccion}
                         </a>
                         {orden.clienteDireccionVerificada && <span className="text-stamp"> ✓</span>}
                         {orden.clienteDistanciaKm != null && (
-                          <span className="block text-ink/35">{formatoDistancia(orden.clienteDistanciaKm)}</span>
+                          <span className="block text-ink-muted">{formatoDistancia(orden.clienteDistanciaKm)}</span>
                         )}
                       </p>
                     )}
-                    {orden.clienteTelefono && <p className="text-xs text-ink/40 mt-0.5">{orden.clienteTelefono}</p>}
+                    {orden.clienteTelefono && <p className="text-xs text-ink-muted mt-0.5">{orden.clienteTelefono}</p>}
                     {onReprogramar && !esVisita && (
                       <button
                         onClick={() => {
                           setDiaDetalle(null);
                           onReprogramar(orden);
                         }}
-                        className="mt-1.5 text-xs text-copper hover:underline"
+                        className="mt-1.5 text-xs text-copper-text hover:underline"
                       >
                         Reprogramar
                       </button>
@@ -251,7 +251,7 @@ export default function CalendarioMensual({
                           onCancelarVisita(orden);
                         }}
                         disabled={cancelandoVisitaId === orden.id}
-                        className="mt-1.5 text-xs text-ink/50 hover:text-ink hover:underline disabled:opacity-40"
+                        className="mt-1.5 text-xs text-ink-muted hover:text-ink hover:underline disabled:opacity-40"
                       >
                         {cancelandoVisitaId === orden.id ? "Cancelando..." : "Cancelar visita"}
                       </button>
@@ -268,7 +268,7 @@ export default function CalendarioMensual({
                   setDiaDetalle(null);
                   onSeleccionarDia(dia);
                 }}
-                className="mt-4 w-full text-center text-sm text-copper hover:underline"
+                className="mt-4 w-full text-center text-sm text-copper-text hover:underline"
               >
                 Ver este día en la agenda semanal →
               </button>

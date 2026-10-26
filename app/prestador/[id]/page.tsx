@@ -115,7 +115,7 @@ export default function PerfilPrestadorPage() {
     }
   }
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
   if (error && !perfil) return <p className="p-6 text-red-700 dark:text-red-400">{error}</p>;
   if (!perfil) return null;
 
@@ -173,18 +173,18 @@ export default function PerfilPrestadorPage() {
               Opción B, dentro de una caja angosta y centrada, estructura Opción C. */}
           <div className="w-full grid grid-cols-2 divide-x divide-y divide-paper/10 border border-paper/10 rounded-2xl overflow-hidden bg-paper/5">
             <div className="px-4 py-3">
-              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Miembro desde</p>
+              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/70 mb-1">Miembro desde</p>
               <p className="text-[12.5px] font-bold">{miembroDesdeTexto}</p>
             </div>
             <div className="px-4 py-3">
-              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Alcance</p>
+              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/70 mb-1">Alcance</p>
               <p className="text-[12.5px] font-bold">
                 {perfil.radioAlcanceKm != null ? `${perfil.radioAlcanceKm} km` : "—"}
               </p>
             </div>
             {rubros.length > 0 && (
               <div className="px-4 py-3 col-span-2">
-                <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1.5">Rubros</p>
+                <p className="text-[9px] uppercase tracking-wider font-bold text-paper/70 mb-1.5">Rubros</p>
                 <div className="flex flex-wrap gap-1.5">
                   {rubros.map((r) => (
                     <span key={r} className="text-[10.5px] font-semibold bg-paper/10 rounded-full px-2.5 py-1">
@@ -196,7 +196,7 @@ export default function PerfilPrestadorPage() {
             )}
             {perfil.cantidadCalificaciones > 0 && (
               <div className="px-4 py-3 col-span-2">
-                <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Promedio general</p>
+                <p className="text-[9px] uppercase tracking-wider font-bold text-paper/70 mb-1">Promedio general</p>
                 <p className="text-[12.5px] font-bold flex items-center gap-1.5">
                   {perfil.promedioCalificacion!.toFixed(1)}
                   <Estrellas valor={perfil.promedioCalificacion!} tamaño="text-xs" />· {perfil.cantidadCalificaciones}{" "}
@@ -210,15 +210,15 @@ export default function PerfilPrestadorPage() {
               el resto de los datos del perfil, pero SIN la caja/borde — como estaba antes: label
               en cobre + texto suelto, no encajonado). ---- */}
           <div className="w-full text-left">
-            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Acerca de mí</p>
+            <p className="font-mono text-xs tracking-widest text-copper-sobre-ink uppercase mb-3">Acerca de mí</p>
             {perfil.biografia ? (
               <p className="text-sm text-paper/70 whitespace-pre-wrap leading-snug">{perfil.biografia}</p>
             ) : (
-              <p className="text-paper/40 text-sm">Este prestador todavía no agregó una descripción.</p>
+              <p className="text-paper/70 text-sm">Este prestador todavía no agregó una descripción.</p>
             )}
             {añosEnOficy > 0 && (
-              <p className="text-sm text-paper/50 mt-2">
-                <span className="font-mono text-copper">{añosEnOficy}</span> {añosEnOficy === 1 ? "año" : "años"} en Oficy
+              <p className="text-sm text-paper/70 mt-2">
+                <span className="font-mono text-copper-sobre-ink">{añosEnOficy}</span> {añosEnOficy === 1 ? "año" : "años"} en Oficy
               </p>
             )}
           </div>
@@ -257,15 +257,15 @@ export default function PerfilPrestadorPage() {
         <div className="grid grid-cols-3 gap-3 -mt-px py-6 border-b border-ink/10">
           <div className="text-center">
             <ContadorAnimado valor={perfil.cantidadCalificaciones} className="font-display text-2xl text-ink" />
-            <p className="text-xs text-ink/50">Trabajos calificados</p>
+            <p className="text-xs text-ink-muted">Trabajos calificados</p>
           </div>
           <div className="text-center">
             <ContadorAnimado valor={cantidadReseñasConFotos} className="font-display text-2xl text-ink" />
-            <p className="text-xs text-ink/50">Reseñas con fotos</p>
+            <p className="text-xs text-ink-muted">Reseñas con fotos</p>
           </div>
           <div className="text-center">
             <ContadorAnimado valor={cantidadFotosTrabajo} className="font-display text-2xl text-ink" />
-            <p className="text-xs text-ink/50">Fotos de trabajos</p>
+            <p className="text-xs text-ink-muted">Fotos de trabajos</p>
           </div>
         </div>
       </div>
@@ -275,9 +275,9 @@ export default function PerfilPrestadorPage() {
 
         {/* ---- Servicios / contacto ---- */}
         <div>
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Servicios</p>
+          <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">Servicios</p>
           {perfil.servicios.length === 0 ? (
-            <p className="text-ink/50 text-sm">Este prestador todavía no cargó servicios.</p>
+            <p className="text-ink-muted text-sm">Este prestador todavía no cargó servicios.</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {perfil.servicios.map((s) => (
@@ -285,7 +285,7 @@ export default function PerfilPrestadorPage() {
                   <div className="flex justify-between items-start gap-3">
                     <div>
                       <p className="font-medium text-ink">{s.categoriaNombre}</p>
-                      {s.descripcion && <p className="text-sm text-ink/60">{s.descripcion}</p>}
+                      {s.descripcion && <p className="text-sm text-ink-muted">{s.descripcion}</p>}
                       {s.precioReferencia && (
                         <p className="font-mono text-sm text-ink/70 mt-1">
                           Desde ${s.precioReferencia.toLocaleString("es-AR")} /hora
@@ -296,7 +296,7 @@ export default function PerfilPrestadorPage() {
                       <button
                         onClick={() => handleContratar(s.categoriaId)}
                         disabled={iniciandoChat === s.categoriaId}
-                        className="bg-copper text-paper text-sm rounded px-3 py-1.5 whitespace-nowrap hover:bg-copper-dark transition-colors disabled:opacity-40"
+                        className="bg-copper-accion text-paper text-sm rounded px-3 py-1.5 whitespace-nowrap hover:bg-copper-dark transition-colors disabled:opacity-40"
                       >
                         {iniciandoChat === s.categoriaId ? "Abriendo chat..." : "Contactar"}
                       </button>
@@ -307,14 +307,14 @@ export default function PerfilPrestadorPage() {
             </ul>
           )}
           {!usuario && (
-            <p className="text-sm text-ink/50 mt-3">Iniciá sesión como cliente para poder contratar.</p>
+            <p className="text-sm text-ink-muted mt-3">Iniciá sesión como cliente para poder contratar.</p>
           )}
         </div>
 
         {/* ---- Trabajos realizados (galería) ---- */}
         {perfil.fotosTrabajo.length > 0 && (
           <div>
-            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Trabajos realizados</p>
+            <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">Trabajos realizados</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {perfil.fotosTrabajo.map((f) => (
                 <div key={f.id} className="relative aspect-square rounded-lg overflow-hidden bg-ink/5">
@@ -334,13 +334,13 @@ export default function PerfilPrestadorPage() {
         {/* ---- Reseñas de clientes ---- */}
         <div>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <p className="font-mono text-xs tracking-widest text-copper uppercase">Reseñas de clientes</p>
+            <p className="font-mono text-xs tracking-widest text-copper-text uppercase">Reseñas de clientes</p>
             {cantidadReseñasConFotos > 0 && (
               <div className="flex gap-1 bg-ink/5 rounded-lg p-1">
                 <button
                   onClick={() => setSoloConFotos(false)}
                   className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                    !soloConFotos ? "bg-surface text-ink shadow-sm" : "text-ink/50 hover:text-ink"
+                    !soloConFotos ? "bg-surface text-ink shadow-sm" : "text-ink-muted hover:text-ink"
                   }`}
                 >
                   Más recientes
@@ -348,7 +348,7 @@ export default function PerfilPrestadorPage() {
                 <button
                   onClick={() => setSoloConFotos(true)}
                   className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                    soloConFotos ? "bg-surface text-ink shadow-sm" : "text-ink/50 hover:text-ink"
+                    soloConFotos ? "bg-surface text-ink shadow-sm" : "text-ink-muted hover:text-ink"
                   }`}
                 >
                   Con fotos
@@ -358,10 +358,10 @@ export default function PerfilPrestadorPage() {
           </div>
 
           {calificaciones.length === 0 && (
-            <p className="text-ink/50 text-sm">Este prestador todavía no tiene reseñas.</p>
+            <p className="text-ink-muted text-sm">Este prestador todavía no tiene reseñas.</p>
           )}
           {calificaciones.length > 0 && calificacionesAMostrar.length === 0 && (
-            <p className="text-ink/50 text-sm">Ninguna reseña tiene fotos todavía.</p>
+            <p className="text-ink-muted text-sm">Ninguna reseña tiene fotos todavía.</p>
           )}
 
           <ul className="flex flex-col gap-3">
@@ -369,17 +369,17 @@ export default function PerfilPrestadorPage() {
               <li key={c.id} className="bg-surface border border-ink/10 rounded-lg p-5">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-copper/10 text-copper flex items-center justify-center font-display font-bold text-sm shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-copper/10 text-copper-text flex items-center justify-center font-display font-bold text-sm shrink-0">
                       {inicialesCliente(c.clienteNombre)}
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-sm text-ink truncate">{c.clienteNombre}</p>
-                      <p className="text-xs text-ink/40">{tiempoRelativoReseña(c.creadoEn)}</p>
+                      <p className="text-xs text-ink-muted">{tiempoRelativoReseña(c.creadoEn)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Estrellas valor={c.promedio} tamaño="text-sm" />
-                    <span className="text-xs text-ink/50 font-medium">{c.promedio.toFixed(1)}</span>
+                    <span className="text-xs text-ink-muted font-medium">{c.promedio.toFixed(1)}</span>
                   </div>
                 </div>
                 {c.comentario && (
@@ -398,19 +398,19 @@ export default function PerfilPrestadorPage() {
                           <>
                             {foto.estadoRepost === "SinSolicitar" || foto.estadoRepost === "Rechazado" ? (
                               repostSolicitados.has(foto.id) ? (
-                                <span className="text-[10px] text-ink/40">Pedido enviado</span>
+                                <span className="text-[10px] text-ink-muted">Pedido enviado</span>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() => handlePedirRepost(foto.id)}
                                   disabled={solicitandoRepost === foto.id}
-                                  className="text-[10px] text-copper hover:underline disabled:opacity-40"
+                                  className="text-[10px] text-copper-text hover:underline disabled:opacity-40"
                                 >
                                   {solicitandoRepost === foto.id ? "Pidiendo..." : "Pedir permiso"}
                                 </button>
                               )
                             ) : foto.estadoRepost === "Pendiente" ? (
-                              <span className="text-[10px] text-ink/40">Esperando respuesta</span>
+                              <span className="text-[10px] text-ink-muted">Esperando respuesta</span>
                             ) : (
                               <span className="text-[10px] text-stamp">En tu perfil</span>
                             )}
@@ -425,10 +425,10 @@ export default function PerfilPrestadorPage() {
                   {CRITERIOS_CALIFICACION.map((criterio) => (
                     <span
                       key={criterio.key}
-                      className="inline-flex items-center gap-1 text-xs bg-ink/5 text-ink/60 rounded-full pl-2.5 pr-2 py-1"
+                      className="inline-flex items-center gap-1 text-xs bg-ink/5 text-ink-muted rounded-full pl-2.5 pr-2 py-1"
                     >
                       {criterio.label}
-                      <span className="text-copper font-semibold">{c[criterio.key]}★</span>
+                      <span className="text-copper-text font-semibold">{c[criterio.key]}★</span>
                     </span>
                   ))}
                 </div>

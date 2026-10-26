@@ -47,6 +47,17 @@ export interface Orden {
   // Pausar trabajo en curso (03/10, ver backend Orden.PausadoEn).
   pausadoEn?: string | null;
   notaPausa?: string | null;
+
+  // Nuevo sistema de cobros (26/10, ver backend OrdenResponse.cs). codigoCierre solo viene para el
+  // cliente de la orden: es lo que le dicta al profesional al terminar.
+  codigoCierre?: string | null;
+  codigoCierreBloqueado?: boolean;
+  terminadoPorPrestadorEn?: string | null;
+  confirmacionTipo?: "Cliente" | "Codigo" | "Automatica" | "Admin" | null;
+  problemaClienteReportadoEn?: string | null;
+  problemaClienteComentario?: string | null;
+  checkInEn?: string | null;
+  checkInDistanciaMetros?: number | null;
 }
 
 // "Trabajo en curso" (24/09): espejo de FixIt.Application.DTOs.Ordenes.OrdenEnCursoResponse.

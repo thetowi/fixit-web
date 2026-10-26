@@ -37,14 +37,14 @@ export default function SelectorIconoLucide({ valor, onChange }: Props) {
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
         />
-        <span className="flex items-center gap-1.5 text-xs text-ink/50 shrink-0 font-mono">
+        <span className="flex items-center gap-1.5 text-xs text-ink-muted shrink-0 font-mono">
           <IconoLucide nombre={valor} size={16} />
           {valor}
         </span>
       </div>
 
       {busqueda.trim() && resultados.length === 0 && (
-        <p className="text-xs text-ink/40 mb-2">
+        <p className="text-xs text-ink-muted mb-2">
           Sin resultados — los nombres de Lucide están en inglés, probá con otra palabra, o pegá el
           código exacto tal como aparece en lucide.dev/icons.
         </p>
@@ -60,8 +60,8 @@ export default function SelectorIconoLucide({ valor, onChange }: Props) {
             aria-label={clave}
             className={`aspect-square rounded-lg border flex items-center justify-center transition-colors ${
               valor === clave
-                ? "border-copper bg-copper/10 text-copper"
-                : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
+                ? "border-copper bg-copper/10 text-copper-text"
+                : "border-ink/15 text-ink-muted hover:border-ink/30 hover:text-ink"
             }`}
           >
             <IconoLucide nombre={clave} size={18} />
@@ -70,12 +70,12 @@ export default function SelectorIconoLucide({ valor, onChange }: Props) {
       </div>
 
       {!busqueda.trim() && (
-        <p className="text-xs text-ink/40 mt-2">
+        <p className="text-xs text-ink-muted mt-2">
           Sugeridos — escribí arriba para buscar entre los {NOMBRES_ICONOS_LUCIDE.length} íconos de Lucide.
         </p>
       )}
       {busqueda.trim() && resultados.length === LIMITE_RESULTADOS && (
-        <p className="text-xs text-ink/40 mt-2">Mostrando los primeros {LIMITE_RESULTADOS} resultados — afiná la búsqueda si no está el que buscás.</p>
+        <p className="text-xs text-ink-muted mt-2">Mostrando los primeros {LIMITE_RESULTADOS} resultados — afiná la búsqueda si no está el que buscás.</p>
       )}
     </div>
   );

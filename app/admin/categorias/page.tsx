@@ -118,7 +118,7 @@ export default function AdminCategoriasPage() {
     }
   }
 
-  if (cargando) return <p className="text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="text-ink-muted">Cargando...</p>;
 
   const categoriasFiltradas = categorias.filter((c) =>
     c.nombre.toLowerCase().includes(busqueda.trim().toLowerCase())
@@ -138,13 +138,13 @@ export default function AdminCategoriasPage() {
         />
 
         <div>
-          <p className="text-xs text-ink/50 mb-2">Ícono</p>
+          <p className="text-xs text-ink-muted mb-2">Ícono</p>
           <SelectorIconoLucide valor={iconoNuevo} onChange={setIconoNuevo} />
         </div>
 
         <button
           type="submit"
-          className="bg-copper text-paper rounded px-4 py-2 self-start hover:bg-copper-dark transition-colors"
+          className="bg-copper-accion text-paper rounded px-4 py-2 self-start hover:bg-copper-dark transition-colors"
         >
           Crear
         </button>
@@ -160,7 +160,7 @@ export default function AdminCategoriasPage() {
 
       <ul className="flex flex-col gap-2">
         {categoriasFiltradas.length === 0 && (
-          <p className="text-ink/50 text-sm">No hay rubros que coincidan con esa búsqueda.</p>
+          <p className="text-ink-muted text-sm">No hay rubros que coincidan con esa búsqueda.</p>
         )}
         {categoriasFiltradas.map((c) => {
           const enEdicion = editandoId === c.id;
@@ -179,14 +179,14 @@ export default function AdminCategoriasPage() {
                     <button
                       onClick={() => handleGuardarEdicion(c.id)}
                       disabled={guardandoEdicion}
-                      className="text-sm bg-copper text-paper rounded px-3 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-40"
+                      className="text-sm bg-copper-accion text-paper rounded px-3 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-40"
                     >
                       {guardandoEdicion ? "Guardando..." : "Guardar"}
                     </button>
                     <button
                       onClick={cancelarEdicion}
                       disabled={guardandoEdicion}
-                      className="text-sm border border-ink/20 text-ink/60 rounded px-3 py-1.5 hover:text-ink transition-colors disabled:opacity-40"
+                      className="text-sm border border-ink/20 text-ink-muted rounded px-3 py-1.5 hover:text-ink transition-colors disabled:opacity-40"
                     >
                       Cancelar
                     </button>
@@ -195,20 +195,20 @@ export default function AdminCategoriasPage() {
               ) : (
                 <div className="flex justify-between items-center">
                   <span className={`flex items-center gap-2.5 ${c.activa ? "text-ink" : "text-ink/30 line-through"}`}>
-                    <IconoLucide nombre={c.icono} size={17} className={c.activa ? "text-copper" : "text-ink/30"} />
+                    <IconoLucide nombre={c.icono} size={17} className={c.activa ? "text-copper-text" : "text-ink/30"} />
                     {c.nombre}
                   </span>
                   <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => iniciarEdicion(c)}
-                      className="text-sm rounded px-3 py-1 border border-ink/20 text-ink/60 hover:text-ink hover:border-ink/40 transition-colors"
+                      className="text-sm rounded px-3 py-1 border border-ink/20 text-ink-muted hover:text-ink hover:border-ink/40 transition-colors"
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => handleCambiarEstado(c)}
                       className={`text-sm rounded px-3 py-1 border ${
-                        c.activa ? "border-stamp text-stamp" : "border-ink/20 text-ink/50"
+                        c.activa ? "border-stamp text-stamp" : "border-ink/20 text-ink-muted"
                       }`}
                     >
                       {c.activa ? "Desactivar" : "Activar"}

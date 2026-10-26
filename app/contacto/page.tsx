@@ -32,7 +32,7 @@ const CASILLAS = [
 export default function ContactoPage() {
   return (
     <div className="max-w-2xl mx-auto mt-16 p-6 w-full pb-24">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Contacto</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Contacto</p>
       <h1 className="font-display text-2xl text-ink mb-8">¿En qué te podemos ayudar?</h1>
 
       <div className="flex flex-col gap-4">
@@ -43,8 +43,8 @@ export default function ContactoPage() {
             className="block rounded-xl border border-ink/10 p-5 hover:border-copper/40 hover:bg-copper/5 transition-colors"
           >
             <p className="font-display font-bold text-ink">{c.titulo}</p>
-            <p className="text-sm text-ink/60 leading-relaxed mt-1">{c.descripcion}</p>
-            <p className="text-sm text-copper font-medium mt-2">{c.email}</p>
+            <p className="text-sm text-ink-muted leading-relaxed mt-1">{c.descripcion}</p>
+            <p className="text-sm text-copper-text font-medium mt-2">{c.email}</p>
           </a>
         ))}
       </div>

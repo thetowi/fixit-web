@@ -58,7 +58,7 @@ export default function BuscarPage() {
 
   return (
     <div className="max-w-lg mx-auto mt-16 p-6 w-full">
-      <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Buscar</p>
+      <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Buscar</p>
       <h1 className="font-display text-2xl text-ink mb-6">Encontrá tu prestador</h1>
 
       <form onSubmit={handleBuscar} className="flex flex-col gap-4 mb-8 bg-surface border border-ink/10 rounded-lg p-4">
@@ -76,7 +76,7 @@ export default function BuscarPage() {
         </select>
 
         {!ubicacion && (
-          <p className="text-xs text-ink/40">
+          <p className="text-xs text-ink-muted">
             Sin acceso a tu ubicación — vamos a mostrar los mejor calificados, sin filtrar por distancia.
           </p>
         )}
@@ -86,7 +86,7 @@ export default function BuscarPage() {
         <button
           type="submit"
           disabled={cargando}
-          className="bg-copper text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
+          className="bg-copper-accion text-paper rounded p-2 font-medium hover:bg-copper-dark transition-colors disabled:opacity-40"
         >
           {cargando ? "Buscando..." : "Buscar"}
         </button>
@@ -94,11 +94,11 @@ export default function BuscarPage() {
 
       {resultados !== null && (
         <>
-          <p className="font-mono text-xs text-ink/40 mb-3 uppercase tracking-wide">
+          <p className="font-mono text-xs text-ink-muted mb-3 uppercase tracking-wide">
             {resultados.length} resultado{resultados.length !== 1 ? "s" : ""}
           </p>
           {resultados.length === 0 && (
-            <p className="text-ink/50 text-sm">
+            <p className="text-ink-muted text-sm">
               No encontramos prestadores de esta categoría{ubicacion ? " que lleguen hasta tu zona" : ""}.
             </p>
           )}
@@ -118,7 +118,7 @@ export default function BuscarPage() {
                         {p.nombre} {p.apellido}
                         {p.verificado && <InsigniaVerificado size={14} className="ml-2" />}
                       </p>
-                      {p.descripcion && <p className="text-sm text-ink/60">{p.descripcion}</p>}
+                      {p.descripcion && <p className="text-sm text-ink-muted">{p.descripcion}</p>}
                       {p.precioReferencia && (
                         <p className="font-mono text-sm text-ink/80 mt-1">
                           Desde ${p.precioReferencia.toLocaleString("es-AR")} /hora
@@ -127,7 +127,7 @@ export default function BuscarPage() {
                     </div>
                   </div>
                   {p.distanciaKm != null ? (
-                    <span className="font-mono text-xs text-copper whitespace-nowrap">
+                    <span className="font-mono text-xs text-copper-text whitespace-nowrap">
                       {p.distanciaKm.toFixed(1)} km
                     </span>
                   ) : p.cantidadCalificaciones > 0 ? (

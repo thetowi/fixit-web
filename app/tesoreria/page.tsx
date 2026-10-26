@@ -54,7 +54,7 @@ function BotonCopiar({ valor }: { valor: string }) {
       type="button"
       onClick={copiar}
       title="Copiar"
-      className="inline-flex items-center text-ink/30 hover:text-copper transition-colors"
+      className="inline-flex items-center text-ink/30 hover:text-copper-text transition-colors"
     >
       {copiado ? <IconoLucide nombre="check" size={13} className="text-stamp" /> : <IconoLucide nombre="copy" size={13} />}
     </button>
@@ -95,7 +95,7 @@ function FilaPrestadorPendiente({
     >
       <div>
         <p className="text-sm text-ink font-medium">{g.nombre}</p>
-        <p className="text-xs text-ink/60 flex items-center gap-1.5 flex-wrap">
+        <p className="text-xs text-ink-muted flex items-center gap-1.5 flex-wrap">
           {g.cbu && g.alias ? (
             <>
               CBU <span className="font-mono">{g.cbu}</span>
@@ -105,7 +105,7 @@ function FilaPrestadorPendiente({
               <span>({g.titular})</span>
             </>
           ) : (
-            <span className="text-safety">Todavía no cargó sus datos de cobro completos</span>
+            <span className="text-safety-text">Todavía no cargó sus datos de cobro completos</span>
           )}
           {g.dia !== null && g.dia !== hoy && <span>· Prefiere cobrar los {DIAS_SEMANA[g.dia]}</span>}
         </p>
@@ -117,7 +117,7 @@ function FilaPrestadorPendiente({
         <button
           onClick={() => onMarcarTransferido(g.ordenId)}
           disabled={procesando}
-          className="text-xs bg-copper text-paper rounded px-2.5 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-50 whitespace-nowrap"
+          className="text-xs bg-copper-accion text-paper rounded px-2.5 py-1.5 hover:bg-copper-dark transition-colors disabled:opacity-50 whitespace-nowrap"
         >
           Marcar transferido
         </button>
@@ -220,7 +220,7 @@ export default function TesoreriaPage() {
     }
   }
 
-  if (cargando) return <p className="p-6 text-ink/60">Cargando...</p>;
+  if (cargando) return <p className="p-6 text-ink-muted">Cargando...</p>;
 
   // --- KPIs y agrupaciones (01/10) — todo calculado acá, a partir del mismo Orden[] que ya
   // consumía /admin (igual que YA hacía app/admin/page.tsx con "Pagos pendientes de transferir"):
@@ -329,7 +329,7 @@ export default function TesoreriaPage() {
     <div className="max-w-5xl mx-auto mt-10 mb-20 p-6 w-full flex flex-col gap-7">
       <div className="flex items-end justify-between">
         <div>
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-2">Oficy · Tesorería</p>
+          <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-2">Oficy · Tesorería</p>
           <h1 className="font-display text-2xl text-ink">Panel del Tesorero</h1>
         </div>
       </div>
@@ -339,17 +339,17 @@ export default function TesoreriaPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-surface border border-ink/10 rounded-lg p-4">
-          <p className="font-mono text-[11px] uppercase tracking-wide text-ink/50">Retenido total</p>
+          <p className="font-mono text-[11px] uppercase tracking-wide text-ink-muted">Retenido total</p>
           <p className="font-mono text-2xl mt-1">{formatoMonto(retenidoTotal)}</p>
-          <p className="text-xs text-ink/50 mt-1">{retenidas.length} órdenes pagadas, sin liberar</p>
+          <p className="text-xs text-ink-muted mt-1">{retenidas.length} órdenes pagadas, sin liberar</p>
         </div>
         <div className="bg-surface border border-ink/10 rounded-lg p-4">
-          <p className="font-mono text-[11px] uppercase tracking-wide text-ink/50">Pendiente de transferir</p>
-          <p className="font-mono text-2xl mt-1 text-copper">{formatoMonto(pendienteTransferirMonto)}</p>
-          <p className="text-xs text-ink/50 mt-1">a {prestadoresPendientes} {prestadoresPendientes === 1 ? "prestador" : "prestadores"}</p>
+          <p className="font-mono text-[11px] uppercase tracking-wide text-ink-muted">Pendiente de transferir</p>
+          <p className="font-mono text-2xl mt-1 text-copper-text">{formatoMonto(pendienteTransferirMonto)}</p>
+          <p className="text-xs text-ink-muted mt-1">a {prestadoresPendientes} {prestadoresPendientes === 1 ? "prestador" : "prestadores"}</p>
         </div>
         <div className="bg-surface border border-ink/10 rounded-lg p-4">
-          <p className="font-mono text-[11px] uppercase tracking-wide text-ink/50">Comisión del mes</p>
+          <p className="font-mono text-[11px] uppercase tracking-wide text-ink-muted">Comisión del mes</p>
           <div className="flex items-baseline gap-2 mt-1">
             <p className="font-mono text-2xl">{formatoMonto(comisionDelMes)}</p>
             {variacionComision !== null && (
@@ -358,12 +358,12 @@ export default function TesoreriaPage() {
               </span>
             )}
           </div>
-          <p className="text-xs text-ink/50 mt-1">vs. mes anterior</p>
+          <p className="text-xs text-ink-muted mt-1">vs. mes anterior</p>
         </div>
         <div className="bg-surface border border-safety/40 rounded-lg p-4">
-          <p className="font-mono text-[11px] uppercase tracking-wide text-ink/50">Disputas abiertas</p>
-          <p className="font-mono text-2xl mt-1 text-safety">{disputasAbiertas.length}</p>
-          <p className="text-xs text-ink/50 mt-1">
+          <p className="font-mono text-[11px] uppercase tracking-wide text-ink-muted">Disputas abiertas</p>
+          <p className="font-mono text-2xl mt-1 text-safety-text">{disputasAbiertas.length}</p>
+          <p className="text-xs text-ink-muted mt-1">
             {disputasResueltasDelMes.length} resueltas este mes
             {tiempoPromedioResolucionHoras !== null && <> · prom. {(tiempoPromedioResolucionHoras / 24).toFixed(1)}d</>}
           </p>
@@ -375,7 +375,7 @@ export default function TesoreriaPage() {
         <div className="flex justify-between items-start mb-4 flex-wrap gap-2">
           <div>
             <h2 className="font-display text-base font-bold text-ink">Volumen de pagos por semana</h2>
-            <p className="text-xs text-ink/50">Últimas 8 semanas — comisión de Oficy vs. lo que se le paga al prestador</p>
+            <p className="text-xs text-ink-muted">Últimas 8 semanas — comisión de Oficy vs. lo que se le paga al prestador</p>
           </div>
           <div className="flex gap-4 text-xs text-ink/70">
             <span className="flex items-center gap-1.5">
@@ -395,7 +395,7 @@ export default function TesoreriaPage() {
             const alturaPagado = alturaTotal - alturaComision;
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="font-mono text-[11px] text-ink/50">{total > 0 ? formatoMonto(total) : ""}</span>
+                <span className="font-mono text-[11px] text-ink-muted">{total > 0 ? formatoMonto(total) : ""}</span>
                 <div className="w-full flex flex-col gap-0.5 justify-end" style={{ height: ALTURA_MAX_BARRA }}>
                   {alturaComision > 0 && <div className="bg-tesoreria-comision rounded-t-sm" style={{ height: alturaComision }} />}
                   {alturaPagado > 0 && <div className="bg-tesoreria-prestadores rounded-b-sm" style={{ height: alturaPagado }} />}
@@ -406,7 +406,7 @@ export default function TesoreriaPage() {
         </div>
         <div className="flex gap-3 pt-1.5">
           {semanas.map((s, i) => (
-            <span key={i} className="flex-1 text-center text-[11px] text-ink/40">{formatoFechaCorta(s.inicio)}</span>
+            <span key={i} className="flex-1 text-center text-[11px] text-ink-muted">{formatoFechaCorta(s.inicio)}</span>
           ))}
         </div>
       </div>
@@ -416,27 +416,27 @@ export default function TesoreriaPage() {
         <div className="bg-surface border border-ink/10 rounded-lg p-5">
           <div className="flex justify-between items-baseline mb-3">
             <h2 className="font-display text-base font-bold text-ink">Pagos pendientes de transferir</h2>
-            <span className="font-mono text-xs text-ink/50">
+            <span className="font-mono text-xs text-ink-muted">
               {gruposPendientes.length} {gruposPendientes.length === 1 ? "prestador" : "prestadores"}
             </span>
           </div>
 
           {gruposPendientes.length === 0 ? (
-            <p className="text-sm text-ink/50">No hay transferencias pendientes en este momento.</p>
+            <p className="text-sm text-ink-muted">No hay transferencias pendientes en este momento.</p>
           ) : (
             <div className="flex flex-col gap-5">
               {/* Para pagar hoy */}
               <div>
                 <div className="flex justify-between items-baseline mb-2">
-                  <p className="font-mono text-[11px] uppercase tracking-wide text-copper">Para pagar hoy</p>
+                  <p className="font-mono text-[11px] uppercase tracking-wide text-copper-text">Para pagar hoy</p>
                   {gruposHoy.length > 0 && (
-                    <span className="font-mono text-xs text-ink/50">
+                    <span className="font-mono text-xs text-ink-muted">
                       {formatoMonto(gruposHoy.reduce((acc, g) => acc + g.total, 0))}
                     </span>
                   )}
                 </div>
                 {gruposHoy.length === 0 ? (
-                  <p className="text-xs text-ink/40">Nadie prefiere cobrar hoy — podés mirar "El resto" más abajo.</p>
+                  <p className="text-xs text-ink-muted">Nadie prefiere cobrar hoy — podés mirar "El resto" más abajo.</p>
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {gruposHoy.map((g) => (
@@ -456,7 +456,7 @@ export default function TesoreriaPage() {
               {/* El resto */}
               {gruposResto.length > 0 && (
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-wide text-ink/40 mb-2">El resto</p>
+                  <p className="font-mono text-[11px] uppercase tracking-wide text-ink-muted mb-2">El resto</p>
                   <ul className="flex flex-col gap-2">
                     {gruposResto.map((g) => (
                       <FilaPrestadorPendiente
@@ -473,7 +473,7 @@ export default function TesoreriaPage() {
               )}
             </div>
           )}
-          <p className="text-xs text-ink/40 mt-3">
+          <p className="text-xs text-ink-muted mt-3">
             "Marcar transferido" confirma UNA orden de este prestador por vez — si tiene varios trabajos pendientes, hacelo
             tantas veces como haga falta (o abrí /admin → Órdenes para verlas una por una).
           </p>
@@ -482,18 +482,18 @@ export default function TesoreriaPage() {
         <div className="bg-surface border border-ink/10 rounded-lg p-5 flex flex-col gap-4">
           <div>
             <h2 className="font-display text-base font-bold text-ink mb-1">Disputas por inasistencia</h2>
-            <p className="text-xs text-ink/50">Reportes de "el cliente no estaba"</p>
+            <p className="text-xs text-ink-muted">Reportes de "el cliente no estaba"</p>
           </div>
 
           {disputasAbiertas.length === 0 ? (
-            <p className="text-sm text-ink/50">No hay disputas abiertas en este momento.</p>
+            <p className="text-sm text-ink-muted">No hay disputas abiertas en este momento.</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {disputasAbiertas.map((o) => (
                 <li key={o.id} className="border border-safety/40 bg-safety/5 rounded-lg p-3">
                   <div className="flex justify-between items-baseline">
                     <span className="text-sm font-semibold text-ink">{o.categoriaNombre} — {o.prestadorNombreCompleto}</span>
-                    <span className="font-mono text-xs text-safety font-semibold">
+                    <span className="font-mono text-xs text-safety-text font-semibold">
                       {o.inasistenciaClienteReportadaEn && new Date(o.inasistenciaClienteReportadaEn).toLocaleDateString("es-AR")}
                     </span>
                   </div>
@@ -535,7 +535,7 @@ export default function TesoreriaPage() {
               <div key={item.nombre} className={`flex items-center gap-3 p-2.5 rounded-lg ${estilo.fila}`}>
                 <span className={`w-2 h-2 rounded-full shrink-0 ${estilo.punto}`} />
                 <span className="text-sm font-medium flex-1">{item.nombre}</span>
-                <span className="text-xs text-ink/55">{item.detalle}</span>
+                <span className="text-xs text-ink-muted">{item.detalle}</span>
               </div>
             );
           })}

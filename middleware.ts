@@ -31,6 +31,7 @@ const RUTAS_APP = [
   "/admin",
   "/prestador/agenda",
   "/prestador/clientes",
+  "/mi-plan", // nuevo sistema de cobros (26/10)
   "/login",
   "/registro",
   "/recuperar-password",

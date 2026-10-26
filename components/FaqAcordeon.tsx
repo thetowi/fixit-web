@@ -29,7 +29,7 @@ export default function FaqAcordeon({ preguntas }: { preguntas: PreguntaFrecuent
               <span className="font-medium text-ink text-sm">{p.pregunta}</span>
               <ChevronDown
                 size={18}
-                className={`shrink-0 text-ink/50 transition-transform duration-200 ${abierta ? "rotate-180" : ""}`}
+                className={`shrink-0 text-ink-muted transition-transform duration-200 ${abierta ? "rotate-180" : ""}`}
               />
             </button>
             <div

@@ -9,5 +9,5 @@ export default function AdminIndexPage() {
   useEffect(() => {
     router.replace("/admin/categorias");
   }, [router]);
-  return <p className="p-6 text-ink/60">Cargando...</p>;
+  return <p className="p-6 text-ink-muted">Cargando...</p>;
 }

@@ -11,5 +11,5 @@ export default function AcercaDeMiPage() {
     router.replace("/cuenta");
   }, [router]);
 
-  return <p className="p-6 text-ink/60">Redirigiendo a Mi cuenta...</p>;
+  return <p className="p-6 text-ink-muted">Redirigiendo a Mi cuenta...</p>;
 }

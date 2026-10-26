@@ -46,6 +46,14 @@ export default function ChatEnVivoPreview() {
       }, demora);
     }
 
+    // Audit 26/10 (/impeccable harden): con "reducir movimiento" se muestra la
+    // conversación completa, quieta, en vez del loop.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setPaso(DEMORAS_PASO.length);
+      return () => {
+        cancelado = true;
+      };
+    }
     avanzar(0);
     return () => {
       cancelado = true;
@@ -63,7 +71,7 @@ export default function ChatEnVivoPreview() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-paper text-sm font-medium leading-tight">Martín G.</p>
-          <p className="text-paper/50 text-[11px] leading-tight">Plomería · Verificado</p>
+          <p className="text-paper/65 text-[11px] leading-tight">Plomería · Verificado</p>
         </div>
         <div className="flex items-center gap-1.5 bg-white/10 rounded-full py-1 pl-2 pr-2.5 shrink-0">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -78,7 +86,7 @@ export default function ChatEnVivoPreview() {
           </p>
         </div>
 
-        <div className={`${claseAparecer(paso >= 2)} self-end max-w-[85%] bg-copper text-paper rounded-xl rounded-tr-sm px-3.5 py-2.5`}>
+        <div className={`${claseAparecer(paso >= 2)} self-end max-w-[85%] bg-copper-accion text-paper rounded-xl rounded-tr-sm px-3.5 py-2.5`}>
           <p className="text-sm">Sí, puedo pasar a las 17hs. Presupuesto: $8.000 con materiales incluidos.</p>
         </div>
 
@@ -92,24 +100,24 @@ export default function ChatEnVivoPreview() {
           {pagado ? (
             <CheckCircle2 size={14} className="text-stamp shrink-0" />
           ) : (
-            <CircleDollarSign size={14} className="text-copper shrink-0" />
+            <CircleDollarSign size={14} className="text-copper-text shrink-0" />
           )}
           <span>
-            {pagado ? "Oferta pagada" : "Oferta del prestador"}: <strong>$8.000</strong>
+            {pagado ? "Oferta aceptada" : "Oferta del prestador"}: <strong>$8.000</strong>
           </span>
         </div>
 
         <div className={`${claseAparecer(paso >= 4)} self-center bg-safety/20 text-ink/70 text-xs rounded-full px-3 py-1`}>
-          Pago retenido hasta completar el trabajo
+          Pagás directo al profesional al terminar
         </div>
 
         <div className={`${claseAparecer(paso >= 5)} self-stretch flex items-center gap-2.5 bg-surface border border-copper/30 rounded-xl px-3.5 py-2.5`}>
           <span className="w-8 h-8 rounded-lg bg-copper/10 flex items-center justify-center shrink-0">
-            <CalendarCheck2 size={16} className="text-copper" strokeWidth={1.8} />
+            <CalendarCheck2 size={16} className="text-copper-text" strokeWidth={1.8} />
           </span>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-ink">Turno agendado para mañana</p>
-            <p className="text-[11px] text-ink/50">Arreglo canilla · 17:00hs</p>
+            <p className="text-[11px] text-ink-muted">Arreglo canilla · 17:00hs</p>
           </div>
         </div>
       </div>

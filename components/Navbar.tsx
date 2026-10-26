@@ -174,7 +174,7 @@ export default function Navbar() {
   function BadgeNoLeidos() {
     if (noLeidos <= 0) return null;
     return (
-      <span className="absolute -top-2 -right-3 bg-copper text-on-nav text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
+      <span className="absolute -top-2 -right-3 bg-copper-nav text-on-nav text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
         {noLeidos > 9 ? "9+" : noLeidos}
       </span>
     );
@@ -184,7 +184,7 @@ export default function Navbar() {
   function BadgeNotificaciones() {
     if (noLeidasNotificaciones <= 0) return null;
     return (
-      <span className="absolute -top-2 -right-3 bg-copper text-on-nav text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
+      <span className="absolute -top-2 -right-3 bg-copper-nav text-on-nav text-[9px] font-mono rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
         {noLeidasNotificaciones > 9 ? "9+" : noLeidasNotificaciones}
       </span>
     );
@@ -222,11 +222,11 @@ export default function Navbar() {
           {!usuario && (
             <>
               <Link href="/login" className="hover:text-safety transition-colors">
-                Iniciar sesion
+                Iniciar sesión
               </Link>
               <Link
                 href="/registro"
-                className="bg-copper text-on-nav rounded px-3 py-1.5 font-medium hover:bg-copper-dark transition-colors"
+                className="bg-copper-nav text-on-nav rounded px-3 py-1.5 font-medium hover:bg-copper-dark transition-colors"
               >
                 Crear cuenta
               </Link>
@@ -248,7 +248,7 @@ export default function Navbar() {
               <Link href="/cuenta" className="hover:text-safety transition-colors" data-tour="nav-cuenta">Mi cuenta</Link>
 
               <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </>
           )}
@@ -265,9 +265,10 @@ export default function Navbar() {
                 Notificaciones
                 <BadgeNotificaciones />
               </Link>
+              <Link href="/mi-plan" className="hover:text-safety transition-colors" data-tour="nav-mi-plan">Mi plan</Link>
               <Link href="/cuenta" className="hover:text-safety transition-colors" data-tour="nav-cuenta">Mi cuenta</Link>
               <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </>
           )}
@@ -276,7 +277,7 @@ export default function Navbar() {
             <>
               <Link href="/admin" className="hover:text-safety transition-colors">Admin</Link>
               <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </>
           )}
@@ -286,7 +287,7 @@ export default function Navbar() {
             <>
               <Link href="/tesoreria" className="hover:text-safety transition-colors">Tesorería</Link>
               <button onClick={handleLogout} className="text-on-nav/60 hover:text-on-nav transition-colors">
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </>
           )}
@@ -301,7 +302,7 @@ export default function Navbar() {
           className="md:hidden relative w-9 h-9 flex items-center justify-center text-on-nav/90 hover:text-on-nav transition-colors shrink-0"
         >
           {noLeidos + noLeidasNotificaciones > 0 && !menuAbierto && (
-            <span className="absolute top-0.5 right-0.5 bg-copper text-on-nav text-[9px] font-mono rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
+            <span className="absolute top-0.5 right-0.5 bg-copper-nav text-on-nav text-[9px] font-mono rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5">
               {noLeidos + noLeidasNotificaciones > 9 ? "9+" : noLeidos + noLeidasNotificaciones}
             </span>
           )}
@@ -359,9 +360,9 @@ export default function Navbar() {
           {!usuario && (
             <>
               <Link href="/login" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">
-                Iniciar sesion
+                Iniciar sesión
               </Link>
-              <Link href="/registro" className="py-3 text-copper font-medium hover:text-copper-dark transition-colors">
+              <Link href="/registro" className="py-3 text-copper-sobre-ink dark:text-copper font-medium hover:text-safety transition-colors">
                 Crear cuenta
               </Link>
             </>
@@ -381,7 +382,7 @@ export default function Navbar() {
               </Link>
               <Link href="/cuenta" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-cuenta">Mi cuenta</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </>
           )}
@@ -398,9 +399,10 @@ export default function Navbar() {
                 Notificaciones
                 <BadgeNotificaciones />
               </Link>
+              <Link href="/mi-plan" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-mi-plan">Mi plan</Link>
               <Link href="/cuenta" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors" data-tour-mobile="nav-cuenta">Mi cuenta</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </>
           )}
@@ -409,7 +411,7 @@ export default function Navbar() {
             <>
               <Link href="/admin" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Admin</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </>
           )}
@@ -418,7 +420,7 @@ export default function Navbar() {
             <>
               <Link href="/tesoreria" className="py-3 border-b border-on-nav/10 hover:text-safety transition-colors">Tesorería</Link>
               <button onClick={handleLogout} className="py-3 text-left text-on-nav/60 hover:text-on-nav transition-colors">
-                Cerrar sesion
+                Cerrar sesión
               </button>
             </>
           )}

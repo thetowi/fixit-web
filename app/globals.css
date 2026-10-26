@@ -39,6 +39,20 @@
      Pasó validate_palette.js con "#B5651D,#0E9488" en modo claro. */
   --tesoreria-comision: #B5651D;
   --tesoreria-prestadores: #0E9488;
+
+  /* Audit 26/10 (/impeccable colorize): roles de texto que pasan WCAG AA.
+     --ink-muted reemplaza a text-ink/40..60 (que daban 2,4–4,3:1). --copper-text es el cobre
+     para texto chico sobre papel. --copper-accion es el fondo de botones con texto claro.
+     --copper-sobre-ink es el cobre para texto sobre las franjas bg-ink (que se invierten). */
+  --ink-muted: #625F57;
+  --copper-text: #9A5418;
+  --copper-accion: #A05818;
+  --copper-sobre-ink: #D08A44;
+  --copper-nav: #A05818;
+  /* 26/10: amarillo para texto de aviso sobre papel (--safety daba 1,8:1) y texto oscuro fijo
+     para botones bg-safety (text-ink se aclara en modo oscuro y quedaba 1,5:1). */
+  --safety-text: #855700;
+  --on-safety: #1B1B18;
 }
 
 .dark {
@@ -62,6 +76,14 @@
      teal. */
   --tesoreria-comision: #C97A3D;
   --tesoreria-prestadores: #1F9D83;
+
+  --ink-muted: #9C9588;
+  --copper-text: #D08A44;
+  --copper-accion: #D08A44;
+  --copper-sobre-ink: #8F4F16;
+  --copper-nav: #A05818;
+  --safety-text: #F4B22E;
+  --on-safety: #1B1B18;
 }
 
 @theme inline {
@@ -74,6 +96,13 @@
   --color-copper-dark: var(--copper-dark);
   --color-safety: var(--safety);
   --color-stamp: var(--stamp);
+  --color-ink-muted: var(--ink-muted);
+  --color-copper-text: var(--copper-text);
+  --color-copper-accion: var(--copper-accion);
+  --color-copper-sobre-ink: var(--copper-sobre-ink);
+  --color-copper-nav: var(--copper-nav);
+  --color-safety-text: var(--safety-text);
+  --color-on-safety: var(--on-safety);
   --color-tesoreria-comision: var(--tesoreria-comision);
   --color-tesoreria-prestadores: var(--tesoreria-prestadores);
 
@@ -252,4 +281,24 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .insignia-icono-destello::after { animation: none; display: none; }
+}
+/* Verde de marca (26/10): el mismo verde de las escenas de confianza de los videos
+   ("Lo reportás y mediamos", "Pagás solo si trabajás"). Más profundo que --stamp para que el
+   texto claro pase AA. Igual en modo claro y oscuro: dentro de la banda --paper queda fijo claro,
+   así los text-paper/xx de adentro no se invierten en modo oscuro. */
+.banda-verde {
+  --paper: #EFEEE6;
+  background: radial-gradient(ellipse 90% 85% at 22% 12%, #146B58 0%, #0E5546 50%, #0A3F33 100%);
+  color: var(--paper);
+}
+/* Texto secundario sobre el verde: un claro teñido de verde, sólido (no transparente), para que
+   pase AA en toda la banda (4,8:1 en la zona más clara del degradé). */
+.banda-verde .text-paper\/65,
+.banda-verde .text-paper\/70,
+.banda-verde .text-paper\/75 { color: #D3E3DB; }
+
+/* Audit 26/10 (/impeccable harden): quien pidió menos movimiento ve las animaciones
+   decorativas de la landing quietas, en su estado final. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce, .animate-pulse, .animate-ping { animation: none !important; }
 }

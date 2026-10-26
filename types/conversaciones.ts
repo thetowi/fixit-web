@@ -18,6 +18,10 @@ export interface Conversacion {
   // Trabajos sin comisión que le quedan al prestador (04/10). Solo viene cuando quien pide la
   // conversación es el prestador; para el cliente es null.
   trabajosGratisRestantes?: number | null;
+  // Chat bloqueado (26/10): el prestador está suspendido por un resumen impago y no hay un trabajo
+  // activo en esta conversación. El motivo ya viene redactado según quién lo pide.
+  chatBloqueado?: boolean;
+  motivoChatBloqueado?: string | null;
 }
 
 export interface IniciarConversacionRequest {

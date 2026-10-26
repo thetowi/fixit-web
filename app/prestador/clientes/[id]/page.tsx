@@ -29,7 +29,7 @@ import Estrellas from "@/components/Estrellas";
 
 const ESTADO_ESTILO: Record<string, string> = {
   Completado: "bg-stamp/10 text-stamp",
-  Cancelado: "bg-ink/8 text-ink/50",
+  Cancelado: "bg-ink/8 text-ink-muted",
   EnDisputa: "bg-red-700/10 text-red-700",
 };
 
@@ -96,14 +96,14 @@ export default function PerfilClientePage() {
   }, [clienteId, router]);
 
   if (cargando) {
-    return <p className="p-6 text-ink/60">Cargando...</p>;
+    return <p className="p-6 text-ink-muted">Cargando...</p>;
   }
 
   if (error || !perfil) {
     return (
       <div className="max-w-2xl mx-auto mt-10 p-6">
         <p className="text-red-700 dark:text-red-400 text-sm">{error || "No se encontró ese cliente."}</p>
-        <button onClick={() => router.back()} className="text-sm text-copper hover:underline mt-3">
+        <button onClick={() => router.back()} className="text-sm text-copper-text hover:underline mt-3">
           Volver
         </button>
       </div>
@@ -118,7 +118,7 @@ export default function PerfilClientePage() {
       <div className="max-w-3xl mx-auto px-6 pt-6">
         <button
           onClick={() => router.back()}
-          className="text-sm text-ink/50 hover:text-ink inline-flex items-center gap-1"
+          className="text-sm text-ink-muted hover:text-ink inline-flex items-center gap-1"
         >
           <span className="text-lg leading-none">‹</span> Volver
         </button>
@@ -163,15 +163,15 @@ export default function PerfilClientePage() {
               Opción B, dentro de una caja angosta y centrada, estructura Opción C. */}
           <div className="w-full max-w-[320px] grid grid-cols-2 divide-x divide-y divide-paper/10 border border-paper/10 rounded-2xl overflow-hidden bg-paper/5">
             <div className="px-4 py-3">
-              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Cliente desde</p>
+              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/70 mb-1">Cliente desde</p>
               <p className="text-[12.5px] font-bold">{formatoMesAno(perfil.clienteDesde)}</p>
             </div>
             <div className="px-4 py-3">
-              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Teléfono</p>
+              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/70 mb-1">Teléfono</p>
               <p className="text-[12.5px] font-bold">{perfil.telefono || "—"}</p>
             </div>
             <div className="px-4 py-3 col-span-2">
-              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/40 mb-1">Dirección</p>
+              <p className="text-[9px] uppercase tracking-wider font-bold text-paper/70 mb-1">Dirección</p>
               {perfil.mostrarDireccion ? (
                 perfil.direccion ? (
                   <p className="text-[12.5px] font-bold flex items-center gap-1.5">
@@ -179,10 +179,10 @@ export default function PerfilClientePage() {
                     {perfil.direccionVerificada && <span className="text-stamp text-xs">✓</span>}
                   </p>
                 ) : (
-                  <p className="text-[12.5px] font-bold text-paper/50">No cargada</p>
+                  <p className="text-[12.5px] font-bold text-paper/70">No cargada</p>
                 )
               ) : (
-                <p className="text-[11px] italic font-normal normal-case tracking-normal text-paper/40">
+                <p className="text-[11px] italic font-normal normal-case tracking-normal text-paper/70">
                   Se muestra una vez que pague o agende un turno con vos.
                 </p>
               )}
@@ -220,17 +220,17 @@ export default function PerfilClientePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 -mt-px py-6 border-b border-ink/10">
           <div className="text-center">
             <p className="font-display text-2xl text-ink">{perfil.trabajosCompletadosConEstePrestador}</p>
-            <p className="text-xs text-ink/50">Trabajos con vos</p>
+            <p className="text-xs text-ink-muted">Trabajos con vos</p>
           </div>
           <div className="text-center">
             <p className="font-display text-2xl text-ink">{perfil.trabajosCompletadosEnLaPlataforma}</p>
-            <p className="text-xs text-ink/50">Trabajos en la plataforma</p>
+            <p className="text-xs text-ink-muted">Trabajos en la plataforma</p>
           </div>
           <div className="text-center">
             <p className="font-display text-2xl text-ink">
-              {perfil.calificacionComoClientePromedio.toFixed(1)} <span className="text-copper">★</span>
+              {perfil.calificacionComoClientePromedio.toFixed(1)} <span className="text-copper-text">★</span>
             </p>
-            <p className="text-xs text-ink/50">
+            <p className="text-xs text-ink-muted">
               Calificación como cliente ({perfil.calificacionComoClienteCantidad})
             </p>
           </div>
@@ -281,7 +281,7 @@ export default function PerfilClientePage() {
             las tarjetas de arriba, acá no tiene sentido mostrar un estado vacío con "0". ---- */}
         {perfil.comentariosDeOtrosPrestadores.length > 0 && (
           <div>
-            <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">
+            <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">
               Lo que dicen otros prestadores · {perfil.calificacionComoClientePromedio.toFixed(1)} ★ ·{" "}
               {perfil.calificacionComoClienteCantidad} calificacion
               {perfil.calificacionComoClienteCantidad === 1 ? "" : "es"}
@@ -291,7 +291,7 @@ export default function PerfilClientePage() {
                 <li key={i} className="bg-surface border border-ink/10 rounded-lg p-5">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-copper/10 text-copper flex items-center justify-center font-display font-bold text-sm shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-copper/10 text-copper-text flex items-center justify-center font-display font-bold text-sm shrink-0">
                         {c.prestadorNombreCompleto
                           .split(" ")
                           .filter(Boolean)
@@ -302,12 +302,12 @@ export default function PerfilClientePage() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-sm text-ink truncate">{c.prestadorNombreCompleto}</p>
-                        <p className="text-xs text-ink/40">{tiempoRelativo(c.creadoEn)}</p>
+                        <p className="text-xs text-ink-muted">{tiempoRelativo(c.creadoEn)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Estrellas valor={c.promedio} tamaño="text-sm" />
-                      <span className="text-xs text-ink/50 font-medium">{c.promedio.toFixed(1)}</span>
+                      <span className="text-xs text-ink-muted font-medium">{c.promedio.toFixed(1)}</span>
                     </div>
                   </div>
                   <p className="text-sm text-ink/70 leading-snug">&ldquo;{c.comentario}&rdquo;</p>
@@ -319,9 +319,9 @@ export default function PerfilClientePage() {
 
         {/* ---- Historial con vos ---- */}
         <div>
-          <p className="font-mono text-xs tracking-widest text-copper uppercase mb-3">Historial con vos</p>
+          <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">Historial con vos</p>
           {perfil.historialConEstePrestador.length === 0 ? (
-            <p className="text-ink/50 text-sm">Todavía no tuviste ninguna orden con este cliente.</p>
+            <p className="text-ink-muted text-sm">Todavía no tuviste ninguna orden con este cliente.</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {perfil.historialConEstePrestador.map((o) => {
@@ -329,7 +329,7 @@ export default function PerfilClientePage() {
                 return (
                   <li key={o.ordenId} className="bg-surface border border-ink/10 rounded-lg px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-ink/45 w-14 shrink-0">
+                      <span className="font-mono text-xs text-ink-muted w-14 shrink-0">
                         {o.fecha ? formatoFechaCorta(o.fecha) : "—"}
                       </span>
                       <span
@@ -343,7 +343,7 @@ export default function PerfilClientePage() {
                         className={`text-[10px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${
                           o.inasistenciaReportada
                             ? "bg-red-700/10 text-red-700 dark:text-red-400"
-                            : ESTADO_ESTILO[o.estado] ?? "bg-ink/8 text-ink/50"
+                            : ESTADO_ESTILO[o.estado] ?? "bg-ink/8 text-ink-muted"
                         }`}
                       >
                         {o.inasistenciaReportada ? "No se presentó" : ESTADO_LABELS[o.estado] ?? o.estado}
@@ -368,9 +368,9 @@ export default function PerfilClientePage() {
           )}
         </div>
 
-        <p className="text-xs text-ink/35 text-center">
+        <p className="text-xs text-ink-muted text-center">
           ¿Algo no coincide?{" "}
-          <Link href="/mensajes" className="text-copper hover:underline">
+          <Link href="/mensajes" className="text-copper-text hover:underline">
             Volver a tus mensajes
           </Link>
         </p>

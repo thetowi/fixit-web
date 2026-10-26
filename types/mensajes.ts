@@ -36,5 +36,8 @@ export interface Mensaje {
   // "Programada" | "Realizada" | "Cancelada" (30/09) — refleja el estado real de la Visita,
   // persistido en el mensaje (no depende de haber estado conectado en vivo al momento del cambio).
   visitaEstado: "Programada" | "Realizada" | "Cancelada" | null;
+  // Filtro de contacto (26/10): el backend ocultó un teléfono/mail/link de este mensaje porque
+  // todavía no hay una oferta aceptada en la conversación.
+  contactoOculto?: boolean;
   enviadoEn: string;
 }
