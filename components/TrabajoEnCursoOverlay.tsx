@@ -85,8 +85,10 @@ export default function TrabajoEnCursoOverlay() {
 
     // Pausado: el timer se congela en el momento de la pausa en vez de seguir sumando — no hace
     // falta un intervalo, un solo cálculo alcanza (vuelve a correr si cambia pausadoEn).
-    if (ordenEnCurso.pausadoEn) {
-      const pausa = new Date(ordenEnCurso.pausadoEn).getTime();
+    // 27/10: también se congela cuando el prestador tocó "Terminé" (el cliente ve el tiempo final).
+    const congeladoEn = ordenEnCurso.terminadoPorPrestadorEn ?? ordenEnCurso.pausadoEn;
+    if (congeladoEn) {
+      const pausa = new Date(congeladoEn).getTime();
       setTiempo(formatearTiempo((pausa - inicio) / 1000));
       return;
     }
@@ -95,7 +97,7 @@ export default function TrabajoEnCursoOverlay() {
     actualizar();
     const intervalo = setInterval(actualizar, 1000);
     return () => clearInterval(intervalo);
-  }, [ordenEnCurso?.iniciadoEn, ordenEnCurso?.pausadoEn]);
+  }, [ordenEnCurso?.iniciadoEn, ordenEnCurso?.pausadoEn, ordenEnCurso?.terminadoPorPrestadorEn]);
 
   async function pausarTrabajo() {
     if (!ordenEnCurso) return;
@@ -123,6 +125,9 @@ export default function TrabajoEnCursoOverlay() {
     try {
       await apiFetch(`/api/ordenes/${ordenEnCurso.ordenId}/reanudar`, { method: "PUT" });
       setOrdenEnCurso({ ...ordenEnCurso, pausadoEn: null, notaPausa: null });
+      // 27/10: el backend corre IniciadoEn lo que duró la pausa; lo volvemos a pedir para que el
+      // timer no sume el rato pausado.
+      await refrescar();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No pudimos reanudar el trabajo.");
     } finally {
@@ -151,6 +156,9 @@ export default function TrabajoEnCursoOverlay() {
     try {
       await apiFetch(`/api/ordenes/${ordenEnCurso.ordenId}/terminado`, { method: "PUT" });
       setTerminadoMarcado(true);
+      // 27/10: para el prestador el trabajo ya terminó (queda esperando la confirmación del
+      // cliente en Mis órdenes): se cierra la pantalla y el timer.
+      setOrdenEnCurso(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No pudimos marcar el trabajo como terminado.");
     } finally {
@@ -287,12 +295,20 @@ export default function TrabajoEnCursoOverlay() {
             </div>
           ) : (
             <>
+              {ordenEnCurso.terminadoPorPrestadorEn && (
+                <div className="flex flex-col gap-1.5 bg-white/[0.06] border border-white/10 rounded-2xl p-3.5">
+                  <span className="text-sm font-medium">El profesional terminó el trabajo</span>
+                  <span className="text-sm opacity-75">
+                    Confirmalo si quedó bien, o reportá un problema. Si no respondés en 72 h, se confirma solo.
+                  </span>
+                </div>
+              )}
               <button
                 onClick={finalizarTrabajo}
                 disabled={finalizando}
                 className="w-full h-[54px] rounded-2xl bg-safety text-on-safety font-bold text-base disabled:opacity-60 transition-opacity"
               >
-                {finalizando ? "Finalizando..." : "Finalizar trabajo"}
+                {finalizando ? "Confirmando..." : ordenEnCurso.terminadoPorPrestadorEn ? "Confirmar que terminó" : "Finalizar trabajo"}
               </button>
               <button
                 onClick={reportarProblema}

@@ -75,4 +75,7 @@ export interface OrdenEnCurso {
   // "Pausado" en vez de "en vivo" (ver TrabajoEnCursoOverlay.tsx).
   pausadoEn: string | null;
   notaPausa: string | null;
+  // 27/10: el prestador tocó "Terminé" y se espera la confirmación del cliente (solo le llega al
+  // cliente: al prestador el backend ya no le devuelve la orden como en curso).
+  terminadoPorPrestadorEn?: string | null;
 }
