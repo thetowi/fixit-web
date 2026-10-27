@@ -7,6 +7,7 @@ import { Orden } from "@/types/ordenes";
 const ESTADO_LABELS: Record<string, string> = {
   PendientePago: "Pendiente de pago",
   Pagado: "Pagado",
+  Aceptada: "Aceptada",
   EnCurso: "En curso",
   Completado: "Completado",
   Cancelado: "Cancelado",
@@ -76,28 +77,6 @@ export default function AdminOrdenesPage() {
       await cargarDatos();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Error al marcar la transferencia");
-    } finally {
-      setProcesandoOrdenId(null);
-    }
-  }
-
-  async function handleResolverInasistenciaPrestador(ordenId: string) {
-    if (
-      !window.confirm(
-        "¿Confirmás que le das la razón al prestador y liberás el pago retenido, sin poder verificar si realmente se presentó en el domicilio?"
-      )
-    )
-      return;
-    const notaAdmin = window.prompt("Nota interna sobre la resolución (opcional):") ?? undefined;
-    setProcesandoOrdenId(ordenId);
-    try {
-      await apiFetch(`/api/ordenes/${ordenId}/resolver-inasistencia-pagar-prestador`, {
-        method: "PUT",
-        body: JSON.stringify({ notaAdmin: notaAdmin?.trim() || undefined }),
-      });
-      await cargarDatos();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al resolver la disputa");
     } finally {
       setProcesandoOrdenId(null);
     }
@@ -242,10 +221,7 @@ export default function AdminOrdenesPage() {
             )}
             {ordenesFiltradas.map((o) => {
               const expandida = ordenExpandidaId === o.id;
-              const tieneDetalle = Boolean(
-                o.pagoEstado ||
-                  (o.estado === "EnDisputa" && o.inasistenciaClienteReportadaEn && !o.inasistenciaResueltaEn)
-              );
+              const tieneDetalle = Boolean(o.pagoEstado || o.estado === "EnDisputa" || o.disputaResueltaEn);
               return (
                 <Fragment key={o.id}>
                   <tr
@@ -292,37 +268,17 @@ export default function AdminOrdenesPage() {
                   {expandida && tieneDetalle && (
                     <tr className="border-t border-ink/5 bg-paper/50">
                       <td colSpan={7} className="p-3">
-                        {/* Inasistencia del cliente (28/09) */}
-                        {o.estado === "EnDisputa" && o.inasistenciaClienteReportadaEn && !o.inasistenciaResueltaEn && (
-                          <div className="bg-safety/5 border border-safety/30 rounded-lg p-3 flex flex-col gap-2 mb-2">
-                            <p className="text-xs text-ink/70">
-                              <span className="font-medium text-safety-text">Disputa por inasistencia del cliente</span> — reportada el{" "}
-                              {new Date(o.inasistenciaClienteReportadaEn).toLocaleString("es-AR")}.
-                              {o.inasistenciaClienteComentario && <> Comentario del prestador: “{o.inasistenciaClienteComentario}”.</>}
-                            </p>
-                            <p className="text-xs text-ink-muted">
-                              No hay forma de verificar desde el sistema si el prestador realmente se presentó o no — elegí a
-                              quién le das la razón según lo que puedas averiguar por fuera (chat, llamada, etc.).
-                            </p>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleResolverInasistenciaPrestador(o.id)}
-                                disabled={procesandoOrdenId === o.id}
-                                className="text-xs bg-stamp text-paper rounded px-2 py-1 hover:opacity-90 transition-colors disabled:opacity-50"
-                              >
-                                Dar la razón al prestador (pagarle)
-                              </button>
-                              {o.pagoEstado === "Retenido" && (
-                                <button
-                                  onClick={() => handleReembolsarOrden(o.id)}
-                                  disabled={procesandoOrdenId === o.id}
-                                  className="text-xs border border-red-700/40 text-red-700 dark:text-red-400 rounded px-2 py-1 hover:bg-red-700/10 transition-colors disabled:opacity-50"
-                                >
-                                  Dar la razón al cliente (reembolsar)
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                        {/* Resolución de disputas del modo Directo (27/10) */}
+                        {o.estado === "EnDisputa" && (
+                          <ResolverDisputaPanel orden={o} onResuelta={cargarDatos} onError={setError} />
+                        )}
+                        {o.disputaResueltaEn && (
+                          <p className="text-xs text-ink-muted mb-2">
+                            Disputa resuelta el {new Date(o.disputaResueltaEn).toLocaleString("es-AR")} a favor{" "}
+                            {o.disputaResolucion === "Prestador" ? "del prestador" : "del cliente"} · quedó{" "}
+                            {o.estado === "Completado" ? "completada" : "cancelada"}
+                            {o.disputaNotaAdmin && <> · Nota: “{o.disputaNotaAdmin}”</>}
+                          </p>
                         )}
 
                         {/* Modelo de retención (23/09) */}
@@ -390,5 +346,143 @@ export default function AdminOrdenesPage() {
         </table>
       </div>
     </>
+  );
+}
+
+// Resolución de disputas del modo Directo (27/10). Sirve para "Hubo un problema" (lo reporta el
+// cliente) y "El cliente no estaba" (lo reporta el prestador). No mueve plata: decide el estado
+// final de la orden, si se le cobra al prestador el cargo por trabajo y la nota que ven los dos.
+function ResolverDisputaPanel({
+  orden,
+  onResuelta,
+  onError,
+}: {
+  orden: Orden;
+  onResuelta: () => Promise<void> | void;
+  onError: (msg: string | null) => void;
+}) {
+  const origen = orden.inasistenciaClienteReportadaEn ? "inasistencia" : "problema";
+  // Punto de partida razonable según quién reportó: el prestador dice que fue y el cliente no
+  // estaba → el trabajo no se hizo; el cliente reporta un problema → el trabajo se hizo, mal o a medias.
+  const [aFavorDe, setAFavorDe] = useState<"Cliente" | "Prestador">("Cliente");
+  const [trabajoRealizado, setTrabajoRealizado] = useState(origen === "problema");
+  const [cobrarCargo, setCobrarCargo] = useState(false);
+  const [nota, setNota] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  const reportadoEn = orden.inasistenciaClienteReportadaEn ?? orden.problemaClienteReportadoEn;
+  const comentario = orden.inasistenciaClienteComentario ?? orden.problemaClienteComentario;
+
+  async function resolver() {
+    const resumen =
+      `A favor ${aFavorDe === "Prestador" ? "del prestador" : "del cliente"}. ` +
+      `La orden queda ${trabajoRealizado ? "completada" : "cancelada"}` +
+      (trabajoRealizado ? (cobrarCargo ? " y se registra el cargo al prestador." : " sin cargo al prestador.") : ".") +
+      " Les llega un aviso a los dos. ¿Confirmás?";
+    if (!window.confirm(resumen)) return;
+    setEnviando(true);
+    onError(null);
+    try {
+      await apiFetch(`/api/ordenes/${orden.id}/resolver-disputa`, {
+        method: "PUT",
+        body: JSON.stringify({
+          aFavorDe,
+          trabajoRealizado,
+          cobrarCargo: trabajoRealizado && cobrarCargo,
+          nota: nota.trim() || undefined,
+        }),
+      });
+      await onResuelta();
+    } catch (err) {
+      onError(err instanceof ApiError ? err.message : "Error al resolver la disputa");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  const opcion = (activo: boolean) =>
+    `text-xs rounded px-2 py-1 border transition-colors ${
+      activo ? "bg-ink text-paper border-ink" : "border-ink/20 text-ink/70 hover:bg-ink/5"
+    }`;
+
+  return (
+    <div className="bg-safety/5 border border-safety/30 rounded-lg p-3 flex flex-col gap-3 mb-2" onClick={(e) => e.stopPropagation()}>
+      <div className="text-xs text-ink/70 flex flex-col gap-1">
+        <p>
+          <span className="font-medium text-safety-text">
+            {origen === "inasistencia" ? "El prestador reportó que el cliente no estaba" : "El cliente reportó un problema con el trabajo"}
+          </span>
+          {reportadoEn && <> · {new Date(reportadoEn).toLocaleString("es-AR")}</>}
+        </p>
+        {comentario && <p>Comentario: “{comentario}”</p>}
+        <p>
+          Cliente: <span className="text-ink">{orden.clienteNombreCompleto || "—"}</span> · Prestador:{" "}
+          <span className="text-ink">{orden.prestadorNombreCompleto}</span>
+        </p>
+        {orden.descripcion && <p>Trabajo: {orden.descripcion}</p>}
+        <p className="text-ink-muted">
+          {orden.checkInEn
+            ? `Marcó "Llegué" el ${new Date(orden.checkInEn).toLocaleString("es-AR")}${
+                orden.checkInDistanciaMetros != null ? ` a ${orden.checkInDistanciaMetros} m del domicilio` : ""
+              }.`
+            : 'No marcó "Llegué".'}
+          {orden.terminadoPorPrestadorEn && ` Tocó "Terminé" el ${new Date(orden.terminadoPorPrestadorEn).toLocaleString("es-AR")}.`}
+        </p>
+        <p className="text-ink-muted">Antes de decidir, revisá el chat y, si hace falta, hablá con los dos.</p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-ink-muted w-36">¿A favor de quién?</span>
+          <button type="button" className={opcion(aFavorDe === "Cliente")} onClick={() => setAFavorDe("Cliente")}>
+            Cliente
+          </button>
+          <button type="button" className={opcion(aFavorDe === "Prestador")} onClick={() => setAFavorDe("Prestador")}>
+            Prestador
+          </button>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-ink-muted w-36">¿Se hizo el trabajo?</span>
+          <button type="button" className={opcion(trabajoRealizado)} onClick={() => setTrabajoRealizado(true)}>
+            Sí, queda completado
+          </button>
+          <button
+            type="button"
+            className={opcion(!trabajoRealizado)}
+            onClick={() => {
+              setTrabajoRealizado(false);
+              setCobrarCargo(false);
+            }}
+          >
+            No, se cancela
+          </button>
+        </div>
+        {trabajoRealizado && (
+          <label className="flex items-center gap-2 text-xs text-ink/80">
+            <input type="checkbox" checked={cobrarCargo} onChange={(e) => setCobrarCargo(e.target.checked)} />
+            Cobrarle al prestador el cargo por trabajo (si es fundador o ya llegó al tope, no suma)
+          </label>
+        )}
+        <textarea
+          value={nota}
+          onChange={(e) => setNota(e.target.value)}
+          rows={2}
+          maxLength={500}
+          placeholder="Nota para el cliente y el prestador: qué se decidió y por qué (la ven los dos)"
+          className="text-xs w-full rounded border border-ink/20 bg-paper text-ink p-2"
+        />
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={resolver}
+          disabled={enviando}
+          className="text-xs bg-ink text-paper rounded px-3 py-1.5 hover:bg-ink/80 transition-colors disabled:opacity-50"
+        >
+          {enviando ? "Resolviendo…" : "Resolver disputa"}
+        </button>
+      </div>
+    </div>
   );
 }
