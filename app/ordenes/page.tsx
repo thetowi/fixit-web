@@ -559,7 +559,15 @@ function OrdenesContenido() {
                     </span>
                   )}
 
-                  {o.estado !== "EnDisputa" && o.inasistenciaResueltaEn && (
+                  {o.disputaResueltaEn && (
+                    <span className="text-sm text-ink-muted">
+                      Oficy resolvió la disputa a favor {o.disputaResolucion === "Prestador" ? "del profesional" : "del cliente"}
+                      {o.estado === "Completado" ? ": el trabajo quedó confirmado" : ": la orden quedó cancelada"}.
+                      {o.disputaNotaAdmin ? ` «${o.disputaNotaAdmin}»` : ""}
+                    </span>
+                  )}
+
+                  {o.estado !== "EnDisputa" && !o.disputaResueltaEn && o.inasistenciaResueltaEn && (
                     <span className="text-sm text-ink-muted">
                       Disputa por inasistencia resuelta{o.inasistenciaResolucion === "PagoPrestador" ? " a favor del prestador" : ""}.
                     </span>
