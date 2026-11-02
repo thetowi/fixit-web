@@ -104,7 +104,7 @@ function FichaRespuesta({ r }: { r: RespuestaEncuesta }) {
         </div>
       ))}
       <div className="sm:col-span-2 text-xs text-ink-muted">
-        Respondió el {new Date(r.creadoEn).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
+        Respondió el {new Date(r.creadoEn).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short", hourCycle: "h23" })}
       </div>
     </dl>
   );

@@ -25,9 +25,27 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
 });
 
+const DESCRIPCION = "Encontrá plomeros, electricistas y más oficios verificados cerca tuyo en Paraná. Acordás el precio antes y le pagás directo al profesional.";
+
+// 02/11 (WE-05): etiquetas Open Graph / Twitter para que el link se vea bien al compartirlo
+// (WhatsApp, Facebook, X). La imagen la genera app/opengraph-image.tsx.
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://oficy.ar"),
   title: "Oficy",
-  description: "Encontrá servicios de oficios cerca tuyo",
+  description: DESCRIPCION,
+  openGraph: {
+    title: "Oficy · El oficio que necesitás, a la vuelta de la esquina",
+    description: DESCRIPCION,
+    url: "/",
+    siteName: "Oficy",
+    locale: "es_AR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Oficy · El oficio que necesitás, a la vuelta de la esquina",
+    description: DESCRIPCION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

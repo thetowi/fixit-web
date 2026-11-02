@@ -23,6 +23,7 @@ export interface UsuarioAdmin {
   rol: string;
   verificado: boolean;
   activo: boolean;
+  esDePrueba: boolean; // 02/11 (WE-02): no aparece en la landing
   creadoEn: string;
 }
 
@@ -67,6 +68,15 @@ export interface ReporteMensual {
   ingresosTotales: number;
   comisionPlataforma: number;
   crecimientoIngresosPorcentaje: number | null;
+  // Nuevo sistema de cobros (02/11, AD-04) — ver ReporteMensualResponse en el backend.
+  trabajosConfirmados: number;
+  trabajosBonificados: number;
+  cargosDelMes: number;
+  crecimientoCargosPorcentaje: number | null;
+  resumenesGenerados: number;
+  resumenesFacturado: number;
+  resumenesCobrado: number;
+  resumenesPendiente: number;
   totalUsuarios: number;
   totalClientes: number;
   totalPrestadores: number;

@@ -274,7 +274,7 @@ export default function AdminOrdenesPage() {
                         )}
                         {o.disputaResueltaEn && (
                           <p className="text-xs text-ink-muted mb-2">
-                            Disputa resuelta el {new Date(o.disputaResueltaEn).toLocaleString("es-AR")} a favor{" "}
+                            Disputa resuelta el {new Date(o.disputaResueltaEn).toLocaleString("es-AR", { hourCycle: "h23" })} a favor{" "}
                             {o.disputaResolucion === "Prestador" ? "del prestador" : "del cliente"} · quedó{" "}
                             {o.estado === "Completado" ? "completada" : "cancelada"}
                             {o.disputaNotaAdmin && <> · Nota: “{o.disputaNotaAdmin}”</>}
@@ -293,7 +293,7 @@ export default function AdminOrdenesPage() {
                               </p>
                               {o.transferenciaPrestadorConfirmadaEn && (
                                 <p className="text-stamp">
-                                  Transferido el {new Date(o.transferenciaPrestadorConfirmadaEn).toLocaleString("es-AR")}
+                                  Transferido el {new Date(o.transferenciaPrestadorConfirmadaEn).toLocaleString("es-AR", { hourCycle: "h23" })}
                                 </p>
                               )}
                               {o.motivoReembolso && <p>Motivo del reembolso: {o.motivoReembolso}</p>}
@@ -412,7 +412,7 @@ function ResolverDisputaPanel({
           <span className="font-medium text-safety-text">
             {origen === "inasistencia" ? "El prestador reportó que el cliente no estaba" : "El cliente reportó un problema con el trabajo"}
           </span>
-          {reportadoEn && <> · {new Date(reportadoEn).toLocaleString("es-AR")}</>}
+          {reportadoEn && <> · {new Date(reportadoEn).toLocaleString("es-AR", { hourCycle: "h23" })}</>}
         </p>
         {comentario && <p>Comentario: “{comentario}”</p>}
         <p>
@@ -422,11 +422,11 @@ function ResolverDisputaPanel({
         {orden.descripcion && <p>Trabajo: {orden.descripcion}</p>}
         <p className="text-ink-muted">
           {orden.checkInEn
-            ? `Marcó "Llegué" el ${new Date(orden.checkInEn).toLocaleString("es-AR")}${
+            ? `Marcó "Llegué" el ${new Date(orden.checkInEn).toLocaleString("es-AR", { hourCycle: "h23" })}${
                 orden.checkInDistanciaMetros != null ? ` a ${orden.checkInDistanciaMetros} m del domicilio` : ""
               }.`
             : 'No marcó "Llegué".'}
-          {orden.terminadoPorPrestadorEn && ` Tocó "Terminé" el ${new Date(orden.terminadoPorPrestadorEn).toLocaleString("es-AR")}.`}
+          {orden.terminadoPorPrestadorEn && ` Tocó "Terminé" el ${new Date(orden.terminadoPorPrestadorEn).toLocaleString("es-AR", { hourCycle: "h23" })}.`}
         </p>
         <p className="text-ink-muted">Antes de decidir, revisá el chat y, si hace falta, hablá con los dos.</p>
       </div>

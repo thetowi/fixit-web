@@ -88,6 +88,23 @@ export default function AdminUsuariosPage() {
     }
   }
 
+  // Cuenta de prueba (02/11, WE-02): no aparece en la landing (trabajos destacados ni números).
+  async function handleCambiarDePrueba(usuario: UsuarioAdmin) {
+    setProcesandoId(usuario.id);
+    try {
+      await apiFetch(`/api/admin/usuarios/${usuario.id}/de-prueba`, {
+        method: "PUT",
+        body: JSON.stringify(!usuario.esDePrueba),
+      });
+      setError(null);
+      await cargarDatos();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al marcar la cuenta");
+    } finally {
+      setProcesandoId(null);
+    }
+  }
+
   if (cargando) return <p className="text-ink-muted">Cargando...</p>;
 
   const usuariosFiltrados = usuarios.filter((u) => {
@@ -224,9 +241,22 @@ export default function AdminUsuariosPage() {
                     >
                       {u.activo ? "Activo" : "Desactivado"}
                     </span>
+                    {u.esDePrueba && (
+                      <span className="ml-1.5 text-xs font-mono uppercase rounded-full px-2 py-0.5 bg-safety/20 text-safety-text">
+                        De prueba
+                      </span>
+                    )}
                   </td>
                   <td className="p-3 text-ink-muted text-xs">{new Date(u.creadoEn).toLocaleDateString("es-AR")}</td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => handleCambiarDePrueba(u)}
+                      disabled={procesandoId === u.id}
+                      title="Las cuentas de prueba no aparecen en la landing"
+                      className="text-xs rounded px-2 py-1 border border-ink/20 text-ink-muted hover:text-ink hover:border-ink/40 mr-2 transition-colors disabled:opacity-40"
+                    >
+                      {u.esDePrueba ? "Quitar de prueba" : "Marcar de prueba"}
+                    </button>
                     {puedeGestionar && (
                       <button
                         onClick={() => handleCambiarEstado(u)}

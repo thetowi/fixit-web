@@ -139,6 +139,9 @@ export default function AdminReportesPage() {
     ];
     const conValor = entradas.filter(([, val]) => val !== null) as [string, number][];
     if (conValor.length === 0) return null;
+    // 02/11: si todos los criterios tienen el mismo promedio (ej. todo 5.00) no hay "más bajo".
+    const valores = conValor.map(([, val]) => val);
+    if (Math.max(...valores) - Math.min(...valores) < 0.01) return null;
     return conValor.reduce((min, actual) => (actual[1] < min[1] ? actual : min))[0];
   }, [reporte]);
 
@@ -152,6 +155,9 @@ export default function AdminReportesPage() {
     ];
     const conValor = entradas.filter(([, val]) => val !== null) as [string, number][];
     if (conValor.length === 0) return null;
+    // 02/11: si todos los criterios tienen el mismo promedio (ej. todo 5.00) no hay "más bajo".
+    const valores = conValor.map(([, val]) => val);
+    if (Math.max(...valores) - Math.min(...valores) < 0.01) return null;
     return conValor.reduce((min, actual) => (actual[1] < min[1] ? actual : min))[0];
   }, [reporte]);
 
@@ -194,13 +200,38 @@ export default function AdminReportesPage() {
               titulo="Órdenes creadas"
               valor={reporte.ordenesCreadas.toLocaleString("es-AR")}
               crecimiento={reporte.crecimientoOrdenesPorcentaje}
+              detalle={`trabajos completados: $${reporte.ingresosTotales.toLocaleString("es-AR")} (lo cobran los prestadores)`}
             />
+            {/* 02/11 (AD-04): con el modelo de cobro directo lo que gana Oficy son los cargos por
+                trabajo confirmado, no los "ingresos" de las órdenes (esa plata es del prestador). */}
             <StatTile
-              titulo="Ingresos (completados)"
-              valor={`$${reporte.ingresosTotales.toLocaleString("es-AR")}`}
-              crecimiento={reporte.crecimientoIngresosPorcentaje}
-              detalle={`comisión: $${reporte.comisionPlataforma.toLocaleString("es-AR")}`}
+              titulo="Cargos del mes"
+              valor={`$${reporte.cargosDelMes.toLocaleString("es-AR")}`}
+              crecimiento={reporte.crecimientoCargosPorcentaje}
+              detalle={`${reporte.trabajosConfirmados} trabajos confirmados${
+                reporte.trabajosBonificados > 0 ? ` · ${reporte.trabajosBonificados} bonificados` : ""
+              }`}
             />
+          </div>
+
+          {/* Cobranza: los resúmenes mensuales de este mes (se generan cuando el mes termina) */}
+          <div>
+            <p className="text-xs text-ink-muted uppercase tracking-wide font-mono mb-2">Resúmenes del mes</p>
+            {reporte.resumenesGenerados === 0 ? (
+              <p className="text-sm text-ink-muted bg-surface border border-ink/10 rounded-lg p-4">
+                Todavía no hay resúmenes de este mes: se generan cuando el mes termina.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <StatTile
+                  titulo="Facturado"
+                  valor={`$${reporte.resumenesFacturado.toLocaleString("es-AR")}`}
+                  detalle={`${reporte.resumenesGenerados} resúmenes (con tope)`}
+                />
+                <StatTile titulo="Cobrado" valor={`$${reporte.resumenesCobrado.toLocaleString("es-AR")}`} />
+                <StatTile titulo="Pendiente" valor={`$${reporte.resumenesPendiente.toLocaleString("es-AR")}`} detalle="pendientes o vencidos" />
+              </div>
+            )}
           </div>
 
           {/* Estadísticas generales — acumulado histórico, no depende del mes elegido */}

@@ -601,7 +601,8 @@ function OrdenesContenido() {
                     </button>
                   )}
 
-                  {o.yaCalificadaComoCliente && (
+                  {/* 02/11: solo el prestador; antes el cliente también veía este texto. */}
+                  {esPrestador && o.yaCalificadaComoCliente && (
                     <span className="text-sm text-ink-muted">Ya calificaste a este cliente</span>
                   )}
                 </div>
@@ -620,7 +621,7 @@ function OrdenesContenido() {
                 {o.checkInEn && ESTADOS_ABIERTOS.includes(o.estado) && (
                   <p className="mt-2 text-xs text-ink-muted">
                     {esCliente ? "El profesional avisó que llegó" : "Avisaste que llegaste"} a las{" "}
-                    {new Date(o.checkInEn).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(o.checkInEn).toLocaleTimeString("es-AR", { hour: "2-digit", hourCycle: "h23", minute: "2-digit" })}
                     {esPrestador && o.checkInDistanciaMetros != null && o.checkInDistanciaMetros > 500
                       ? ` (a ${(o.checkInDistanciaMetros / 1000).toLocaleString("es-AR", { maximumFractionDigits: 1 })} km de la dirección del cliente)`
                       : ""}
@@ -634,7 +635,7 @@ function OrdenesContenido() {
                     confirma solo el{" "}
                     {new Date(new Date(o.terminadoPorPrestadorEn).getTime() + HORAS_AUTO_CONFIRMACION * 3600_000).toLocaleString(
                       "es-AR",
-                      { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }
+                      { day: "numeric", month: "short", hour: "2-digit", hourCycle: "h23", minute: "2-digit" }
                     )}
                     .
                   </p>

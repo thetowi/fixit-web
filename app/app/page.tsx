@@ -275,7 +275,7 @@ export default function AppHome() {
                 titulo={`Hoy te visita ${avisoHoyCliente.prestadorNombreCompleto}`}
                 subtitulo={`${avisoHoyCliente.descripcion || avisoHoyCliente.categoriaNombre} · ${new Date(
                   avisoHoyCliente.fechaHoraProgramada!
-                ).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}${
+                ).toLocaleTimeString("es-AR", { hour: "2-digit", hourCycle: "h23", minute: "2-digit" })}${
                   masTrabajosHoyCliente > 0 ? ` · +${masTrabajosHoyCliente} más hoy` : ""
                 }`}
                 href="/ordenes"
@@ -303,7 +303,7 @@ export default function AppHome() {
               titulo={`Hoy visitas a ${avisoHoyPrestador.clienteNombreCompleto}`}
               subtitulo={`${avisoHoyPrestador.descripcion || avisoHoyPrestador.categoriaNombre} · ${new Date(
                 avisoHoyPrestador.fechaHoraProgramada!
-              ).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}${
+              ).toLocaleTimeString("es-AR", { hour: "2-digit", hourCycle: "h23", minute: "2-digit" })}${
                 masTrabajosHoyPrestador > 0 ? ` · +${masTrabajosHoyPrestador} más hoy` : ""
               }`}
               href="/prestador/agenda"
@@ -362,7 +362,7 @@ export default function AppHome() {
                       <div className="min-w-0">
                         <p className="font-mono text-xs text-ink-muted">
                           {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                            hour: "2-digit",
+                            hour: "2-digit", hourCycle: "h23",
                             minute: "2-digit",
                           })}
                           {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}
@@ -413,7 +413,7 @@ export default function AppHome() {
                           })}{" "}
                           ·{" "}
                           {new Date(o.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                            hour: "2-digit",
+                            hour: "2-digit", hourCycle: "h23",
                             minute: "2-digit",
                           })}
                           {o.duracionMinutos ? ` · ${formatoDuracion(o.duracionMinutos)}` : ""}

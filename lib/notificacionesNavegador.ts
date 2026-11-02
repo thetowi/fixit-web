@@ -1,9 +1,9 @@
 // Notificaciones nativas del navegador (API Notification) para avisar de mensajes nuevos
-// cuando la pestaña de FixIt no está activa. No requiere ningún backend: solo funciona
+// cuando la pestaña de Oficy no está activa. No requiere ningún backend: solo funciona
 // mientras el navegador esté abierto (a diferencia de un push real, que llegaría incluso
 // con el navegador cerrado — eso queda para más adelante, ver backlog "Web Push").
 
-export const TITULO_BASE = "FixIt";
+export const TITULO_BASE = "Oficy";
 
 export function pedirPermisoNotificaciones(): void {
   if (typeof window === "undefined" || !("Notification" in window)) return;

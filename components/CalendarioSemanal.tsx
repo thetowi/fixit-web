@@ -157,9 +157,11 @@ export default function CalendarioSemanal({
 
   function TarjetaTurno({ orden }: { orden: OrdenAgenda }) {
     const esVisita = orden.tipo === "Visita";
+    // 02/11: "visitaCancelada" cubre también las órdenes canceladas ("Cancelado"); antes seguían
+    // viéndose como activas en la agenda.
     // Una Visita cancelada o ya realizada no es más "programada" (30/09) — se muestra atenuada
     // (cancelada) o con la etiqueta en verde (realizada) en vez del copper de "programada".
-    const visitaCancelada = esVisita && orden.estado === "Cancelada";
+    const visitaCancelada = (orden.estado === "Cancelada" || orden.estado === "Cancelado");
     const visitaRealizada = esVisita && orden.estado === "Realizada";
     const etiqueta = estiloEtiquetaCategoria(orden.categoriaNombre);
     return (
@@ -310,7 +312,7 @@ export default function CalendarioSemanal({
                   {turnosDia.map((orden, i) => {
                     const esVisita = orden.tipo === "Visita";
                     // Ver el mismo criterio en TarjetaTurno más arriba (30/09).
-                    const visitaCancelada = esVisita && orden.estado === "Cancelada";
+                    const visitaCancelada = (orden.estado === "Cancelada" || orden.estado === "Cancelado");
                     const visitaRealizada = esVisita && orden.estado === "Realizada";
                     const color = visitaRealizada ? "#16a34a" : esVisita ? "var(--copper)" : colorCategoria(orden.categoriaNombre);
                     return (
@@ -325,12 +327,12 @@ export default function CalendarioSemanal({
                         <div className="min-w-0 flex-1">
                           <p className="font-mono text-xs text-ink-muted mb-0.5">
                             {new Date(orden.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                              hour: "2-digit",
+                              hour: "2-digit", hourCycle: "h23",
                               minute: "2-digit",
                             })}
                             {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
                             {" · "}
-                            {visitaCancelada ? "Visita cancelada" : visitaRealizada ? "✓ Visita realizada" : esVisita ? "📍 Visita" : orden.categoriaNombre}
+                            {visitaCancelada ? (esVisita ? "Visita cancelada" : "Trabajo cancelado") : visitaRealizada ? "✓ Visita realizada" : esVisita ? "📍 Visita" : orden.categoriaNombre}
                           </p>
                           <p className={`font-medium text-ink ${visitaCancelada ? "line-through" : ""}`}>{orden.clienteNombreCompleto}</p>
                           <p className={`text-sm text-ink-muted ${visitaCancelada ? "line-through" : ""}`}>{orden.descripcion || orden.categoriaNombre}</p>
@@ -467,18 +469,19 @@ export default function CalendarioSemanal({
                       weekday: "long",
                       day: "numeric",
                       month: "short",
-                      hour: "2-digit",
+                      hour: "2-digit", hourCycle: "h23",
                       minute: "2-digit",
                     })}
                     {ordenSeleccionada.duracionMinutos ? ` · ${formatoDuracion(ordenSeleccionada.duracionMinutos)}` : ""}
                   </dd>
                 </div>
               )}
-              {ordenSeleccionada.tipo === "Visita" && ordenSeleccionada.estado !== "Programada" && (
+              {((ordenSeleccionada.tipo === "Visita" && ordenSeleccionada.estado !== "Programada") ||
+                ordenSeleccionada.estado === "Cancelado") && (
                 <div>
                   <dt className="text-[10px] uppercase tracking-wide text-ink-muted font-mono">Estado</dt>
                   <dd className={ordenSeleccionada.estado === "Realizada" ? "text-green-700 font-medium" : "text-ink-muted"}>
-                    {ordenSeleccionada.estado === "Realizada" ? "✓ Realizada" : "Cancelada"}
+                    {ordenSeleccionada.estado === "Realizada" ? "✓ Realizada" : ordenSeleccionada.estado === "Cancelado" ? "Cancelado" : "Cancelada"}
                   </dd>
                 </div>
               )}

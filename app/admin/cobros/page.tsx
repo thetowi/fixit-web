@@ -122,7 +122,9 @@ function Resumenes({ onError }: { onError: (e: string | null) => void }) {
   }
 
   async function generar() {
-    const p = window.prompt("¿Qué período querés generar? (AAAA-MM). Vacío = el mes anterior.", "");
+    // 02/11 (CO-10): solo meses terminados. Si el resumen ya existía y hubo cargos nuevos de ese
+    // mes, el backend lo recalcula (mientras no esté pagado).
+    const p = window.prompt("¿Qué período querés generar? (AAAA-MM, solo meses ya terminados). Vacío = el mes anterior.", "");
     if (p === null) return;
     onError(null);
     try {
@@ -130,7 +132,7 @@ function Resumenes({ onError }: { onError: (e: string | null) => void }) {
       const { generados } = await apiFetch<{ generados: number }>(`/api/admin/cobros/resumenes/generar${qs}`, {
         method: "POST",
       });
-      setAviso(generados > 0 ? `Se generaron ${generados} resúmenes.` : "No había resúmenes nuevos para generar.");
+      setAviso(generados > 0 ? `Se generaron o actualizaron ${generados} resúmenes.` : "No había resúmenes nuevos ni cambios para generar.");
       await cargar();
     } catch (err) {
       onError(mensaje(err, "No se pudieron generar los resúmenes"));

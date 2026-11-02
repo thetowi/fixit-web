@@ -833,7 +833,7 @@ export default function ConversacionPage() {
                         <p className="text-xs text-ink-muted mt-1">
                           Agendada el{" "}
                           {new Date(m.ofertaAgendadaEn).toLocaleDateString("es-AR", { day: "numeric", month: "short" })} a las{" "}
-                          {new Date(m.ofertaAgendadaEn).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                          {new Date(m.ofertaAgendadaEn).toLocaleTimeString("es-AR", { hour: "2-digit", hourCycle: "h23", minute: "2-digit" })}
                         </p>
                       )}
                     </>
@@ -906,7 +906,7 @@ export default function ConversacionPage() {
               ? fecha.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
               : "";
             const horaTexto = fecha
-              ? fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+              ? fecha.toLocaleTimeString("es-AR", { hour: "2-digit", hourCycle: "h23", minute: "2-digit" })
               : "";
             const colorBorde = m.turnoVigente ? "border-copper" : "border-ink/10 opacity-60";
             const colorHeader = m.turnoVigente ? "bg-copper-accion text-paper" : "bg-ink/10 text-ink-muted";
@@ -957,7 +957,7 @@ export default function ConversacionPage() {
               ? fecha.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
               : "";
             const horaTexto = fecha
-              ? fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+              ? fecha.toLocaleTimeString("es-AR", { hour: "2-digit", hourCycle: "h23", minute: "2-digit" })
               : "";
             // "Programada" | "Realizada" | "Cancelada" — viene persistido en el mensaje (30/09), ya
             // no hace falta ningún Set local para saber qué pasó. Si viene null (mensajes viejos, ya
@@ -1621,7 +1621,9 @@ function BurbujaAudio({
 
   const colorAcento = "#B5651D";
   const colorLleno = esMio ? "rgba(239,238,230,0.9)" : colorAcento;
-  const colorVacio = esMio ? "rgba(239,238,230,0.25)" : "rgba(27,27,24,0.18)";
+  // 02/11 (CH-04): en modo oscuro la onda del audio recibido era oscura sobre fondo oscuro. Ahora
+  // se arma con --ink, que se invierte con el tema.
+  const colorVacio = esMio ? "rgba(239,238,230,0.25)" : "color-mix(in srgb, var(--ink) 22%, transparent)";
 
   return (
     <div className="flex items-center gap-2.5 w-full">

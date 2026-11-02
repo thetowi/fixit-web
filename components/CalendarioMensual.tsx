@@ -145,12 +145,12 @@ export default function CalendarioMensual({
                                   ? "#16a34a"
                                   : "var(--copper)"
                               : colorCategoria(t.categoriaNombre),
-                          opacity: t.tipo === "Visita" && t.estado === "Cancelada" ? 0.3 : 1,
+                          opacity: t.estado === "Cancelada" || t.estado === "Cancelado" ? 0.3 : 1,
                         }}
                       />
                       <span
                         className={`text-[10px] font-medium text-ink truncate ${
-                          t.tipo === "Visita" && t.estado === "Cancelada" ? "line-through opacity-60" : ""
+                          t.estado === "Cancelada" || t.estado === "Cancelado" ? "line-through opacity-60" : ""
                         }`}
                       >
                         {nombreCorto(t.clienteNombreCompleto)}
@@ -196,7 +196,7 @@ export default function CalendarioMensual({
               {turnosDelDiaDetalle.map((orden) => {
                 const esVisita = orden.tipo === "Visita";
                 // Ver el mismo criterio en CalendarioSemanal (30/09).
-                const visitaCancelada = esVisita && orden.estado === "Cancelada";
+                const visitaCancelada = (orden.estado === "Cancelada" || orden.estado === "Cancelado");
                 const visitaRealizada = esVisita && orden.estado === "Realizada";
                 const color = visitaRealizada ? "#16a34a" : esVisita ? "var(--copper)" : colorCategoria(orden.categoriaNombre);
                 return (
@@ -207,12 +207,12 @@ export default function CalendarioMensual({
                   >
                     <p className="font-mono text-xs text-ink-muted mb-0.5">
                       {new Date(orden.fechaHoraProgramada!).toLocaleTimeString("es-AR", {
-                        hour: "2-digit",
+                        hour: "2-digit", hourCycle: "h23",
                         minute: "2-digit",
                       })}
                       {orden.duracionMinutos ? ` · ${formatoDuracion(orden.duracionMinutos)}` : ""}
                       {" · "}
-                      {visitaCancelada ? "Visita cancelada" : visitaRealizada ? "✓ Visita realizada" : esVisita ? "📍 Visita" : orden.categoriaNombre}
+                      {visitaCancelada ? (esVisita ? "Visita cancelada" : "Trabajo cancelado") : visitaRealizada ? "✓ Visita realizada" : esVisita ? "📍 Visita" : orden.categoriaNombre}
                     </p>
                     <p className={`font-medium text-ink ${visitaCancelada ? "line-through" : ""}`}>{orden.clienteNombreCompleto}</p>
                     <p className={`text-sm text-ink-muted ${visitaCancelada ? "line-through" : ""}`}>{orden.descripcion || orden.categoriaNombre}</p>
