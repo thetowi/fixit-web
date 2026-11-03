@@ -487,7 +487,7 @@ export default function CalendarioSemanal({
               )}
             </dl>
 
-            {onReprogramar && ordenSeleccionada.tipo !== "Visita" && (
+            {onReprogramar && ordenSeleccionada.tipo !== "Visita" && ordenSeleccionada.estado !== "Cancelado" && (
               <button
                 onClick={() => {
                   const orden = ordenSeleccionada;

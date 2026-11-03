@@ -208,8 +208,10 @@ export default function AdminReportesPage() {
               titulo="Cargos del mes"
               valor={`$${reporte.cargosDelMes.toLocaleString("es-AR")}`}
               crecimiento={reporte.crecimientoCargosPorcentaje}
-              detalle={`${reporte.trabajosConfirmados} trabajos confirmados${
-                reporte.trabajosBonificados > 0 ? ` · ${reporte.trabajosBonificados} bonificados` : ""
+              detalle={`${reporte.trabajosConfirmados} ${reporte.trabajosConfirmados === 1 ? "trabajo confirmado" : "trabajos confirmados"}${
+                reporte.trabajosBonificados > 0
+                  ? ` · ${reporte.trabajosBonificados} ${reporte.trabajosBonificados === 1 ? "bonificado" : "bonificados"}`
+                  : ""
               }`}
             />
           </div>
@@ -226,7 +228,7 @@ export default function AdminReportesPage() {
                 <StatTile
                   titulo="Facturado"
                   valor={`$${reporte.resumenesFacturado.toLocaleString("es-AR")}`}
-                  detalle={`${reporte.resumenesGenerados} resúmenes (con tope)`}
+                  detalle={`${reporte.resumenesGenerados} ${reporte.resumenesGenerados === 1 ? "resumen" : "resúmenes"} (con tope)`}
                 />
                 <StatTile titulo="Cobrado" valor={`$${reporte.resumenesCobrado.toLocaleString("es-AR")}`} />
                 <StatTile titulo="Pendiente" valor={`$${reporte.resumenesPendiente.toLocaleString("es-AR")}`} detalle="pendientes o vencidos" />

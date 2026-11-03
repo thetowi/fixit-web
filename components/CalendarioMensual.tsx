@@ -233,7 +233,7 @@ export default function CalendarioMensual({
                       </p>
                     )}
                     {orden.clienteTelefono && <p className="text-xs text-ink-muted mt-0.5">{orden.clienteTelefono}</p>}
-                    {onReprogramar && !esVisita && (
+                    {onReprogramar && !esVisita && !visitaCancelada && (
                       <button
                         onClick={() => {
                           setDiaDetalle(null);
