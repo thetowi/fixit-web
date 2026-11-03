@@ -21,7 +21,19 @@ export async function apiFetch<T>(
     },
   });
 
-      if (!response.ok) {
+      // 03/11 (CU-06/AD-01): si el servidor rechaza la sesión (vencida o cuenta desactivada), se cierra
+  // y se manda al login, en vez de dejar la pantalla "logueada" con errores. No aplica a /api/auth
+  // (ahí un 401 es "contraseña incorrecta" o "email sin confirmar").
+  if (response.status === 401 && token && !path.toLowerCase().startsWith("/api/auth") && typeof window !== "undefined") {
+    localStorage.removeItem("fixit_token");
+    localStorage.removeItem("fixit_usuario");
+    if (!window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login?sesion=vencida";
+    }
+    throw new ApiError("Tu sesión venció. Iniciá sesión de nuevo.", 401);
+  }
+
+  if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
     throw new ApiError(errorBody?.error ?? "Ocurrió un error", response.status);
   }

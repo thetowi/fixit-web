@@ -30,6 +30,10 @@ export default function LoginPage() {
     if (params.get("confirmado") === "true") {
       setMensajeExito("¡Tu cuenta fue creada y confirmada con éxito! Ya podés iniciar sesión.");
     }
+    // 03/11 (CU-06): viene de lib/api.ts cuando el servidor rechazó la sesión.
+    if (params.get("sesion") === "vencida") {
+      setError("Tu sesión venció o se cerró. Iniciá sesión de nuevo.");
+    }
   }, []);
 
   const [pendienteDeRol, setPendienteDeRol] = useState<{

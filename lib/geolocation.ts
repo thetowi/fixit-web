@@ -23,7 +23,9 @@ export function obtenerUbicacionActual(): Promise<Coordenadas> {
         } else {
           reject(new Error("No pudimos obtener tu ubicación. Intentá de nuevo."));
         }
-      }
+      },
+      // 03/11: sin límite, si el navegador nunca respondía el botón quedaba cargando para siempre.
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
   });
 }

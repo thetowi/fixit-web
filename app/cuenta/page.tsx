@@ -808,7 +808,8 @@ function CuentaContenido() {
               {perfil.nombre[0]}{perfil.apellido[0]}
             </div>
           )}
-          <div>
+          {/* 03/11 (RO-05): min-w-0 + break-all para que un email largo no desborde con letra grande. */}
+          <div className="min-w-0">
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={subiendoFoto}
@@ -823,7 +824,7 @@ function CuentaContenido() {
               className="hidden"
               onChange={handleCambiarFoto}
             />
-            <p className="text-xs text-ink-muted mt-1">
+            <p className="text-xs text-ink-muted mt-1 break-all">
               {perfil.email} · <span className="uppercase">{perfil.rol}</span>
               {perfil.verificado && <InsigniaVerificado size={14} className="ml-1" />}
             </p>
@@ -866,7 +867,7 @@ function CuentaContenido() {
               <input
                 type="text"
                 placeholder="Empezá a tipear la calle y elegí una sugerencia para verificarla"
-                className="border border-ink/20 rounded p-2 flex-1 bg-paper"
+                className="border border-ink/20 rounded p-2 flex-1 min-w-0 bg-paper"
                 value={calleDireccion}
                 onChange={(e) => handleCambiarCalleDireccion(e.target.value)}
                 onFocus={() => setMostrarSugerencias(true)}
@@ -878,7 +879,7 @@ function CuentaContenido() {
                 inputMode="numeric"
                 placeholder="Número"
                 disabled={sinNumeroDireccion}
-                className="border border-ink/20 rounded p-2 w-24 bg-paper disabled:opacity-40"
+                className="border border-ink/20 rounded p-2 w-24 shrink-0 bg-paper disabled:opacity-40"
                 value={numeroDireccion}
                 onChange={(e) => setNumeroDireccion(e.target.value)}
               />

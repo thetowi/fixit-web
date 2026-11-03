@@ -162,6 +162,36 @@ export default function ConversacionPage() {
         });
     }
 
+    // 03/11 (RO-01/RO-02): recargar el historial y reconectar si la conexión quedó cortada (por
+    // ejemplo, después de perder internet o de tener la pestaña en segundo plano mucho tiempo).
+    async function recargarHistorial() {
+      try {
+        const historial = await apiFetch<Mensaje[]>(`/api/conversaciones/${conversacionId}/mensajes`);
+        if (activo) setMensajes(historial);
+      } catch {
+        // si falla, queda lo que ya había en pantalla
+      }
+    }
+
+    async function asegurarConexion() {
+      const c = conexionRef.current;
+      if (!c || !activo || c.state !== signalR.HubConnectionState.Disconnected) return;
+      try {
+        await c.start();
+        await c.invoke("UnirseAConversacion", conversacionId);
+        setError(null);
+        await recargarHistorial();
+      } catch {
+        if (activo) setTimeout(() => asegurarConexion(), 5000);
+      }
+    }
+
+    function alVolver() {
+      if (document.visibilityState === "visible") asegurarConexion();
+    }
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("online", asegurarConexion);
+
     async function iniciar() {
       try {
         const [historial, datosConversacion] = await Promise.all([
@@ -238,9 +268,20 @@ export default function ConversacionPage() {
 
         conexion.onreconnected(() => {
           // SignalR no restaura solo la membresía a grupos tras reconectar: hay que volver a unirse
-          conexion.invoke("UnirseAConversacion", conversacionId).catch(() => {
-            setError("Se reconectó el chat pero no pudimos volver a unirte a la conversación. Recargá la página.");
-          });
+          conexion.invoke("UnirseAConversacion", conversacionId)
+            .then(() => {
+              // 03/11 (RO-01): traer lo que llegó mientras estábamos desconectados.
+              setError(null);
+              return recargarHistorial();
+            })
+            .catch(() => {
+              setError("Se reconectó el chat pero no pudimos volver a unirte a la conversación. Recargá la página.");
+            });
+        });
+
+        // 03/11 (RO-01): si la conexión se cierra del todo, volver a intentar mientras la pantalla siga abierta.
+        conexion.onclose(() => {
+          if (activo) setTimeout(() => asegurarConexion(), 3000);
         });
 
         await conexion.start();
@@ -260,6 +301,8 @@ export default function ConversacionPage() {
 
     return () => {
       activo = false;
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("online", asegurarConexion);
       conexionRef.current?.stop();
       if (timeoutEscribiendoRef.current) clearTimeout(timeoutEscribiendoRef.current);
       if (timeoutGrabandoAudioRef.current) clearTimeout(timeoutGrabandoAudioRef.current);

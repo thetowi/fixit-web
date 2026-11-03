@@ -233,7 +233,10 @@ export default function AppHome() {
   if (!listo || !usuario || !fraseHero) return null;
 
   const hoy = new Date();
-  const trabajosHoyActivos = trabajosHoy.filter((o) => o.estado !== "Cancelado" && o.estado !== "Completado");
+  // 03/11: tampoco las que están en disputa (mismo criterio que mobile).
+  const trabajosHoyActivos = trabajosHoy.filter(
+    (o) => o.estado !== "Cancelado" && o.estado !== "Completado" && o.estado !== "EnDisputa"
+  );
   const avisoHoyPrestador = trabajosHoyActivos[0] ?? null;
   const masTrabajosHoyPrestador = trabajosHoyActivos.length - 1;
 
@@ -243,7 +246,10 @@ export default function AppHome() {
         o.fechaHoraProgramada &&
         fechaHoyEsIgual(new Date(o.fechaHoraProgramada), hoy) &&
         o.estado !== "Cancelado" &&
-        o.estado !== "Completado"
+        o.estado !== "Completado" &&
+        // 03/11: tampoco las que están en disputa o que el prestador ya marcó como terminadas.
+        o.estado !== "EnDisputa" &&
+        !o.terminadoPorPrestadorEn
     )
     .sort((a, b) => new Date(a.fechaHoraProgramada!).getTime() - new Date(b.fechaHoraProgramada!).getTime());
   const avisoHoyCliente = trabajosHoyCliente[0] ?? null;
@@ -257,7 +263,9 @@ export default function AppHome() {
 
   return (
     <div className="flex-1 flex flex-col items-center px-6">
-      <div className="flex flex-col items-center text-center pt-20 pb-14">
+      {/* 03/11 (RO-05): w-full para que el aviso de "Hoy" (con texto truncado) no ensanche la
+          columna más que la pantalla en celulares con letra grande. */}
+      <div className="flex flex-col items-center text-center pt-20 pb-14 w-full">
         <p className="font-mono text-xs tracking-widest text-copper-text uppercase mb-3">
           Plomería · Electricidad · Gas · Jardinería
         </p>

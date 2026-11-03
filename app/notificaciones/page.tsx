@@ -72,7 +72,8 @@ export default function NotificacionesPage() {
 
   return (
     <div className="max-w-lg mx-auto mt-16 p-6 w-full">
-      <div className="flex items-center justify-between gap-3 mb-6">
+      {/* 03/11 (RO-05): flex-wrap para que "Marcar todas como leídas" baje de línea con letra grande. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="font-display text-2xl text-ink">Notificaciones</h1>
         {hayNoLeidas && (
           <button
